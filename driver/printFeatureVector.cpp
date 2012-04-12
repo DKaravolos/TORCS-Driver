@@ -2,11 +2,11 @@
 
 using namespace std;
 
-void printFeatureVector(vector<float> featureVector)
+void printFeatureVector(vector<double> featureVector)
 {
 	cout << "Printing Features..."<< endl;
 	int count = 0;
-	for (vector<float>::iterator it = featureVector.begin(); it!=featureVector.end(); ++it){
+	for (vector<double>::iterator it = featureVector.begin(); it!=featureVector.end(); ++it){
 		if (count < 4){
 			cout << "Feature " << count << ": " << *it << endl;
 		}
@@ -17,7 +17,7 @@ void printFeatureVector(vector<float> featureVector)
 	cout << "\n\n\n";
 }
 
-void printFeatureVectorPointer(vector<float>* featureVector)
+void printFeatureVectorPointer(vector<double>* featureVector)
 {
 	if(featureVector == NULL){ 
 		cout << "Null pointer. Something is wrong!!" << endl;
@@ -26,7 +26,7 @@ void printFeatureVectorPointer(vector<float>* featureVector)
 	
 	cout << "Printing Features..."<< endl;
 	int count = 0;
-	for (vector<float>::iterator it = featureVector->begin(); it!=featureVector->end(); ++it){
+	for (vector<double>::iterator it = featureVector->begin(); it!=featureVector->end(); ++it){
 		if (count < 4){
 			cout << "Feature " << count << ": " << *it << endl;
 		}

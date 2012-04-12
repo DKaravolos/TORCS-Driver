@@ -3,5 +3,5 @@
 #include <vector>
 #define PI 3.14159265
 
-vector<float> createFeatureVector(const CarState state);
-vector<float>* createFeatureVectorPointer(const CarState state);
+vector<double> createFeatureVector(const CarState state);
+vector<double>* createFeatureVectorPointer(const CarState state);

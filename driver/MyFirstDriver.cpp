@@ -161,14 +161,22 @@ int count = 0;
 CarControl
 MyFirstDriver::wDrive(CarState cs)
 {
-	count++;
-	if( count % 50 == 0)
+	//START LEARNING SEQUENCE
+	delete dp_features;
+	dp_features = createFeatureVectorPointer(cs); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
+	if( count++ % 50 == 0)
 	{
-		delete d_features;
-		d_features = createFeatureVectorPointer(cs); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-		printFeatureVector(*d_features);
+		printFeatureVector(*dp_features);
 		count = 0;
 	}
+
+	//Create a state
+	dp_Qinterface->setState(dp_features);
+	dp_Qinterface->printState();
+
+	//
+
+	//END LEARNING SEQUENCE
 
 	// check if car is currently stuck
 	if ( fabs(cs.getAngle()) > stuckAngle )
@@ -279,14 +287,16 @@ MyFirstDriver::filterABS(CarState &cs,float brake)
 void
 MyFirstDriver::onShutdown()
 {
-	delete d_features;
+	delete dp_features;
+	delete dp_Qinterface;
     cout << "Bye bye!" << endl;
 }
 
 void
 MyFirstDriver::onRestart()
 {
-	delete d_features;
+	delete dp_features;
+	delete dp_Qinterface;
     cout << "Restarting the race!" << endl;
 }
 
@@ -331,8 +341,9 @@ void
 MyFirstDriver::init(float *angles)
 {
 	//Set Daniels datamembers
-	d_features = NULL;
-
+	dp_features = NULL;
+	dp_Qinterface = new LearningInterface;
+	
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 

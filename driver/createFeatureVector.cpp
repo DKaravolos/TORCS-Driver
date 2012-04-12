@@ -2,9 +2,9 @@
 
 using namespace std;
 
-vector<float> createFeatureVector(CarState state)
+vector<double> createFeatureVector(CarState state)
 {
-	vector<float> featureVector;
+	vector<double> featureVector;
 	featureVector.push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 	featureVector.push_back(state.getSpeedX()/300);//Genormaliseerd. 300kmh lijkt max. praktisch bijna niet boven 290.
 	featureVector.push_back(state.getSpeedY()); // Geen idee wat we hiermee kunnen qua normalisatie
@@ -15,9 +15,9 @@ vector<float> createFeatureVector(CarState state)
 	return featureVector;
 }
 
-vector<float>* createFeatureVectorPointer(CarState state)
+vector<double>* createFeatureVectorPointer(CarState state)
 {
-	vector<float>* featureVector = new vector<float>;
+	vector<double>* featureVector = new vector<double>;
 	featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 	featureVector->push_back(state.getSpeedX()/300);// Genormaliseerd. 300kmh lijkt max. praktisch bijna niet boven 290.
 	featureVector->push_back(state.getSpeedY()); // Geen idee wat we hiermee kunnen qua normalisatie

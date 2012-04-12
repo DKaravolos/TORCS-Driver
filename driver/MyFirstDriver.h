@@ -13,6 +13,7 @@
 //Functions/classes by Daniel:
 #include "createFeatureVector.h"
 #include "printFeatureVector.h"
+#include "..\learning\LearningInterface.h"
 
 #define PI 3.14159265
 
@@ -115,7 +116,8 @@ private:
 	void clutching(CarState &cs, float &clutch);
 
 	//Datamembers added by Daniel:
-	vector<float>* d_features;
+	vector<double>* dp_features;
+	LearningInterface* dp_Qinterface;
 
 	//Functions added by Daniel:
 };
