@@ -170,11 +170,22 @@ MyFirstDriver::wDrive(CarState cs)
 		count = 0;
 	}
 
+	//Compute reward of last action
+	int distance = cs.getDistRaced();
+	dp_Qinterface->setRewardPrevAction(distance - d_last_dist);
+	d_last_dist = distance;
+
 	//Create a state
 	dp_Qinterface->setState(dp_features);
 	dp_Qinterface->printState();
 
-	//
+	//Do some learning
+	dp_Qinterface->experimentMainLoop();
+
+	//get Action
+	double* actionset = dp_Qinterface->getAction();
+	if (actionset == NULL)
+		cout << "Action is a NULL POINTER. Something went wrong.\n";
 
 	//END LEARNING SEQUENCE
 
@@ -343,7 +354,7 @@ MyFirstDriver::init(float *angles)
 	//Set Daniels datamembers
 	dp_features = NULL;
 	dp_Qinterface = new LearningInterface;
-	
+	d_last_dist = 0;
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 

@@ -7,6 +7,8 @@ LearningInterface::LearningInterface(void)
 	initState();
 	dp_world = new TorcsWorld(this);
 	dp_algorithm = new Qlearning("..\source\learning\TorcsWorldCfg.txt", dp_world ) ;
+	//dp_experiment = new Experiment();
+	//dp_experiment->readParameterFile();
 }
 
 
@@ -16,6 +18,25 @@ LearningInterface::~LearningInterface(void)
 	delete dp_current_state;
 }
 
+///////////////Driver functions///////////////////
+double* LearningInterface::getAction()
+{
+	Action* world_action = dp_world->getAction(); //MOET DEZE ACTION NOG WEL UIT WORLD KOMEN??
+	if (world_action == NULL)
+	{
+		cout << "ERROR: request for action, while action is empty!\n";
+		return NULL;
+	}
+	else
+		return world_action->continuousAction;
+}
+
+void LearningInterface::setRewardPrevAction(int distance)
+{
+	d_reward = distance;
+}
+
+///////
 
 void LearningInterface::initState(){
 	dp_current_state = new State;
@@ -44,29 +65,14 @@ void LearningInterface::printState()
 	}
 }
 
-void LearningInterface::computeReward(int new_dist) {
+/*void LearningInterface::computeReward(int new_dist) {
 	d_reward = new_dist - d_last_dist;
 	d_last_dist = new_dist;
 }
-
-vector<double> LearningInterface::getAction()
-{
-	vector<double> driver_action;
-	Action* world_action = dp_world->getAction();
-	if (world_action == NULL)
-		cout << "ERROR: request for action, while action is empty!\n";
-	else
-	{
-		size_t dim = world_action->actionDimension;
-		for(size_t idx = 0; idx < dim; idx++)
-		{
-			driver_action.push_back(world_action->continuousAction[idx]);
-		}
-	}
-	return driver_action;
-}
+*/
 
 double* LearningInterface::experimentMainLoop() {
+
 	//gekopieerd uit runExperiment
 	State* state;
 	Action * actions = new Action[2] ; //For Sarsa, that needs both the present and next action.
@@ -164,7 +170,7 @@ double* LearningInterface::experimentMainLoop() {
 
     return results ;
 }
-
+/*
 void LearningInterface::explore( State * state, Action * action) {
 
     if ( !d_param.train ) {
@@ -189,4 +195,4 @@ void LearningInterface::explore( State * state, Action * action) {
 
     }
 
-}
+}*/

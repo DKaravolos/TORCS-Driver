@@ -115,11 +115,11 @@ private:
 	// Solves the clucthing subproblems
 	void clutching(CarState &cs, float &clutch);
 
-	//Datamembers added by Daniel:
+	///////Datamembers added by Daniel:
 	vector<double>* dp_features;
 	LearningInterface* dp_Qinterface;
-
-	//Functions added by Daniel:
+	int d_last_dist;
+	////////Functions added by Daniel:
 };
 
 #endif /*MYFIRSTDRIVER_H_*/

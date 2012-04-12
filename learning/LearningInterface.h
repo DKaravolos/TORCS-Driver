@@ -9,6 +9,7 @@
 #include "..\..\rlcpp\Algorithm.h"
 #include "..\..\rlcpp\Qlearning.h"
 #include "..\..\rlcpp\State.h"
+#include "..\..\rlcpp\Experiment.h"
 #include "..\learning\TorcsWorld.h"
 #include "ExperimentParameters.h"
 
@@ -19,28 +20,30 @@ public:
 	LearningInterface(void);
 	~LearningInterface(void);
 	//driver functions
-	vector<double> getAction(); //returns the action outputs to TORCS
-	
+	double* getAction(); //called from TORCS to receive computed action
+	void setRewardPrevAction(int distance); //called from TORCS before mainloop to get reward of previous action
+
 	//state functions
-	void setState(std::vector<double>* features);
+	void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
 	void printState();
 	
 	//world functions
-	void computeReward(int new_dist);
+	//void computeReward(int new_dist);
 	inline double getReward() { return d_reward;}
 
 	//other
-	double* experimentMainLoop();
+	double* experimentMainLoop(); //called from TORCS to do learning
 
 private:
 	//datamembers
 	State* dp_current_state;
 	Algorithm* dp_algorithm;
 	TorcsWorld* dp_world;
-	ExperimentParameters d_param;
+	//ExperimentParameters d_param;
+	//Experiment* dp_experiment;
 
 	int d_last_dist;
-	double d_reward;
+	int d_reward;
 
 	//functions:
 		//init
