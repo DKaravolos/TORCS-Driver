@@ -26,7 +26,9 @@ public:
 	//world functions
 	void computeReward(int new_dist);
 	inline double getReward() { return d_reward;}
+
 	//other
+	void experimentMainLoop();
 
 private:
 	//datamembers

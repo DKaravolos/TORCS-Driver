@@ -65,3 +65,7 @@ vector<double> LearningInterface::getAction()
 	}
 	return driver_action;
 }
+
+void LearningInterface::experimentMainLoop() {
+	//gekopieerd uit runExperiment
+}
