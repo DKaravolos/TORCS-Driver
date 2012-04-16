@@ -4,14 +4,16 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include "..\..\rlcpp\Action.h"
-#include "..\..\rlcpp\World.h"
-#include "..\..\rlcpp\Algorithm.h"
-#include "..\..\rlcpp\Qlearning.h"
-#include "..\..\rlcpp\State.h"
-#include "..\..\rlcpp\Experiment.h"
+#include "..\rlcpp\Action.h"
+#include "..\rlcpp\World.h"
+#include "..\rlcpp\Algorithm.h"
+#include "..\rlcpp\Qlearning.h"
+#include "..\rlcpp\State.h"
+#include "..\rlcpp\Experiment.h"
 #include "..\learning\TorcsWorld.h"
-#include "ExperimentParameters.h"
+//#include "ExperimentParameters.h"
+
+
 
 class LearningInterface
 {
@@ -19,6 +21,15 @@ class LearningInterface
 public:
 	LearningInterface(void);
 	~LearningInterface(void);
+
+	//Loop of a time step:
+	/*
+	- setRewardPrevAction()
+	- setState()
+	- experimentMainloop()
+	- getAction()
+	*/
+
 	//driver functions
 	double* getAction(); //called from TORCS to receive computed action
 	void setRewardPrevAction(int distance); //called from TORCS before mainloop to get reward of previous action
@@ -29,25 +40,26 @@ public:
 	
 	//world functions
 	//void computeReward(int new_dist);
-	inline double getReward() { return d_reward;}
+	inline double getReward() { return m_reward;}
 
 	//other
 	double* experimentMainLoop(); //called from TORCS to do learning
 
 private:
 	//datamembers
-	State* dp_current_state;
-	Algorithm* dp_algorithm;
-	TorcsWorld* dp_world;
-	//ExperimentParameters d_param;
-	//Experiment* dp_experiment;
+	TorcsWorld* mp_world;
+	Algorithm* mp_algorithm;
+	Experiment* mp_experiment;
+	State* mp_current_state;
+	Action* mp_prev_action;
+	Action* mp_current_action;
 
-	int d_last_dist;
-	int d_reward;
+	int m_reward;
 
 	//functions:
 		//init
 	void initState();
+	void initActions();
 
 		//other
 	void explore(State*, Action*);

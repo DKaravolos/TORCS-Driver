@@ -4,24 +4,43 @@ using namespace std;
 
 LearningInterface::LearningInterface(void)
 {
+	cout << "\tCreating World ... ";
+	mp_world = new TorcsWorld();
+	cout << "Done.\n";
+
+	cout << "\tCreating Algorithm ... ";
+	mp_algorithm = new Qlearning("CartpoleCfg", mp_world ) ;
+	cout << "Done.\n";
+
+	cout << "\tCreating Experiment ... ";
+	mp_experiment = new Experiment();
+	cout << "Done.\n";
+
+	cout << "\tReading parameterfile ... ";
+	mp_experiment->readParameterFile("CartpoleCfg");
+	cout << "Done.\n";
+
 	initState();
-	dp_world = new TorcsWorld(this);
-	dp_algorithm = new Qlearning("..\source\learning\TorcsWorldCfg.txt", dp_world ) ;
-	//dp_experiment = new Experiment();
-	//dp_experiment->readParameterFile();
+	initActions();
 }
 
 
 LearningInterface::~LearningInterface(void)
 {
-	delete dp_current_state->continuousState;
-	delete dp_current_state;
+	delete[] mp_current_state->continuousState;
+	delete mp_current_state;
+	delete mp_world;
+	delete mp_algorithm;
+	delete mp_experiment;
+
+	delete mp_current_action; //bij continue acties: apart het double array deleten
+	delete mp_prev_action;
 }
 
 ///////////////Driver functions///////////////////
 double* LearningInterface::getAction()
 {
-	Action* world_action = dp_world->getAction(); //MOET DEZE ACTION NOG WEL UIT WORLD KOMEN??
+	Action* world_action = mp_world->getAction(); //MOET DEZE ACTION NOG WEL UIT WORLD KOMEN??
 	if (world_action == NULL)
 	{
 		cout << "ERROR: request for action, while action is empty!\n";
@@ -33,35 +52,49 @@ double* LearningInterface::getAction()
 
 void LearningInterface::setRewardPrevAction(int distance)
 {
-	d_reward = distance;
+	m_reward = distance;
 }
 
 ///////
 
 void LearningInterface::initState(){
-	dp_current_state = new State;
-	dp_current_state->continuous = true;
-	dp_current_state->continuous = false;
-	dp_current_state->stateDimension = 13;
-	dp_current_state->continuousState = new double[13];
+	mp_current_state = new State;
+	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
+	
+	/*mp_current_state->continuous = true;
+	mp_current_state->discrete = false;
+	mp_current_state->stateDimension = 13;
+	mp_current_state->continuousState = new double[13];
+	*/
+}
+
+void LearningInterface::initActions(){
+	mp_current_action = new Action();
+	mp_experiment->initializeAction(mp_current_action, mp_algorithm, mp_world);
+	
+	mp_prev_action = new Action();
+	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
+	
+	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geüpdate dienen te worden.
+	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
 
 
 void LearningInterface::setState(vector<double>* features)
 {
 	for(size_t idx = 0; idx < features->size(); idx++){
-		dp_current_state->continuousState[idx] = features->at(idx);
+		mp_current_state->continuousState[idx] = features->at(idx);
 	}
-	dp_world->setState(dp_current_state);
+	mp_world->setState(mp_current_state);
 }
 
 void LearningInterface::printState()
 {
 	cout << "Printing dimensions of State through LearningInterface.\n";
 
-	for(size_t idx = 0; idx < dp_current_state->stateDimension; idx++)
+	for(int idx = 0; idx < mp_current_state->stateDimension; idx++)
 	{
-		cout << "Dimension " << idx << " : " << dp_current_state->continuousState[idx] << endl;
+		cout << "Dimension " << idx << " : " << mp_current_state->continuousState[idx] << endl;
 	}
 }
 
@@ -72,126 +105,33 @@ void LearningInterface::printState()
 */
 
 double* LearningInterface::experimentMainLoop() {
-
-	//gekopieerd uit runExperiment
-	State* state;
-	Action * actions = new Action[2] ; //For Sarsa, that needs both the present and next action.
-
-    double reward ;
-
-    //* Training *//
-    double * results = new double[ d_param.nResults ] ;
-
-    int episode = 0 ;
-    int step = 0 ;
-    int result = 0 ;
-    double rewardSum = 0.0 ;
-
-    dp_world->reset() ;
-
-    dp_world->getState( state ) ; //state is al ergens gedefinieerd.
+	//double* pointer = new double(1230.000);
 
 
-    explore( state, action ) ;
-
-    d_param.endOfEpisode = true ;
-
-    int storePer ;
-
-    if ( d_param.train ) {
-        storePer = d_param.trainStorePer ;
-    } else {
-        storePer = d_param.testStorePer ;
-    }
-
-    for ( step = 0 ; (step < d_param.nSteps) && (episode < d_param.nEpisodes) ; step++ ) {
-
-        reward = dp_world->act( action ) ; ///MISS MOET DIT ERGENS ANDERS VANDAAN KOMEN
-
-        dp_world->getState( nextState ) ;
-
-        explore( nextState, nextAction ) ;
-
-        rewardSum += reward ;
-
-        d_param.endOfEpisode = dp_world->endOfEpisode() ;
-
-        if ( d_param.train ) {
-
-            if ( d_param.algorithmName.compare("Sarsa") == 0 ) {
-
-                actions[0] = *action ;
-                actions[1] = *nextAction ;
-                dp_algorithm->update( state, actions, reward, nextState,
-					d_param.endOfEpisode, d_param.learningRate, d_param.gamma ) ;
-
-            } else {
-
-                dp_algorithm->update( state, action, reward, nextState,
-					d_param.endOfEpisode, d_param.learningRate, d_param.gamma ) ;
-
-            }
-
-        }
-
-        copyState( nextState, state ) ;
-        copyAction( nextAction, action ) ;
-
-        if ( d_param.endOfEpisode ) {
-
-            episode++ ;
-
-        }
-
-        // Store results :
-        bool store = false ;
-
-        if ( d_param.storePerEpisode && ( episode % storePer == 0 ) && d_param.endOfEpisode ) {
-
-            store = true ;
-
-        } else if ( d_param.storePerStep && ( (step + 1) % storePer == 0 ) ) {
-
-            store = true ;
-
-        }
-
-        if ( store ) {
-
-            results[ result ] = rewardSum/storePer ;
-            rewardSum = 0.0 ;
-            result++ ;
-
-        }
-
-    }
-
-    delete [] actions ;
-
-    return results ;
+	return pointer;
 }
 /*
 void LearningInterface::explore( State * state, Action * action) {
 
     if ( !d_param.train ) {
 
-        dp_algorithm->getMaxAction( state, action ) ;
+        mp_algorithm->getMaxAction( state, action ) ;
 
     } else if ( d_param.boltzmann ) {
 
-        dp_algorithm->explore( state, action, d_param.tau, "boltzmann", d_param.endOfEpisode ) ;
+        mp_algorithm->explore( state, action, d_param.tau, "boltzmann", d_param.endOfEpisode ) ;
 
     } else if ( d_param.egreedy ) {
 
-        dp_algorithm->explore( state, action, d_param.epsilon, "egreedy", d_param.endOfEpisode ) ;
+        mp_algorithm->explore( state, action, d_param.epsilon, "egreedy", d_param.endOfEpisode ) ;
 
     } else if ( d_param.gaussian ) {
 
-        dp_algorithm->explore( state, action, d_param.sigma, "gaussian", d_param.endOfEpisode ) ;
+        mp_algorithm->explore( state, action, d_param.sigma, "gaussian", d_param.endOfEpisode ) ;
 
     } else {
 
-        dp_algorithm->getMaxAction( state, action ) ;
+        mp_algorithm->getMaxAction( state, action ) ;
 
     }
 

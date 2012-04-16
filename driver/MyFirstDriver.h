@@ -24,7 +24,7 @@ class MyFirstDriver : public WrapperBaseDriver
 public:
 	
 	// Constructor
-	MyFirstDriver(){stuck=0;clutch=0.0;};
+	MyFirstDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);
@@ -116,9 +116,9 @@ private:
 	void clutching(CarState &cs, float &clutch);
 
 	///////Datamembers added by Daniel:
-	vector<double>* dp_features;
-	LearningInterface* dp_Qinterface;
-	int d_last_dist;
+	vector<double>* mp_features;
+	LearningInterface* mp_Qinterface;
+	int m_last_dist;
 	////////Functions added by Daniel:
 };
 

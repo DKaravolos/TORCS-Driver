@@ -38,7 +38,7 @@ public:
 	// Initialization of the desired angles for the rangefinders
 	virtual void init(float *angles){
 		for (int i = 0; i < 19; ++i)
-			angles[i]=-90+i*10;
+			angles[i]= float(-90+i*10);
 	};
 
 	// The main function: 

@@ -293,6 +293,9 @@ int main(int argc, char *argv[])
 #ifdef WIN32
     WSACleanup();
 #endif
+
+	char end;
+	cin >> end;
     return 0;
 
 }
