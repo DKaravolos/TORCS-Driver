@@ -1,6 +1,7 @@
 #ifndef TORCSWORLD_H
 #define TORCSWORLD_H
 
+#include <iostream>
 #include <vector>
 #include "..\rlcpp\world.h"
 #include "..\rlcpp\State.h"

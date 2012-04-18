@@ -8,7 +8,7 @@ using namespace std ;
 Qlearning::Qlearning( const char * parameterFile, World * w ) {
 
     discreteStates      = w->getDiscreteStates() ;
-
+	cout << "In Q-Learning constructor: mp_world is at " << w << endl;
     if ( !w->getDiscreteActions() ) {
 
         cout << "Q-learning does not support continuous actions." << endl ;

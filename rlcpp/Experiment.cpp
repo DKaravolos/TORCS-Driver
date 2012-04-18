@@ -2,6 +2,76 @@
 
 using namespace std;
 
+Experiment::Experiment(Experiment::Configuration config) {
+	cout << "\nIn Experiment constructor:\n";
+
+	switch(config) {
+		case DEFAULT_Q:
+			cout<<"\t I can read the input parameter!\n";
+			nExperiments = 1;
+			nAlgorithms = 1;
+			//THESE VALUES ARE QUITE RANDOM!
+			nSteps = 500000;
+			nEpisodes = 10;
+			nMaxStepsPerEpisode = 50000;
+			nResults =100; //?????
+			nTrainSteps = 500000;
+			nTrainEpisodes = 10;
+			nMaxStepsPerTrainEpisode = 50000;  
+			nTrainResults = 100;
+			trainStorePer = 100;
+			nTestSteps = 0;
+			nTestEpisodes = 0;
+			nMaxStepsPerTestEpisode = 0;
+			nTestResults = 0;
+			testStorePer = 0;
+			//END OF RANDOM
+
+			stateDimension = 13;
+			actionDimension =-1;
+			discreteStates = -1;
+			discreteActions = 9;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = true;
+			egreedy = false;
+			gaussian = false;
+
+			algorithmName = "Q";
+			algorithms.push_back(algorithmName);
+
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.01;
+
+			taus.push_back(0.01);
+			epsilons.push_back(0.01);
+			sigmas.push_back(0.01);
+			tau = 0.01;
+			epsilon = 0.01;
+			sigma = 0.01;
+			gamma = 0.99;
+        
+			train = true;
+			cout << "\tBoltzmann exploration: " << boltzmann << endl;
+			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
+		default:
+			cout << "There is no default configuration for experiment. Please try again.\n";
+			char end;
+			cin >> end;
+			exit(-1);
+	}
+}
+
+
 bool Experiment::initializeState( State * state, Algorithm * algorithm, World * world ) {
 
     if ( algorithm->getContinuousStates() && world->getContinuousStates() ) {
@@ -648,6 +718,9 @@ void Experiment::readParameterFile() {
 }
 
 void Experiment::readParameterFile(string paramFile ) {
+	cout << "reading parameter file" << endl;
+	cout << "Experiment: Algorithm pointer is: " << algorithm <<endl;
+	cout << "Experiment: World pointer is: " << world << endl;
 
     ifstream ifile ;
 

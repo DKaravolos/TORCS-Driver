@@ -11,6 +11,9 @@ TorcsWorld::TorcsWorld()
 	numberOfStates		= 0;
 	numberOfActions		= 9;
 
+	mp_state = NULL;
+	mp_action = NULL;
+
 	m_reward = 0;
 	m_end_of_ep = false;
 	//initState();
@@ -33,10 +36,8 @@ void TorcsWorld::initState()
 */
 double TorcsWorld::act( Action * action) 
 {
-	mp_action = action;
+	//mp_action = action;
 	//map de int van Action om naar een nuttige waarde voor TORCS
-
-
 
 	return m_reward;
 }
@@ -50,7 +51,7 @@ double* TorcsWorld::convertAction(Action* action)
 	i.e.: 1 =  (-1,-1), 2 = (-1,0), 3 = (-1,1), ..., 9= (1,1)
 
 	*/
-	double torcs_action[2];
+	double* torcs_action = new double[2];
 
 	if(action->discrete)
 	{

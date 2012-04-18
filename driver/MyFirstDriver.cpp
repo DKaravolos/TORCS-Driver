@@ -167,34 +167,43 @@ MyFirstDriver::getAccel(CarState &cs)
 }
 
 int count = 0;
-CarControl
-MyFirstDriver::wDrive(CarState cs)
+CarControl MyFirstDriver::wDrive(CarState cs)
 {
 	//START LEARNING SEQUENCE
-	delete mp_features;
-	mp_features = createFeatureVectorPointer(cs); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-	if( count++ % 50 == 0)
-	{
-		printFeatureVector(*mp_features);
-		count = 0;
-	}
-
 	//Compute reward of last action
+	cout << "Going to Qinterface at: " << mp_Qinterface << endl;
 	int distance = cs.getDistRaced();
 	mp_Qinterface->setRewardPrevAction(distance - m_last_dist);
+	if( count % 200 == 0)
+		cout << "reward: "<< distance - m_last_dist << endl;
 	m_last_dist = distance;
 
+
+	//Get state features
+	delete mp_features;
+	mp_features = createFeatureVectorPointer(cs); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
 	//Create a state
 	mp_Qinterface->setState(mp_features);
-	mp_Qinterface->printState();
 
+	if( count % 1000 == 0)
+	{
+		mp_Qinterface->printState();
+		count = 0;
+	}
+	count++;
 	//Do some learning
-	mp_Qinterface->experimentMainLoop();
+	bool learning_done = mp_Qinterface->learningUpdateStep();
 
 	//get Action
 	double* actionset = mp_Qinterface->getAction();
 	if (actionset == NULL)
 		cout << "Action is a NULL POINTER. Something went wrong.\n";
+
+	if (learning_done)
+		cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
+	//// Ergens moet nog het eind van een episode bepaald worden, 
+	//// dit wordt aan de leeralgoritmen gegeven.
+	//// mp_Qinterface->setEOE(true);
 
 	//END LEARNING SEQUENCE
 
@@ -237,33 +246,63 @@ MyFirstDriver::wDrive(CarState cs)
 
     else // car is not stuck
     {
-    	// compute accel/brake command
-        float accel_and_brake = getAccel(cs);
-        // compute gear 
+		// compute gear 
         int gear = getGear(cs);
-        // compute steering
-        float steer = getSteer(cs);
+		//*
+		////SIMPLE BOT STUFF
+		if(learning_done)
+		{
+    		// compute accel/brake command
+			float accel_and_brake = getAccel(cs);
+			// compute steering
+			float steer = getSteer(cs);
         
+			// normalize steering
+			if (steer < -1)
+				steer = -1;
+			if (steer > 1)
+				steer = 1;
 
-        // normalize steering
-        if (steer < -1)
-            steer = -1;
-        if (steer > 1)
-            steer = 1;
-        
+			// set accel and brake from the joint accel/brake command 
+			float accel,brake;
+			if (accel_and_brake>0)
+			{
+				accel = accel_and_brake;
+				brake = 0;
+			}
+			else
+			{
+				accel = 0;
+				// apply ABS to brake
+				brake = filterABS(cs,-accel_and_brake);
+			}
+			// Calculate clutching
+			clutching(cs,clutch);
+
+			// build a CarControl variable and return it
+			CarControl cc(accel,brake,gear,steer,clutch);
+			return cc;
+		}
+		////END OF SIMPLE BOT STUFF //*/ 
+		//*
+		
+		////RL STUFF
+		float steer = float(actionset[0]);
+
         // set accel and brake from the joint accel/brake command 
         float accel,brake;
-        if (accel_and_brake>0)
+        if (actionset[1]>0)
         {
-            accel = accel_and_brake;
+            accel = actionset[1];
             brake = 0;
         }
         else
         {
             accel = 0;
             // apply ABS to brake
-            brake = filterABS(cs,-accel_and_brake);
+            brake = filterABS(cs,-actionset[1]);
         }
+		////END OF RL STUFF //*/
 
         // Calculate clutching
         clutching(cs,clutch);
@@ -364,10 +403,13 @@ MyFirstDriver::init(float *angles)
 	mp_features = NULL;
 	if (mp_Qinterface == NULL) {
 		cout << "Creating LearningInterface...\n";
-		mp_Qinterface = new LearningInterface;
+		mp_Qinterface = new LearningInterface();
+		cout << "mp_Qinterface is now at " << mp_Qinterface << endl;
+		mp_Qinterface->init();
 		cout << "Done.\n";
+	} else {
+		cout << "Already created a LearningInterface. Skipping constructor and init.\n";
 	}
-	
 	m_last_dist = 0;
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}

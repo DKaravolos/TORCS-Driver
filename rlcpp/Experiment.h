@@ -18,9 +18,18 @@
 # include "Cacla.h"
 
 class Experiment {
-    
     public:
+		enum Configuration
+		{
+			DEFAULT_Q,
+			SOMETHING_ELSE,
+			X
+		};
+
 		friend class LearningInterface;
+		Experiment(){}
+		Experiment(Configuration config);
+
         virtual ~Experiment() ;
         bool initializeState( State * state, Algorithm * algorithm, World * world ) ;
         bool initializeAction( Action * action, Algorithm * algorithm, World * world ) ;
