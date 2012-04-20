@@ -262,6 +262,8 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
 }
 
 void        cNeuralNetwork::backPropagate( double *input, double *target, double learningSpeed ) {
+
+
     //If the network has been adapted after the last forward propagation,
     //forwardPropagate first to correctly set the hidden activations:
     if ( recentlyUpdated ) {

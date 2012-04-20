@@ -35,22 +35,20 @@ LearningInterface::~LearningInterface(void)
 void LearningInterface::init()
 {
 	cout << "Initalizing remainder of interface.\n";
-	cout << "\tCreating Algorithm ... ";
-	cout << "in LI init: mp_world is at " << mp_world << endl;
-	cout << "in LI init: mp_algorithm is at " << mp_algorithm << endl;
+	cout << "Creating Algorithm ... ";
 	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world ) ;
-	cout << "in LI init2: mp_algorithm is at " << mp_algorithm << endl;
-	cout << "in LI init2: mp_world is at " << mp_world << endl;
+	//cout << "in LI init2: mp_algorithm is at " << mp_algorithm << endl;
+	//cout << "in LI init2: mp_world is at " << mp_world << endl;
 	cout << "Done.\n";
 
-	cout << "\tCreating Experiment ... ";
+	cout << "Creating Experiment ... ";
 	mp_experiment = new Experiment(Experiment::Configuration::DEFAULT_Q);
-	cout << "\tSetting pointers to algorithm and world in experiment\n";
+	cout << "Setting pointers to algorithm and world in experiment\n";
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
 	cout << "Done.\n";
 
-	cout << "\tReading parameterfile ... ";
+	cout << "Reading parameterfile ... ";
 	mp_experiment->readParameterFile("TorcsWorldCfg2");
 	cout << "Done.\n";
 
@@ -68,6 +66,7 @@ void LearningInterface::initState(){
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
 	
 	mp_prev_state = new State();
+	mp_experiment->initializeState(mp_prev_state, mp_algorithm, mp_world);
 	/*mp_current_state->continuous = true;
 	mp_current_state->discrete = false;
 	mp_current_state->stateDimension = 13;
@@ -95,6 +94,7 @@ void LearningInterface::initExperimentParam()
     mp_parameters->rewardSum = 0.0 ;
 	mp_parameters->endOfEpisode = true;
 	mp_parameters->train = true;
+	mp_parameters->first_time_step = true;
 
     if ( mp_parameters->train ) {
         mp_parameters->storePer = mp_experiment->trainStorePer ;
@@ -145,18 +145,15 @@ void LearningInterface::printState()
 ///////////////////////LEARNING FUNCTIONS ///////////////////////////////////
 
 bool LearningInterface::learningUpdateStep() {
-	cout << "in LI updateStep: mp_algorithm is at " << mp_algorithm << endl;
-	cout << "in LI updateStep: mp_world is at " << mp_world << endl;
-	cout << "in LI updateStep: mp_experiment is at " << mp_experiment << endl;
+	//cout << "in LI updateStep: mp_algorithm is at " << mp_algorithm << endl;
+	//cout << "in LI updateStep: mp_world is at " << mp_world << endl;
+	//cout << "in LI updateStep: mp_experiment is at " << mp_experiment << endl;
 
 	//if((mp_parameters->step >= mp_experiment->nSteps) || (mp_parameters->episode >= mp_experiment->nEpisodes)) {
 	if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 10) ){
 		cout << "Learning experiment is over.experimentMainLoop will not be ran.\n";
 		return true;
 	}
-	cout << "mp_world is at " << mp_world << endl;
-	cout << "mp_experiment is at " << mp_experiment << endl;
-	cout << "mp_algorithm is at " << mp_algorithm << endl;
 
 	//commented code with //// is from Experiment
 	////reward = world->act( action ) ;
@@ -171,25 +168,33 @@ bool LearningInterface::learningUpdateStep() {
 	mp_parameters->rewardSum += m_reward ;
 	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Weten of episode is geeïndigd. moet nog ingesteld worden?
 
-	if ( mp_parameters->train ) {
+	if ( mp_parameters->train)
+	{
+		if(!mp_parameters->first_time_step)
+		{
+			if ( mp_experiment->algorithmName.compare("Sarsa") == 0 ) {
 
-		if ( mp_experiment->algorithmName.compare("Sarsa") == 0 ) {
+				/*actions[0] = *action ;
+				actions[1] = *nextAction ;
+				algorithm->update( mp_current_state, actions, m_reward, nextState, 
+					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
+				*/
+				cout << "SARSA is not implemented yet, please use Q-learning. LearningMainloop is now shutting down.\n";
+				return true;
 
-			/*actions[0] = *action ;
-			actions[1] = *nextAction ;
-			algorithm->update( mp_current_state, actions, m_reward, nextState, 
-				mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
-			*/
-			cout << "SARSA is not implemented yet, please use Q-learning. LearningMainloop is now shutting down.\n";
-			return true;
+			} else {
+				//Q values are updated with last state, last action and resulting reward and new state
+				cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
+				cout << "LI update: current_state: state[0] = "<< mp_current_state->continuousState[0] << endl;
+				cout << "LI update: prev_action: action[0] = "<< mp_prev_action->discreteAction << endl;
+				mp_algorithm->update( mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
 
+			}
 		} else {
-			//Q values are updated with last state, last action and resulting reward and new state
-			mp_algorithm->update( mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-				mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
-
+			cout << "First time step. Not performing learning because of invalid state values "  << endl;
+			mp_parameters->first_time_step = false;
 		}
-
 	}
 
 	copyState( mp_current_state, mp_prev_state ) ;

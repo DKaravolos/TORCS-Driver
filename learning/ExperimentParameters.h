@@ -10,6 +10,7 @@ struct ExperimentParameters
 	bool endOfEpisode;
 	int storePer;
 	bool train;
+	bool first_time_step;
 };
 
 #endif EXPERIMENT_PARAMETERS

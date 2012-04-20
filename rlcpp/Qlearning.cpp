@@ -8,7 +8,7 @@ using namespace std ;
 Qlearning::Qlearning( const char * parameterFile, World * w ) {
 
     discreteStates      = w->getDiscreteStates() ;
-	cout << "In Q-Learning constructor: mp_world is at " << w << endl;
+	//cout << "In Q-Learning constructor: mp_world is at " << w << endl;
     if ( !w->getDiscreteActions() ) {
 
         cout << "Q-learning does not support continuous actions." << endl ;
@@ -54,6 +54,8 @@ Qlearning::Qlearning( const char * parameterFile, World * w ) {
         stateDimension = w->getStateDimension() ;
 
         int layerSizesA[] = { stateDimension, nHiddenQ, 1 } ;
+		cout << "QL: stateDimension :" << stateDimension << endl;
+		cout << "QL: hidden layer size :" << nHiddenQ << endl;
 
         for ( int a = 0 ; a < numberOfActions ; a++ ) {
 
@@ -62,7 +64,7 @@ Qlearning::Qlearning( const char * parameterFile, World * w ) {
         }
 
         Qs = new double[ numberOfActions ] ;
-
+		cout << "QL: numberOfActions :" << numberOfActions << endl;
     }
 
     QTarget = new double[ 1 ] ;
@@ -132,6 +134,10 @@ void Qlearning::readParameterFile( const char * parameterFile ) {
 
 void Qlearning::update( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma  ) {
 
+	cout << "QL update: prev_state: state[0] = "<< state->continuousState[0] << endl;
+	cout << "QL update: current_state: state[0] = "<< nextState->continuousState[0] << endl;
+	cout << "QL update: prev_action: action[0] = "<< action->discreteAction << endl;
+	cout << "QL update: reward = " << rt << endl;
     int at = action->discreteAction ;
 
     if ( state->discrete ) {
