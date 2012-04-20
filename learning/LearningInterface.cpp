@@ -30,6 +30,8 @@ LearningInterface::~LearningInterface(void)
 
 	delete mp_current_action; //bij continue acties: apart het double array deleten
 	delete mp_prev_action;
+
+	delete[] mp_torcs_action;
 }
 
 void LearningInterface::init()
@@ -42,7 +44,7 @@ void LearningInterface::init()
 	cout << "Done.\n";
 
 	cout << "Creating Experiment ... ";
-	mp_experiment = new Experiment(Experiment::Configuration::DEFAULT_Q);
+	mp_experiment = new Experiment(Experiment::DEFAULT_Q);
 	cout << "Setting pointers to algorithm and world in experiment\n";
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
@@ -81,6 +83,7 @@ void LearningInterface::initActions(){
 	mp_prev_action = new Action();
 	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
 	
+	mp_torcs_action = new double[2];
 	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geüpdate dienen te worden.
 	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
@@ -107,19 +110,20 @@ void LearningInterface::initExperimentParam()
 ///////////////Driver functions///////////////////
 double* LearningInterface::getAction()
 {
-	double* torcs_action = mp_world->convertAction(mp_current_action);
-	if (torcs_action == NULL)
+	//double* torcs_action = mp_world->convertAction(mp_current_action);
+	mp_world->convertAction(mp_current_action, mp_torcs_action);
+	if (mp_torcs_action == NULL)
 	{
 		cout << "ERROR: request for action, while action is empty!\n";
 		return NULL;
 	}
 	else	
-		return torcs_action;
+		return mp_torcs_action;
 }
 
-void LearningInterface::setRewardPrevAction(int distance)
+void LearningInterface::setRewardPrevAction(double reward)
 {
-	m_reward = distance;
+	m_reward = reward;
 }
 
 ///////
@@ -184,9 +188,9 @@ bool LearningInterface::learningUpdateStep() {
 
 			} else {
 				//Q values are updated with last state, last action and resulting reward and new state
-				cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
-				cout << "LI update: current_state: state[0] = "<< mp_current_state->continuousState[0] << endl;
-				cout << "LI update: prev_action: action[0] = "<< mp_prev_action->discreteAction << endl;
+				//cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
+				//cout << "LI update: current_state: state[0] = "<< mp_current_state->continuousState[0] << endl;
+				//cout << "LI update: prev_action: action[0] = "<< mp_prev_action->discreteAction << endl;
 				mp_algorithm->update( mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
 
@@ -205,7 +209,7 @@ bool LearningInterface::learningUpdateStep() {
 	}
 
 	mp_parameters->step++;
-	if(mp_parameters->step % 200) {
+	if(mp_parameters->step % 200 == 0) {
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
 		cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}

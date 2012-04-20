@@ -35,7 +35,7 @@ public:
 
 	//driver functions
 	double* getAction(); //called from TORCS to receive computed action
-	void setRewardPrevAction(int distance); //called from TORCS before mainloop to get reward of previous action
+	void setRewardPrevAction(double reward); //called from TORCS before mainloop to get reward of previous action
 
 	//state functions
 	void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
@@ -59,8 +59,9 @@ protected:
 	Action* mp_prev_action;
 	Action* mp_current_action;
 	ExperimentParameters* mp_parameters;
+	double* mp_torcs_action;
 
-	int m_reward;
+	double m_reward;
 
 	//functions:
 		//init

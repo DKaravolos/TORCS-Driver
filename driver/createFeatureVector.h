@@ -5,3 +5,4 @@
 
 vector<double> createFeatureVector(const CarState state);
 vector<double>* createFeatureVectorPointer(const CarState state);
+void createFeatureVectorPointer(const CarState state, vector<double>* featureVector);

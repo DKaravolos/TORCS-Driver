@@ -15,6 +15,20 @@
 #include "printFeatureVector.h"
 #include "..\learning\LearningInterface.h"
 
+//debug:
+
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
+#ifdef _DEBUG
+   #ifndef DBG_NEW
+      #define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+      #define new DBG_NEW
+   #endif
+#endif  // _DEBUG
+
+
 #define PI 3.14159265
 
 using namespace std;
@@ -118,7 +132,10 @@ private:
 	///////Datamembers added by Daniel:
 	vector<double>* mp_features;
 	LearningInterface* mp_Qinterface;
-	int m_last_dist;
+	double m_last_dist;
+	double m_last_dist_from_start;
+	double m_last_damage;
+	double* mp_action_set;
 	////////Functions added by Daniel:
 };
 

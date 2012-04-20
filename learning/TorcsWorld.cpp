@@ -42,6 +42,10 @@ double TorcsWorld::act( Action * action)
 	return m_reward;
 }
 
+/*
+convertAction could be changed into a void function, with a double* as input.
+This means less chance of memory leak, but also less readability
+*/
 double* TorcsWorld::convertAction(Action* action)
 {
 	/*
@@ -51,7 +55,7 @@ double* TorcsWorld::convertAction(Action* action)
 	i.e.: 1 =  (-1,-1), 2 = (-1,0), 3 = (-1,1), ..., 9= (1,1)
 
 	*/
-	double* torcs_action = new double[2];
+	double* torcs_action = new double[2]; //This is deleted in MyFirstDriver.
 
 	if(action->discrete)
 	{
@@ -60,33 +64,100 @@ double* TorcsWorld::convertAction(Action* action)
 			case 0:
 				torcs_action[0] = -1;
 				torcs_action[1] = -1;
+				break;
 			case 1:
 				torcs_action[0] = -1;
 				torcs_action[1] = 0;
+				break;
 			case 2:
 				torcs_action[0] = -1;
 				torcs_action[1] = 1;
+				break;
 			case 3:
 				torcs_action[0] = 0;
 				torcs_action[1] = -1;
+				break;
 			case 4:
 				torcs_action[0] = 0;
 				torcs_action[1] = 0;
+				break;
 			case 5:
 				torcs_action[0] = 0;
 				torcs_action[1] = 1;
+				break;
 			case 6:
 				torcs_action[0] = 1;
 				torcs_action[1] = -1;
+				break;
 			case 7:
 				torcs_action[0] = 1;
 				torcs_action[1] = 0;
+				break;
 			case 8:
 				torcs_action[0] = 1;
 				torcs_action[1] = 1;
+				break;
 		}
 		return torcs_action;
 	}
 	else
 		return NULL;
+}
+
+void TorcsWorld::convertAction(Action* action, double* torcs_action)
+{
+	/*
+	Discrete action conversion scheme.
+	2 dimensions: acceleration (-1,0,1) and steer (-1,0,1) (or: left, middle, right)
+	Mapping: (steer,accel)
+	i.e.: 1 =  (-1,-1), 2 = (-1,0), 3 = (-1,1), ..., 9= (1,1)
+
+	*/
+	//double* torcs_action = new double[2]; //This is deleted in MyFirstDriver.
+	mp_action = action;
+	if(action->discrete)
+	{
+		switch(action->discreteAction)
+		{
+			case 0:
+				torcs_action[0] = -1;
+				torcs_action[1] = -1;
+				break;
+			case 1:
+				torcs_action[0] = -1;
+				torcs_action[1] = 0;
+				break;
+			case 2:
+				torcs_action[0] = -1;
+				torcs_action[1] = 1;
+				break;
+			case 3:
+				torcs_action[0] = 0;
+				torcs_action[1] = -1;
+				break;
+			case 4:
+				torcs_action[0] = 0;
+				torcs_action[1] = 0;
+				break;
+			case 5:
+				torcs_action[0] = 0;
+				torcs_action[1] = 1;
+				break;
+			case 6:
+				torcs_action[0] = 1;
+				torcs_action[1] = -1;
+				break;
+			case 7:
+				torcs_action[0] = 1;
+				torcs_action[1] = 0;
+				break;
+			case 8:
+				torcs_action[0] = 1;
+				torcs_action[1] = 1;
+				break;
+		}
+	} else {
+		std::cout << "Wrong action input. Setting action pointer to NULL" << std::endl;
+		torcs_action = NULL;
+	}
 }

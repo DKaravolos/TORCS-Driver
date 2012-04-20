@@ -37,8 +37,8 @@ Experiment::Experiment(Experiment::Configuration config) {
 			storePerStep = true;
 			storePerEpisode = false;
 
-			boltzmann = true;
-			egreedy = false;
+			boltzmann = false;		////IMPORTANT
+			egreedy = true;			////IMPORTANT
 			gaussian = false;
 
 			algorithmName = "Q";
@@ -47,7 +47,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.01;
+			learningRate[0] = 0.01; ////IMPORTANT
 
 			taus.push_back(0.01);
 			epsilons.push_back(0.01);

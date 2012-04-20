@@ -12,6 +12,9 @@ class Qlearning : public StateActionAlgorithm {
         unsigned int getNumberOfLearningRates() ;
         const char * getName() ;
 
+	private:
+		int Qcount;
+
 };
 
 #endif //QLEARNING_H

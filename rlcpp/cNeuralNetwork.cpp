@@ -261,29 +261,30 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
     return iError ;
 }
 
-void        cNeuralNetwork::backPropagate( double *input, double *target, double learningSpeed ) {
-
+void cNeuralNetwork::backPropagate( double *input, double *target, double learningSpeed ) {
 
     //If the network has been adapted after the last forward propagation,
     //forwardPropagate first to correctly set the hidden activations:
-    if ( recentlyUpdated ) {
-        forwardPropagate( input ) ;
-    } else {
-        //Check whether the activations of the layers correspond with the present input
-        inputIn = layerIn[ 0 ]->getPtr() ;
-        bool useLastActivations = true ;
-        for ( i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
-            if ( input[i] != inputIn[i] ) {
-                useLastActivations = false ;
-            }
-        }
-        if ( !useLastActivations ) {
-            //If the activations don't correspond to the last input (and the network
-            //has been adapted in the meantime) set the activations by a forward
-            //propagation
-            forwardPropagate( input ) ;
-        }
-    }
+	//cout << "Recently updated: " << recentlyUpdated << endl;
+	if ( recentlyUpdated ) {
+		forwardPropagate( input ) ;
+	} else {
+		//Check whether the activations of the layers correspond with the present input
+		inputIn = layerIn[ 0 ]->getPtr() ;
+		bool useLastActivations = true ;
+		for ( i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
+			if ( input[i] != inputIn[i] ) {
+				useLastActivations = false ;
+			}
+		}
+		if ( !useLastActivations ) {
+			//If the activations don't correspond to the last input (and the network
+			//has been adapted in the meantime) set the activations by a forward
+			//propagation
+			forwardPropagate( input ) ;
+		}
+	}
+
     error = new double[ nOutput ] ; //error of the output layer.
     outputOut  = layerOut[ nLayers - 1 ]->getPtr() ;// Output of the output layer
     

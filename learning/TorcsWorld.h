@@ -16,6 +16,7 @@ public:
 
 	double act( Action * ); //DEPRECATED. returns reward
 	double* convertAction(Action* action);
+	void convertAction(Action* action, double* torcs_action);
 
 private:
 	//datamembers

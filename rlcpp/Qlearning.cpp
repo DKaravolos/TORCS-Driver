@@ -6,7 +6,7 @@
 using namespace std ;
 
 Qlearning::Qlearning( const char * parameterFile, World * w ) {
-
+	Qcount = 0;
     discreteStates      = w->getDiscreteStates() ;
 	//cout << "In Q-Learning constructor: mp_world is at " << w << endl;
     if ( !w->getDiscreteActions() ) {
@@ -133,11 +133,7 @@ void Qlearning::readParameterFile( const char * parameterFile ) {
 }
 
 void Qlearning::update( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma  ) {
-
-	cout << "QL update: prev_state: state[0] = "<< state->continuousState[0] << endl;
-	cout << "QL update: current_state: state[0] = "<< nextState->continuousState[0] << endl;
-	cout << "QL update: prev_action: action[0] = "<< action->discreteAction << endl;
-	cout << "QL update: reward = " << rt << endl;
+	
     int at = action->discreteAction ;
 
     if ( state->discrete ) {
@@ -157,6 +153,7 @@ void Qlearning::update( State * state, Action * action, double rt, State * nextS
 
         }
 
+
     } else {
 
         double * st = state->continuousState ;
@@ -170,6 +167,8 @@ void Qlearning::update( State * state, Action * action, double rt, State * nextS
 
             for ( int a = 0 ; a < numberOfActions ; a++ ) {
                 Qs[a] = QNN[a]->forwardPropagate( st_ )[0] ;
+				if (Qcount % 100 == 0)
+					cout << Qcount << " Qvalue of action :"<< a << " : " << Qs[a] << endl;
             }
 
             double maxQs = myMax( Qs, numberOfActions ) ;
@@ -179,7 +178,10 @@ void Qlearning::update( State * state, Action * action, double rt, State * nextS
         }
 
         QNN[ at ]->backPropagate( st, QTarget, learningRate[0] ) ;
-
+		
+		Qcount++;
+		if(Qcount % 1000 == 0)
+			Qcount = 0;
     }
 
 }
