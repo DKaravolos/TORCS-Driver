@@ -11,8 +11,8 @@
 //
 #include <vector>
 //Functions/classes by Daniel:
-#include "createFeatureVector.h"
-#include "printFeatureVector.h"
+#include "..\utilities\createFeatureVector.h"
+#include "..\utilities\printFeatureVector.h"
 #include "..\learning\LearningInterface.h"
 
 //debug:

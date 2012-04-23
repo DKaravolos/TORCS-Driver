@@ -15,7 +15,8 @@
 
 #include "..\learning\TorcsWorld.h"
 #include "ExperimentParameters.h"
-
+//#include "..\utilities\writeToFile.h"
+#include "..\utilities\Writer.h"
 
 
 class LearningInterface
@@ -62,6 +63,8 @@ protected:
 	double* mp_torcs_action;
 
 	double m_reward;
+
+	Writer* mp_writer;
 
 	//functions:
 		//init

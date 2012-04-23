@@ -169,10 +169,50 @@ MyFirstDriver::getAccel(CarState &cs)
 }
 
 int count = 0;
+int print_mod = 50;
 bool learning_done = false;
 bool l_first_time = true;
 CarControl MyFirstDriver::wDrive(CarState cs)
 {
+	// check if car is currently stuck
+	if ( fabs(cs.getAngle()) > stuckAngle )
+    {
+		// update stuck counter
+        stuck++;
+    }
+    else
+    {
+    	// if not stuck reset stuck counter
+        stuck = 0;
+    }
+
+	// after car is stuck for a while apply recovering policy
+    if (stuck > stuckTime)
+    {
+    	/* set gear and sterring command assuming car is 
+    	 * pointing in a direction out of track */
+    	cout << "I'm stuck. Script is taking over." << endl;
+    	// to bring car parallel to track axis
+        float steer = - cs.getAngle() / steerLock; 
+        int gear=-1; // gear R
+        
+        // if car is pointing in the correct direction revert gear and steer  
+        if (cs.getAngle()*cs.getTrackPos()>0)
+        {
+            gear = 1;
+            steer = -steer;
+        }
+
+        // Calculate clutching
+        clutching(cs,clutch);
+
+        // build a CarControl variable and return it
+        CarControl cc (1.0,0.0,gear,steer,clutch);
+        return cc;
+    }
+
+	//Car is not stuck:
+
 	if(l_first_time){
 		learning_done = mp_Qinterface->learningUpdateStep();
 		l_first_time = false;
@@ -185,7 +225,7 @@ CarControl MyFirstDriver::wDrive(CarState cs)
 		double dist_reward = 100* (distance - m_last_dist);
 		//mp_Qinterface->setRewardPrevAction(distance - m_last_dist);
 		m_last_dist = distance;
-		if( count % 100 == 0) {
+		if( count % print_mod == 0) {
 			cout << "Distance reward: "<< dist_reward;
 			//cout << "reward: "<< distance - m_last_dist << endl;
 		}
@@ -199,14 +239,14 @@ CarControl MyFirstDriver::wDrive(CarState cs)
 		m_last_dist_from_start = distance_from_start;
 		*/
 		double damage_reward = -10*(cs.getDamage() - m_last_damage);
-		if( count % 100 == 0) {
+		if( count % print_mod == 0) {
 			cout << "   Damage reward: " << damage_reward;
 		}
 		m_last_damage = cs.getDamage();
 
 		double reward = dist_reward + damage_reward;
-		if( count % 100 == 0) {
-			cout << "\tSum: " << reward << "  as int: " << int(reward) << endl;
+		if( count % print_mod == 0) {
+			cout << "\tSum: " << reward << endl;
 		}
 		mp_Qinterface->setRewardPrevAction(reward);
 
@@ -232,7 +272,7 @@ CarControl MyFirstDriver::wDrive(CarState cs)
 		//// mp_Qinterface->setEOE(true);
 	} else {
 		//cout << "Repeating action : " << mp_action_set[0] << "  " << mp_action_set[1] << endl;
-		cout << "repeating: "<< count % 50 << endl;
+		//cout << "repeating: "<< count % 50 << endl;
 	}
 	//END LEARNING SEQUENCE
 	count++;
@@ -241,110 +281,71 @@ CarControl MyFirstDriver::wDrive(CarState cs)
 		//mp_Qinterface->printState();
 		count = 0;
 	}
-	// check if car is currently stuck
-	if ( fabs(cs.getAngle()) > stuckAngle )
+	
+	// compute gear 
+    int gear = getGear(cs);
+	//*
+	////SIMPLE BOT STUFF
+	if(learning_done)
+	{
+    	// compute accel/brake command
+		float accel_and_brake = getAccel(cs);
+		// compute steering
+		float steer = getSteer(cs);
+        
+		// normalize steering
+		if (steer < -1)
+			steer = -1;
+		if (steer > 1)
+			steer = 1;
+
+		// set accel and brake from the joint accel/brake command 
+		float accel,brake;
+		if (accel_and_brake>0)
+		{
+			accel = accel_and_brake;
+			brake = 0;
+		}
+		else
+		{
+			accel = 0;
+			// apply ABS to brake
+			brake = filterABS(cs,-accel_and_brake);
+		}
+		// Calculate clutching
+		clutching(cs,clutch);
+
+		// build a CarControl variable and return it
+		CarControl cc(accel,brake,gear,steer,clutch);
+		return cc;
+	}
+	////END OF SIMPLE BOT STUFF //*/ 
+	//*
+		
+	////RL STUFF
+	float steer = float(mp_action_set[0]);
+
+    // set accel and brake from the joint accel/brake command 
+    float accel,brake;
+    if (mp_action_set[1]>0)
     {
-		// update stuck counter
-        stuck++;
+        accel = mp_action_set[1];
+        brake = 0;
     }
     else
     {
-    	// if not stuck reset stuck counter
-        stuck = 0;
+        accel = 0;
+        // apply ABS to brake
+        brake = filterABS(cs,-mp_action_set[1]);
     }
+	////END OF RL STUFF //*/
 
-	// after car is stuck for a while apply recovering policy
-    if (stuck > stuckTime)
-    {
-    	/* set gear and sterring command assuming car is 
-    	 * pointing in a direction out of track */
-    	
-    	// to bring car parallel to track axis
-        float steer = - cs.getAngle() / steerLock; 
-        int gear=-1; // gear R
-        
-        // if car is pointing in the correct direction revert gear and steer  
-        if (cs.getAngle()*cs.getTrackPos()>0)
-        {
-            gear = 1;
-            steer = -steer;
-        }
+    // Calculate clutching
+    clutching(cs,clutch);
 
-        // Calculate clutching
-        clutching(cs,clutch);
-
-        // build a CarControl variable and return it
-        CarControl cc (1.0,0.0,gear,steer,clutch);
-        return cc;
-    }
-
-    else // car is not stuck
-    {
-		// compute gear 
-        int gear = getGear(cs);
-		//*
-		////SIMPLE BOT STUFF
-		if(learning_done)
-		{
-    		// compute accel/brake command
-			float accel_and_brake = getAccel(cs);
-			// compute steering
-			float steer = getSteer(cs);
-        
-			// normalize steering
-			if (steer < -1)
-				steer = -1;
-			if (steer > 1)
-				steer = 1;
-
-			// set accel and brake from the joint accel/brake command 
-			float accel,brake;
-			if (accel_and_brake>0)
-			{
-				accel = accel_and_brake;
-				brake = 0;
-			}
-			else
-			{
-				accel = 0;
-				// apply ABS to brake
-				brake = filterABS(cs,-accel_and_brake);
-			}
-			// Calculate clutching
-			clutching(cs,clutch);
-
-			// build a CarControl variable and return it
-			CarControl cc(accel,brake,gear,steer,clutch);
-			return cc;
-		}
-		////END OF SIMPLE BOT STUFF //*/ 
-		//*
-		
-		////RL STUFF
-		float steer = float(mp_action_set[0]);
-
-        // set accel and brake from the joint accel/brake command 
-        float accel,brake;
-        if (mp_action_set[1]>0)
-        {
-            accel = mp_action_set[1];
-            brake = 0;
-        }
-        else
-        {
-            accel = 0;
-            // apply ABS to brake
-            brake = filterABS(cs,-mp_action_set[1]);
-        }
-		////END OF RL STUFF //*/
-
-        // Calculate clutching
-        clutching(cs,clutch);
-
-        // build a CarControl variable and return it
-        CarControl cc(accel,brake,gear,steer,clutch);
-        return cc;
-    }
+    // build a CarControl variable and return it
+    CarControl cc(accel,brake,gear,steer,clutch);
+    return cc;
 }
 
 float

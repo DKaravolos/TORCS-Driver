@@ -8,9 +8,8 @@ LearningInterface::LearningInterface(void)
 {
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
-	cout << "Setting mp_world to " << mp_world << endl;
 	mp_world = new TorcsWorld();
-	cout << "In LI constructor: mp_world is at " << mp_world << endl;
+	mp_writer = new Writer("interface_output.txt");
 	cout << "Done.\n";
 }
 
@@ -18,6 +17,7 @@ LearningInterface::LearningInterface(void)
 LearningInterface::~LearningInterface(void)
 {
 	cout << "Destroying LearningInterface... Goodbye cruel world!" << endl;
+	delete mp_writer;
 	delete mp_world;
 	delete mp_algorithm;
 	delete mp_experiment;
@@ -126,7 +126,7 @@ void LearningInterface::setRewardPrevAction(double reward)
 	m_reward = reward;
 }
 
-///////
+////////////////// STATE FUNCTIONS ///////////////////////
 
 void LearningInterface::setState(vector<double>* features)
 {
@@ -146,13 +146,9 @@ void LearningInterface::printState()
 }
 
 
-///////////////////////LEARNING FUNCTIONS ///////////////////////////////////
+/////////////////////////LEARNING FUNCTIONS ///////////////////////////
 
 bool LearningInterface::learningUpdateStep() {
-	//cout << "in LI updateStep: mp_algorithm is at " << mp_algorithm << endl;
-	//cout << "in LI updateStep: mp_world is at " << mp_world << endl;
-	//cout << "in LI updateStep: mp_experiment is at " << mp_experiment << endl;
-
 	//if((mp_parameters->step >= mp_experiment->nSteps) || (mp_parameters->episode >= mp_experiment->nEpisodes)) {
 	if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 10) ){
 		cout << "Learning experiment is over.experimentMainLoop will not be ran.\n";
