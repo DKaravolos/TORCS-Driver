@@ -169,81 +169,78 @@ MyFirstDriver::getAccel(CarState &cs)
 }
 
 int count = 0;
+bool learning_done = false;
+bool l_first_time = true;
 CarControl MyFirstDriver::wDrive(CarState cs)
 {
-	//_CrtDumpMemoryLeaks();
-	//_CrtMemState s1;
-	//_CrtMemCheckpoint( &s1 );
-	//_CrtMemDumpStatistics( &s1 );
-
-	//START LEARNING SEQUENCE
-	//Compute reward of last action
-	double distance = cs.getDistRaced();
-	double dist_reward = 100* (distance - m_last_dist);
-	//mp_Qinterface->setRewardPrevAction(distance - m_last_dist);
-	m_last_dist = distance;
-	if( count % 100 == 0) {
-		cout << "Distance reward: "<< dist_reward;
-		//cout << "reward: "<< distance - m_last_dist << endl;
+	if(l_first_time){
+		learning_done = mp_Qinterface->learningUpdateStep();
+		l_first_time = false;
 	}
+	if(count % 50 == 0) 
+	{
+		//START LEARNING SEQUENCE
+		//Compute reward of last action
+		double distance = cs.getDistRaced();
+		double dist_reward = 100* (distance - m_last_dist);
+		//mp_Qinterface->setRewardPrevAction(distance - m_last_dist);
+		m_last_dist = distance;
+		if( count % 100 == 0) {
+			cout << "Distance reward: "<< dist_reward;
+			//cout << "reward: "<< distance - m_last_dist << endl;
+		}
 
-	/*int distance_from_start = cs.getDistFromStart();
-	//mp_Qinterface->setRewardPrevAction(distance_from_start - m_last_dist_from_start);
-	if( count % 200 == 0) {
-		cout << "\nDist from start: " << cs.getDistFromStart() << endl;
-		cout << "hypothetical reward (from start): "<< distance_from_start - m_last_dist_from_start << endl;
+		/*int distance_from_start = cs.getDistFromStart();
+		//mp_Qinterface->setRewardPrevAction(distance_from_start - m_last_dist_from_start);
+		if( count % 200 == 0) {
+			cout << "\nDist from start: " << cs.getDistFromStart() << endl;
+			cout << "hypothetical reward (from start): "<< distance_from_start - m_last_dist_from_start << endl;
+		}
+		m_last_dist_from_start = distance_from_start;
+		*/
+		double damage_reward = -10*(cs.getDamage() - m_last_damage);
+		if( count % 100 == 0) {
+			cout << "   Damage reward: " << damage_reward;
+		}
+		m_last_damage = cs.getDamage();
+
+		double reward = dist_reward + damage_reward;
+		if( count % 100 == 0) {
+			cout << "\tSum: " << reward << "  as int: " << int(reward) << endl;
+		}
+		mp_Qinterface->setRewardPrevAction(reward);
+
+		//Get state features
+		delete mp_features;
+		mp_features = createFeatureVectorPointer(cs);
+		//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
+		//Create a state
+		mp_Qinterface->setState(mp_features);
+	
+		//Do some learning
+		learning_done = mp_Qinterface->learningUpdateStep();
+
+		//get Action
+		mp_action_set = mp_Qinterface->getAction();
+		if (mp_action_set == NULL)
+			cout << "Action is a NULL POINTER. Something went wrong.\n";
+
+		if (learning_done)
+			cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
+		//// Ergens moet nog het eind van een episode bepaald worden, 
+		//// dit wordt aan de leeralgoritmen gegeven.
+		//// mp_Qinterface->setEOE(true);
+	} else {
+		//cout << "Repeating action : " << mp_action_set[0] << "  " << mp_action_set[1] << endl;
+		cout << "repeating: "<< count % 50 << endl;
 	}
-	m_last_dist_from_start = distance_from_start;
-	*/
-	double damage_reward = -10*(cs.getDamage() - m_last_damage);
-	if( count % 100 == 0) {
-		cout << "   Damage reward: " << damage_reward;
-	}
-	m_last_damage = cs.getDamage();
-
-	double reward = dist_reward + damage_reward;
-	if( count % 100 == 0) {
-		cout << "\tSum: " << reward << "  as int: " << int(reward) << endl;
-	}
-	mp_Qinterface->setRewardPrevAction(reward);
-
-	//Get state features
-	delete mp_features;
-	mp_features = createFeatureVectorPointer(cs);
-	//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-	//Create a state
-	mp_Qinterface->setState(mp_features);
-
+	//END LEARNING SEQUENCE
+	count++;
 	if( count % 1000 == 0)
 	{
 		//mp_Qinterface->printState();
 		count = 0;
 	}
-	count++;
-	//Do some learning
-	bool learning_done = mp_Qinterface->learningUpdateStep();
-
-	//get Action
-	mp_action_set = mp_Qinterface->getAction();
-	if (mp_action_set == NULL)
-		cout << "Action is a NULL POINTER. Something went wrong.\n";
-
-	if (learning_done)
-		cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
-	//// Ergens moet nog het eind van een episode bepaald worden, 
-	//// dit wordt aan de leeralgoritmen gegeven.
-	//// mp_Qinterface->setEOE(true);
-
-	//END LEARNING SEQUENCE
-
-	//_CrtMemState s2;
-	//_CrtMemCheckpoint( &s2 );
-	//_CrtMemDumpStatistics( &s2 );
-
-	//_CrtMemState s3;
-	//if ( _CrtMemDifference( &s3, &s1, &s2) )
-	//	_CrtMemDumpStatistics( &s3 );
-
 	// check if car is currently stuck
 	if ( fabs(cs.getAngle()) > stuckAngle )
     {

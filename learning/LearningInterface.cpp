@@ -17,7 +17,7 @@ LearningInterface::LearningInterface(void)
 
 LearningInterface::~LearningInterface(void)
 {
-	cout << "Please don't destroy me, I am too young to die!!!" << endl;
+	cout << "Destroying LearningInterface... Goodbye cruel world!" << endl;
 	delete mp_world;
 	delete mp_algorithm;
 	delete mp_experiment;
