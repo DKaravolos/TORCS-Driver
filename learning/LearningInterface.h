@@ -46,6 +46,7 @@ public:
 	//void computeReward(int new_dist);
 	inline double getReward()	{ return m_reward;}
 	inline void setEOE(bool eoe){ mp_world->setEOE(eoe);}
+	inline bool getEOE(){ return mp_world->endOfEpisode();}
 
 	//other
 	bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.

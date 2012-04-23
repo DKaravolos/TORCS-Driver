@@ -137,6 +137,20 @@ private:
 	double m_last_damage;
 	double* mp_action_set;
 	////////Functions added by Daniel:
+	double computeReward(CarState &cs);
+	void doLearning(CarState &cs);
+	CarControl carStuckControl(CarState &cs);
+	CarControl simpleBotControl(CarState &cs);
+	CarControl rlControl(CarState &cs);
+	
+	int g_count;
+	unsigned int g_learn_step_count;
+	unsigned int g_print_mod;
+	unsigned int g_steps_per_action;
+	bool g_learning_done;
+	bool g_first_time;
+	unsigned int g_stuck_penalty;
+	unsigned int g_learn_steps_per_tick;
 };
 
 #endif /*MYFIRSTDRIVER_H_*/

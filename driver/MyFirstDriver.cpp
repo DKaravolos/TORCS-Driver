@@ -1,30 +1,24 @@
-/***************************************************************************
- 
-    file                 : MyFirstDriver.cpp
-    copyright            : (C) 2007 Daniele Loiacono
- 
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
 #include "MyFirstDriver.h"
 
-	MyFirstDriver::MyFirstDriver()
-	{
-		stuck=0;clutch=0.0;
-		mp_features = NULL;
-		mp_Qinterface = NULL;
-		m_last_dist = 0;
-		m_last_dist_from_start = 0;
-		m_last_damage = 0;
-	}
+MyFirstDriver::MyFirstDriver()
+{
+	stuck=0;clutch=0.0;
+	mp_features = NULL;
+	mp_Qinterface = NULL;
+	m_last_dist = 0;
+	m_last_dist_from_start = 0;
+	m_last_damage = 0;
 
+	g_count = -1;
+	g_learn_step_count = 0;
+	g_learning_done = false;
+	g_first_time = true;
+
+	g_print_mod = 500;
+	g_steps_per_action = 50;
+	g_learn_steps_per_tick = 1;
+	g_stuck_penalty = 100;
+}
 
 /* Gear Changing Constants*/
 const int MyFirstDriver::gearUp[6]=
@@ -78,9 +72,7 @@ const float MyFirstDriver::clutchDec=0.01f;
 const float MyFirstDriver::clutchMaxModifier=1.3f;
 const float MyFirstDriver::clutchMaxTime=1.5f;
 
-
-int
-MyFirstDriver::getGear(CarState &cs)
+int MyFirstDriver::getGear(CarState &cs)
 {
 
     int gear = cs.getGear();
@@ -103,9 +95,7 @@ MyFirstDriver::getGear(CarState &cs)
         else // otherwhise keep current gear
             return gear;
 }
-
-float
-MyFirstDriver::getSteer(CarState &cs)
+float MyFirstDriver::getSteer(CarState &cs)
 {
 	// steering angle is compute by correcting the actual car angle w.r.t. to track 
 	// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
@@ -117,8 +107,7 @@ MyFirstDriver::getSteer(CarState &cs)
         return (targetAngle)/steerLock;
 
 }
-float
-MyFirstDriver::getAccel(CarState &cs)
+float MyFirstDriver::getAccel(CarState &cs)
 {
     // checks if car is out of track
     if (cs.getTrackPos() < 1 && cs.getTrackPos() > -1)
@@ -168,161 +157,211 @@ MyFirstDriver::getAccel(CarState &cs)
 
 }
 
-int count = 0;
-int print_mod = 50;
-bool learning_done = false;
-bool l_first_time = true;
+void MyFirstDriver::init(float *angles)
+{
+	//Set Daniels datamembers
+	mp_features = NULL;
+	if (mp_Qinterface == NULL) {
+		cout << "Creating LearningInterface...\n";
+		mp_Qinterface = new LearningInterface();
+		cout << "mp_Qinterface is now at " << mp_Qinterface << endl;
+		mp_Qinterface->init();
+		cout << "Done.\n";
+	} else {
+		cout << "Already created a LearningInterface. Skipping constructor and init.\n";
+	}
+	m_last_dist = 0;
+
+	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
+
+	for (int i=0; i<5; i++)
+	{
+		angles[i]=-90+i*15;
+		angles[18-i]=90-i*15;
+	}
+
+	for (int i=5; i<9; i++)
+	{
+			angles[i]=-20+(i-5)*5;
+			angles[18-i]=20-(i-5)*5;
+	}
+	angles[9]=0;
+}
+
 CarControl MyFirstDriver::wDrive(CarState cs)
 {
+	double l_reward = 0;
+	//keep track of time
+	g_count++;
+
 	// check if car is currently stuck
-	if ( fabs(cs.getAngle()) > stuckAngle )
-    {
-		// update stuck counter
-        stuck++;
-    }
-    else
-    {
-    	// if not stuck reset stuck counter
-        stuck = 0;
+	if ( fabs(cs.getAngle()) > stuckAngle ) {
+        stuck++; // update stuck counter
+    } else {
+        stuck = 0; // if not stuck reset stuck counter
     }
 
 	// after car is stuck for a while apply recovering policy
-    if (stuck > stuckTime)
-    {
-    	/* set gear and sterring command assuming car is 
-    	 * pointing in a direction out of track */
-    	cout << "I'm stuck. Script is taking over." << endl;
-    	// to bring car parallel to track axis
-        float steer = - cs.getAngle() / steerLock; 
-        int gear=-1; // gear R
-        
-        // if car is pointing in the correct direction revert gear and steer  
-        if (cs.getAngle()*cs.getTrackPos()>0)
-        {
-            gear = 1;
-            steer = -steer;
-        }
-
-        // Calculate clutching
-        clutching(cs,clutch);
-
-        // build a CarControl variable and return it
-        CarControl cc (1.0,0.0,gear,steer,clutch);
-        return cc;
+    if (stuck > stuckTime) {
+    	/* set control, assuming car is pointing in a direction out of track */
+		mp_Qinterface->setEOE(true);
+		l_reward -= g_stuck_penalty; //This value was chosen completely random!
+    	return carStuckControl(cs);
     }
-
 	//Car is not stuck:
-
-	if(l_first_time){
-		learning_done = mp_Qinterface->learningUpdateStep();
-		l_first_time = false;
+	if(g_first_time) {
+		g_learning_done = mp_Qinterface->learningUpdateStep();
+		g_first_time = false;
 	}
-	if(count % 50 == 0) 
+	//START LEARNING CODE
+	if(g_count % g_steps_per_action == 0) 
 	{
-		//START LEARNING SEQUENCE
 		//Compute reward of last action
-		double distance = cs.getDistRaced();
-		double dist_reward = 100* (distance - m_last_dist);
-		//mp_Qinterface->setRewardPrevAction(distance - m_last_dist);
-		m_last_dist = distance;
-		if( count % print_mod == 0) {
-			cout << "Distance reward: "<< dist_reward;
-			//cout << "reward: "<< distance - m_last_dist << endl;
-		}
-
-		/*int distance_from_start = cs.getDistFromStart();
-		//mp_Qinterface->setRewardPrevAction(distance_from_start - m_last_dist_from_start);
-		if( count % 200 == 0) {
-			cout << "\nDist from start: " << cs.getDistFromStart() << endl;
-			cout << "hypothetical reward (from start): "<< distance_from_start - m_last_dist_from_start << endl;
-		}
-		m_last_dist_from_start = distance_from_start;
-		*/
-		double damage_reward = -10*(cs.getDamage() - m_last_damage);
-		if( count % print_mod == 0) {
-			cout << "   Damage reward: " << damage_reward;
-		}
-		m_last_damage = cs.getDamage();
-
-		double reward = dist_reward + damage_reward;
-		if( count % print_mod == 0) {
-			cout << "\tSum: " << reward << endl;
-		}
-		mp_Qinterface->setRewardPrevAction(reward);
-
-		//Get state features
-		delete mp_features;
-		mp_features = createFeatureVectorPointer(cs);
-		//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-		//Create a state
-		mp_Qinterface->setState(mp_features);
-	
-		//Do some learning
-		learning_done = mp_Qinterface->learningUpdateStep();
-
-		//get Action
+		l_reward += computeReward(cs);
+		mp_Qinterface->setRewardPrevAction(l_reward);
+		//do the actual learning step
+		doLearning(cs);
+		//get the driver's action
 		mp_action_set = mp_Qinterface->getAction();
 		if (mp_action_set == NULL)
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
 
-		if (learning_done)
-			cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
-		//// Ergens moet nog het eind van een episode bepaald worden, 
-		//// dit wordt aan de leeralgoritmen gegeven.
-		//// mp_Qinterface->setEOE(true);
 	} else {
 		//cout << "Repeating action : " << mp_action_set[0] << "  " << mp_action_set[1] << endl;
-		//cout << "repeating: "<< count % 50 << endl;
+		//cout << "repeating: "<< g_count % 50 << endl;
 	}
-	//END LEARNING SEQUENCE
-	count++;
-	if( count % 1000 == 0)
-	{
-		//mp_Qinterface->printState();
-		count = 0;
-	}
+	//END LEARNING CODE
+	//*
+	if(g_learning_done)
+		return simpleBotControl(cs);
+	//*
+	return rlControl(cs);
+}
+
+double MyFirstDriver::computeReward(CarState &cs)
+{
+		double reward = 0;
+		
+		/////////DISTANCE
+		double distance = cs.getDistRaced();
+		double dist_reward = 10* (distance - m_last_dist);
+		m_last_dist = distance;
+		if( g_count % g_print_mod == 0) { 
+			cout << "Distance reward: "<< dist_reward;
+		}
+		reward+= dist_reward;
+
+		/////////DAMAGE
+		double damage_reward = -(cs.getDamage() - m_last_damage);
+		if( g_count % g_print_mod == 0) {
+			cout << "   Damage reward: " << damage_reward;
+		}
+		m_last_damage = cs.getDamage();
+		reward += damage_reward;
+
+		/////////OUTPUT
+		if( g_count % g_print_mod == 0)
+			cout << "\tSum: " << reward << endl;
+		return reward;
+}
+
+void MyFirstDriver::doLearning(CarState &cs) 
+{
+	//Get state features
+	delete mp_features;
+	mp_features = createFeatureVectorPointer(cs);
+	//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
+	//Create a state
+	mp_Qinterface->setState(mp_features);
 	
+	//Do some learning
+	g_learn_step_count = 0;
+	while(g_count > 100 && g_learn_step_count < g_learn_steps_per_tick){
+		if(g_learn_step_count ==0)
+			cout << "\nlearning "<< g_learn_steps_per_tick << "times:";
+		g_learning_done = mp_Qinterface->learningUpdateStep();
+		g_learn_step_count++;
+	}
+	//if end_of_episode was set due to stuck, it needs to be reset after the first learning step with eoe == true
+	//if end_of_ep is set to false when agent realises that it isn't stuck, then there is no learning update with eoe
+	if(mp_Qinterface->getEOE())
+		mp_Qinterface->setEOE(false);
+
+	//if (g_learning_done)
+	//	cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
+}
+
+CarControl MyFirstDriver::carStuckControl(CarState & cs)
+{
+	// to bring car parallel to track axis
+    float steer = - cs.getAngle() / steerLock; 
+    int gear=-1; // gear R
+        
+    // if car is pointing in the correct direction revert gear and steer  
+    if (cs.getAngle()*cs.getTrackPos()>0)
+    {
+        gear = 1;
+        steer = -steer;
+    }
+
+    // Calculate clutching
+    clutching(cs,clutch);
+
+    // build a CarControl variable and return it
+    CarControl cc (1.0,0.0,gear,steer,clutch);
+	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
+		cc.setMeta(cc.META_RESTART);
+		g_count = 0;
+		cout << "Learning steps during this run: " << g_learn_step_count << endl;
+	}
+    return cc;
+}
+
+CarControl MyFirstDriver::simpleBotControl(CarState &cs)
+{
 	// compute gear 
     int gear = getGear(cs);
-	//*
-	////SIMPLE BOT STUFF
-	if(learning_done)
-	{
-    	// compute accel/brake command
-		float accel_and_brake = getAccel(cs);
-		// compute steering
-		float steer = getSteer(cs);
+	cout << "Using script to steer.\n";
+    // compute accel/brake command
+	float accel_and_brake = getAccel(cs);
+	// compute steering
+	float steer = getSteer(cs);
         
-		// normalize steering
-		if (steer < -1)
-			steer = -1;
-		if (steer > 1)
-			steer = 1;
+	// normalize steering
+	if (steer < -1)
+		steer = -1;
+	if (steer > 1)
+		steer = 1;
 
-		// set accel and brake from the joint accel/brake command 
-		float accel,brake;
-		if (accel_and_brake>0)
-		{
-			accel = accel_and_brake;
-			brake = 0;
-		}
-		else
-		{
-			accel = 0;
-			// apply ABS to brake
-			brake = filterABS(cs,-accel_and_brake);
-		}
-		// Calculate clutching
-		clutching(cs,clutch);
-
-		// build a CarControl variable and return it
-		CarControl cc(accel,brake,gear,steer,clutch);
-		return cc;
+	// set accel and brake from the joint accel/brake command 
+	float accel,brake;
+	if (accel_and_brake>0)
+	{
+		accel = accel_and_brake;
+		brake = 0;
 	}
-	////END OF SIMPLE BOT STUFF //*/ 
-	//*
-		
-	////RL STUFF
+	else
+	{
+		accel = 0;
+		// apply ABS to brake
+		brake = filterABS(cs,-accel_and_brake);
+	}
+	// Calculate clutching
+	clutching(cs,clutch);
+
+	// build a CarControl variable and return it
+	CarControl cc(accel,brake,gear,steer,clutch);
+	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
+		cc.setMeta(cc.META_RESTART);
+		g_count = 0;
+	}
+	return cc;
+}
+
+CarControl MyFirstDriver::rlControl(CarState &cs)
+{
+	// compute gear 
+    int gear = getGear(cs);
 	float steer = float(mp_action_set[0]);
 
     // set accel and brake from the joint accel/brake command 
@@ -338,18 +377,22 @@ CarControl MyFirstDriver::wDrive(CarState cs)
         // apply ABS to brake
         brake = filterABS(cs,-mp_action_set[1]);
     }
-	////END OF RL STUFF //*/
 
     // Calculate clutching
     clutching(cs,clutch);
 
     // build a CarControl variable and return it
     CarControl cc(accel,brake,gear,steer,clutch);
+	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
+		cc.setMeta(cc.META_RESTART);
+		g_count = 0;
+		cout << "Learning steps during this run: " << g_learn_step_count << endl;
+	}
+
     return cc;
 }
 
-float
-MyFirstDriver::filterABS(CarState &cs,float brake)
+float MyFirstDriver::filterABS(CarState &cs,float brake)
 {
 	// convert speed to m/s
 	float speed = float(cs.getSpeedX() / 3.6);
@@ -378,26 +421,24 @@ MyFirstDriver::filterABS(CarState &cs,float brake)
     	return brake;
 }
 
-void
-MyFirstDriver::onShutdown()
+void MyFirstDriver::onShutdown()
 {
+	cout << "Bye bye!" << endl;
 	delete mp_features;
-	delete mp_Qinterface;
-	delete mp_action_set;
-    cout << "Bye bye!" << endl;
+	//delete mp_action_set;
+	//delete mp_Qinterface; 
 }
 
-void
-MyFirstDriver::onRestart()
+void MyFirstDriver::onRestart()
 {
-	delete mp_features;
-	delete mp_Qinterface;
-	delete mp_action_set;
+	//delete mp_features;
+	//delete mp_action_set;
+	//delete mp_Qinterface;
     cout << "Restarting the race!" << endl;
+	g_first_time = true;
 }
 
-void
-MyFirstDriver::clutching(CarState &cs, float &clutch)
+void MyFirstDriver::clutching(CarState &cs, float &clutch)
 {
   double maxClutch = clutchMax;
 
@@ -431,36 +472,4 @@ MyFirstDriver::clutching(CarState &cs, float &clutch)
 	else
 		clutch -= clutchDec;
   }
-}
-
-void
-MyFirstDriver::init(float *angles)
-{
-	//Set Daniels datamembers
-	mp_features = NULL;
-	if (mp_Qinterface == NULL) {
-		cout << "Creating LearningInterface...\n";
-		mp_Qinterface = new LearningInterface();
-		cout << "mp_Qinterface is now at " << mp_Qinterface << endl;
-		mp_Qinterface->init();
-		cout << "Done.\n";
-	} else {
-		cout << "Already created a LearningInterface. Skipping constructor and init.\n";
-	}
-	m_last_dist = 0;
-
-	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
-
-	for (int i=0; i<5; i++)
-	{
-		angles[i]=-90+i*15;
-		angles[18-i]=90-i*15;
-	}
-
-	for (int i=5; i<9; i++)
-	{
-			angles[i]=-20+(i-5)*5;
-			angles[18-i]=20-(i-5)*5;
-	}
-	angles[9]=0;
 }

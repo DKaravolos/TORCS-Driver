@@ -150,11 +150,11 @@ void LearningInterface::printState()
 
 bool LearningInterface::learningUpdateStep() {
 	//if((mp_parameters->step >= mp_experiment->nSteps) || (mp_parameters->episode >= mp_experiment->nEpisodes)) {
-	if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 10) ){
-		cout << "Learning experiment is over.experimentMainLoop will not be ran.\n";
+	/*if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 100) ){
+		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
 		return true;
 	}
-
+	*/
 	//commented code with //// is from Experiment
 	////reward = world->act( action ) ;
 	//not necessary, we already have m_reward
@@ -185,8 +185,7 @@ bool LearningInterface::learningUpdateStep() {
 			} else {
 				//Q values are updated with last state, last action and resulting reward and new state
 				//cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
-				//cout << "LI update: current_state: state[0] = "<< mp_current_state->continuousState[0] << endl;
-				//cout << "LI update: prev_action: action[0] = "<< mp_prev_action->discreteAction << endl;
+
 				mp_algorithm->update( mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
 
