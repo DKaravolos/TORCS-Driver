@@ -14,9 +14,10 @@
  *                                                                         *
  ***************************************************************************/
 /* Uncomment the following lines under windows */
-//#define WIN32 // maybe not necessary because already define
-#define __DRIVER_CLASS__ MyFirstDriver     // put here the name of your driver class
-#define __DRIVER_INCLUDE__ "MyFirstDriver.h" // put here the filename of your driver h\\eader
+#define __DRIVER_CLASS__ RecitingDriver     // put here the name of your driver class
+#define __DRIVER_INCLUDE__ "RecitingDriver.h" // put here the filename of your driver h\\eader
+//#define __DRIVER_CLASS__ MyFirstDriver     // put here the name of your driver class
+//#define __DRIVER_INCLUDE__ "MyFirstDriver.h" // put here the filename of your driver h\\eader
 //#define __DRIVER_CLASS__ SimpleDriver     // put here the name of your driver class
 //#define __DRIVER_INCLUDE__ "SimpleDriver.h" // put here the filename of your driver h\\eader
 
