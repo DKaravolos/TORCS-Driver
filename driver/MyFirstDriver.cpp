@@ -1,4 +1,6 @@
 #include "MyFirstDriver.h"
+unsigned int debug_stuck_count = 0;
+unsigned int debug_learn_count = 0;
 
 MyFirstDriver::MyFirstDriver()
 {
@@ -9,15 +11,10 @@ MyFirstDriver::MyFirstDriver()
 	m_last_dist_from_start = 0;
 	m_last_damage = 0;
 
-	g_count = -1;
-	g_learn_step_count = 0;
-	g_learning_done = false;
-	g_first_time = true;
-
-	g_print_mod = 500;
-	g_steps_per_action = 50;
+	g_print_mod = 20;
+	g_steps_per_action = 20;
 	g_learn_steps_per_tick = 1;
-	g_stuck_penalty = 100;
+	g_stuck_penalty = 10;
 }
 
 /* Gear Changing Constants*/
@@ -43,7 +40,7 @@ const int MyFirstDriver::gearDown[6]=
 
 /* Stuck constants*/
 const int MyFirstDriver::stuckTime = 25;
-const float MyFirstDriver::stuckAngle = .523598775f; //PI/6
+const float MyFirstDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
 
 /* Accel and Brake Constants*/
 const float MyFirstDriver::maxSpeedDist=70;
@@ -159,6 +156,11 @@ float MyFirstDriver::getAccel(CarState &cs)
 
 void MyFirstDriver::init(float *angles)
 {
+	g_learn_step_count = 0;
+	g_count = -1;
+	g_learning_done = false;
+	g_first_time = true;
+
 	//Set Daniels datamembers
 	mp_features = NULL;
 	if (mp_Qinterface == NULL) {
@@ -188,22 +190,36 @@ void MyFirstDriver::init(float *angles)
 	angles[9]=0;
 }
 
+double l_reward = 0;
 CarControl MyFirstDriver::wDrive(CarState cs)
 {
-	double l_reward = 0;
 	//keep track of time
 	g_count++;
 
 	// check if car is currently stuck
-	if ( fabs(cs.getAngle()) > stuckAngle ) {
+
+	// if (angle is <20 degrees or trackpos <10% from center) : not stuck anymore
+	//if (stuck >= stuckTime && ((fabs(cs.getAngle()) < 0.34f) || fabs(cs.getTrackPos()) < 0.05)) { 
+		//cout << "unstuck :)" <<endl;
+        //stuck = 0; // update stuck counter
+   // }	
+
+	if( (fabs(cs.getTrackPos()) > 0.9) && fabs(cs.getAngle()) >= 0.087266)
+		stuck++; //if agent is driving on side of the track with nose pointed outwards, correct it.
+	else if ( fabs(cs.getAngle()) > stuckAngle ) {
         stuck++; // update stuck counter
-    } else {
+    }else {
+		if(stuck>= stuckTime)
+			cout << "unstuck :)" <<endl;
         stuck = 0; // if not stuck reset stuck counter
+		
     }
 
 	// after car is stuck for a while apply recovering policy
     if (stuck > stuckTime) {
     	/* set control, assuming car is pointing in a direction out of track */
+		cout << "Stuck! :(" << endl;
+		g_stuck_step_count++;
 		mp_Qinterface->setEOE(true);
 		l_reward -= g_stuck_penalty; //This value was chosen completely random!
     	return carStuckControl(cs);
@@ -216,9 +232,14 @@ CarControl MyFirstDriver::wDrive(CarState cs)
 	//START LEARNING CODE
 	if(g_count % g_steps_per_action == 0) 
 	{
+		if( g_count % g_print_mod == 0)
+			cout << "Penalty: "<< l_reward;
 		//Compute reward of last action
 		l_reward += computeReward(cs);
+		if( g_count % g_print_mod == 0)
+			cout << "\tFinal Reward: " << l_reward <<endl;
 		mp_Qinterface->setRewardPrevAction(l_reward);
+		l_reward = 0;
 		//do the actual learning step
 		doLearning(cs);
 		//get the driver's action
@@ -246,22 +267,22 @@ double MyFirstDriver::computeReward(CarState &cs)
 		double distance = cs.getDistRaced();
 		double dist_reward = 10* (distance - m_last_dist);
 		m_last_dist = distance;
-		if( g_count % g_print_mod == 0) { 
-			cout << "Distance reward: "<< dist_reward;
-		}
+		//if( g_count % g_print_mod == 0) { 
+		//	cout << "Distance reward: "<< dist_reward;
+		//}
 		reward+= dist_reward;
 
 		/////////DAMAGE
 		double damage_reward = -(cs.getDamage() - m_last_damage);
-		if( g_count % g_print_mod == 0) {
-			cout << "   Damage reward: " << damage_reward;
-		}
+		//if( g_count % g_print_mod == 0) {
+		//	cout << "   Damage reward: " << damage_reward;
+		//}
 		m_last_damage = cs.getDamage();
 		reward += damage_reward;
 
 		/////////OUTPUT
 		if( g_count % g_print_mod == 0)
-			cout << "\tSum: " << reward << endl;
+			cout << "\tReward: " << reward;
 		return reward;
 }
 
@@ -276,9 +297,9 @@ void MyFirstDriver::doLearning(CarState &cs)
 	
 	//Do some learning
 	g_learn_step_count = 0;
-	while(g_count > 100 && g_learn_step_count < g_learn_steps_per_tick){
-		if(g_learn_step_count ==0)
-			cout << "\nlearning "<< g_learn_steps_per_tick << "times:";
+	while(g_count > g_learn_steps_per_tick && g_learn_step_count < g_learn_steps_per_tick){
+		/*if(g_learn_step_count ==0)
+			cout << "\nlearning "<< g_learn_steps_per_tick << "times:";*/
 		g_learning_done = mp_Qinterface->learningUpdateStep();
 		g_learn_step_count++;
 	}
@@ -293,8 +314,10 @@ void MyFirstDriver::doLearning(CarState &cs)
 
 CarControl MyFirstDriver::carStuckControl(CarState & cs)
 {
+	debug_stuck_count++;
+	float acc = 0.8;
 	// to bring car parallel to track axis
-    float steer = - cs.getAngle() / steerLock; 
+    float steer =  - cs.getAngle() / steerLock; 
     int gear=-1; // gear R
         
     // if car is pointing in the correct direction revert gear and steer  
@@ -302,17 +325,26 @@ CarControl MyFirstDriver::carStuckControl(CarState & cs)
     {
         gear = 1;
         steer = -steer;
+		acc = 0.8;
     }
 
+	//if agent is driving on side of the track with nose pointed outwards, correct it.
+	if(cs.getTrackPos()> 0.9 && cs.getAngle() >= 0.087266f)
+		steer -= 0.087266f; //5degrees
+	if(cs.getTrackPos() < -0.9 && cs.getAngle() <= -0.087266f)
+		steer += 0.087266f;
     // Calculate clutching
     clutching(cs,clutch);
 
     // build a CarControl variable and return it
-    CarControl cc (1.0,0.0,gear,steer,clutch);
+    CarControl cc (acc,0.0,gear,steer,clutch);
 	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
-		cout << "Learning steps during this run: " << g_learn_step_count << endl;
+		cout << "Learning steps during this run: " << debug_learn_count << endl;
+		cout << "Stuck steps during this run: " << debug_stuck_count << endl;
+		debug_stuck_count = 0;
+		debug_learn_count = 0;
 	}
     return cc;
 }
@@ -354,12 +386,14 @@ CarControl MyFirstDriver::simpleBotControl(CarState &cs)
 	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
+		cout << " YOU'RE DOING IT WRONG!!!!" << endl;
 	}
 	return cc;
 }
 
 CarControl MyFirstDriver::rlControl(CarState &cs)
 {
+	debug_learn_count++;
 	// compute gear 
     int gear = getGear(cs);
 	float steer = float(mp_action_set[0]);
@@ -386,7 +420,10 @@ CarControl MyFirstDriver::rlControl(CarState &cs)
 	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
-		cout << "Learning steps during this run: " << g_learn_step_count << endl;
+		cout << "Learning steps during this run: " << debug_learn_count << endl;
+		cout << "Stuck steps during this run: " << debug_stuck_count << endl;
+		debug_stuck_count = 0;
+		debug_learn_count = 0;
 	}
 
     return cc;
@@ -435,7 +472,6 @@ void MyFirstDriver::onRestart()
 	//delete mp_action_set;
 	//delete mp_Qinterface;
     cout << "Restarting the race!" << endl;
-	g_first_time = true;
 }
 
 void MyFirstDriver::clutching(CarState &cs, float &clutch)

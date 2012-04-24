@@ -9,7 +9,7 @@ TorcsWorld::TorcsWorld()
 	stateDimension		= 13;
 	actionDimension		= 0;
 	numberOfStates		= 0;
-	numberOfActions		= 9;
+	numberOfActions		= 15;
 
 	mp_state = NULL;
 	mp_action = NULL;
@@ -57,7 +57,7 @@ double* TorcsWorld::convertAction(Action* action)
 	*/
 	double* torcs_action = new double[2]; //This is deleted in MyFirstDriver.
 
-	if(action->discrete)
+	if(action->discrete && numberOfActions == 9)
 	{
 		switch(action->discreteAction)
 		{
@@ -65,35 +65,124 @@ double* TorcsWorld::convertAction(Action* action)
 				torcs_action[0] = -1;
 				torcs_action[1] = -1;
 				break;
+
 			case 1:
-				torcs_action[0] = -1;
-				torcs_action[1] = 0;
-				break;
-			case 2:
-				torcs_action[0] = -1;
-				torcs_action[1] = 1;
-				break;
-			case 3:
 				torcs_action[0] = 0;
 				torcs_action[1] = -1;
 				break;
+
+			case 2:
+				torcs_action[0] = 1;
+				torcs_action[1] = -1;
+				break;
+
+			case 3:
+				torcs_action[0] = -1;
+				torcs_action[1] = 0;
+				break;
+
 			case 4:
 				torcs_action[0] = 0;
 				torcs_action[1] = 0;
 				break;
+
 			case 5:
-				torcs_action[0] = 0;
-				torcs_action[1] = 1;
-				break;
-			case 6:
-				torcs_action[0] = 1;
-				torcs_action[1] = -1;
-				break;
-			case 7:
 				torcs_action[0] = 1;
 				torcs_action[1] = 0;
 				break;
+
+			case 6:
+				torcs_action[0] = -1;
+				torcs_action[1] = 1;
+				break;
+
+			case 7:
+				torcs_action[0] = 0;
+				torcs_action[1] = 1;
+				break;
+
 			case 8:
+				torcs_action[0] = 1;
+				torcs_action[1] = 1;
+				break;
+		}
+		return torcs_action;
+	}
+	else if(action->discrete && numberOfActions == 15)
+	{
+		switch(action->discreteAction)
+		{
+			case 0:
+				torcs_action[0] = -1;
+				torcs_action[1] = -1;
+				break;
+
+			case 1:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = -1;
+				break;
+
+			case 2:
+				torcs_action[0] = 0;
+				torcs_action[1] = -1;
+				break;
+
+			case 3:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = -1;
+				break;
+
+			case 4:
+				torcs_action[0] = 1;
+				torcs_action[1] = -1;
+				break;
+
+			case 5:
+				torcs_action[0] = -1;
+				torcs_action[1] = 0;
+				break;
+
+			case 6:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = 0;
+				break;
+
+			case 7:
+				torcs_action[0] = 0;
+				torcs_action[1] = 0;
+				break;
+
+			case 8:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = 0;
+				break;
+
+			case 9:
+				torcs_action[0] = 1;
+				torcs_action[1] = 0;
+				break;
+
+			case 10:
+				torcs_action[0] = -1;
+				torcs_action[1] = 1;
+				break;
+
+			case 11:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = 1;
+				break;
+
+			case 12:
+				torcs_action[0] = 0;
+				torcs_action[1] = 1;
+				break;
+
+			case 13:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = 1;
+				break;				
+			
+			case 14:
 				torcs_action[0] = 1;
 				torcs_action[1] = 1;
 				break;

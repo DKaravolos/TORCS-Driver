@@ -7,7 +7,6 @@ Experiment::Experiment(Experiment::Configuration config) {
 
 	switch(config) {
 		case DEFAULT_Q:
-			cout<<"\t I can read the input parameter!\n";
 			nExperiments = 1;
 			nAlgorithms = 1;
 			//THESE VALUES ARE QUITE RANDOM!
@@ -28,9 +27,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			//END OF RANDOM
 
 			stateDimension = 13;
-			actionDimension =-1;
-			discreteStates = -1;
-			discreteActions = 9;
+			actionDimension = int(-1);
+			discreteStates = int(-1);
+			discreteActions = 15;
 
 			endOfEpisode  = false;
 

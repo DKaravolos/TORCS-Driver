@@ -145,6 +145,7 @@ private:
 	
 	int g_count;
 	unsigned int g_learn_step_count;
+	unsigned int g_stuck_step_count;
 	unsigned int g_print_mod;
 	unsigned int g_steps_per_action;
 	bool g_learning_done;
