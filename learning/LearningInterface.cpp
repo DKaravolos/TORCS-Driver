@@ -6,18 +6,22 @@ using namespace std;
 
 LearningInterface::LearningInterface(void)
 {
+	srand(time(NULL));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld();
 	mp_writer = new Writer("interface_output.txt");
+	mp_memory = new StateActionMemory();
+	m_reward = 0;
 	cout << "Done.\n";
 }
-
 
 LearningInterface::~LearningInterface(void)
 {
 	cout << "Destroying LearningInterface... Goodbye cruel world!" << endl;
 	delete mp_writer;
+	delete mp_memory;
+
 	delete mp_world;
 	delete mp_algorithm;
 	delete mp_experiment;
@@ -62,7 +66,6 @@ void LearningInterface::init()
 	initActions();
 }
 
-
 void LearningInterface::initState(){
 	mp_current_state = new State();
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
@@ -106,7 +109,6 @@ void LearningInterface::initExperimentParam()
     }
 }
 
-
 ///////////////Driver functions///////////////////
 double* LearningInterface::getAction()
 {
@@ -145,40 +147,33 @@ void LearningInterface::printState()
 	}
 }
 
-
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
+bool LearningInterface::learningUpdateStep()
+{
+	return learningUpdateStep(false);
+}
 
-bool LearningInterface::learningUpdateStep() {
-	//if((mp_parameters->step >= mp_experiment->nSteps) || (mp_parameters->episode >= mp_experiment->nEpisodes)) {
-	/*if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 100) ){
+bool LearningInterface::learningUpdateStep(bool store_tuples)
+{
+	//if((mp_parameters->step >= mp_experiment->nSteps) || 
+	   //(mp_parameters->episode >= mp_experiment->nEpisodes)) {
+	if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 100) ){
 		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
 		return true;
 	}
-	*/
-	//commented code with //// is from Experiment
-	////reward = world->act( action ) ;
-	//not necessary, we already have m_reward
-
-	////world->getState( nextState ) ;
-	//not necessary, we already have mp_current_state
 
 	mp_experiment->explore( mp_current_state, mp_current_action); //Computes new action based on current state
 	//current_action wordt gevuld.
 	
 	mp_parameters->rewardSum += m_reward ;
-	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Weten of episode is geeïndigd. moet nog ingesteld worden?
+	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Check if an episode has ended.
 
 	if ( mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
+		///////HO, nu zijn er twee checks voor first_time. de andere zit in wdrive van driver
 		{
 			if ( mp_experiment->algorithmName.compare("Sarsa") == 0 ) {
-
-				/*actions[0] = *action ;
-				actions[1] = *nextAction ;
-				algorithm->update( mp_current_state, actions, m_reward, nextState, 
-					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
-				*/
 				cout << "SARSA is not implemented yet, please use Q-learning. LearningMainloop is now shutting down.\n";
 				return true;
 
@@ -186,8 +181,8 @@ bool LearningInterface::learningUpdateStep() {
 				//Q values are updated with last state, last action and resulting reward and new state
 				//cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
 
-				mp_algorithm->update( mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-					mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma ) ;
+				mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 
 			}
 		} else {
@@ -196,17 +191,62 @@ bool LearningInterface::learningUpdateStep() {
 		}
 	}
 
+	//Copy current state and action to history
+	if(store_tuples)
+		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state);
 	copyState( mp_current_state, mp_prev_state ) ;
 	copyAction( mp_current_action, mp_prev_action ) ;
 
+	//Keep track of time
 	if ( mp_parameters->endOfEpisode ) {
 		mp_parameters->episode++ ;
 	}
-
 	mp_parameters->step++;
 	if(mp_parameters->step % 200 == 0) {
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
 		cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}
 	return false;
+}
+
+void LearningInterface::updateWithOldTuple(UpdateOption option)
+{
+	if(mp_memory->getSize() == 0) {
+		cout << "Can't update with old tuple if there is no memory" << endl;
+		return;
+	}
+	State* lp_state = NULL;
+	Action* lp_action = NULL;
+	double l_reward = 0;
+	State* lp_next_state = NULL;
+	int tuple_idx = 0;
+
+	switch(option)
+	{
+		case RANDOM:
+			//update with random tuple from memory
+			tuple_idx = rand() % mp_memory->getSize();
+			cout << "Retrieving tuple "<<tuple_idx <<endl;
+			mp_memory->retrieveTupleAt(tuple_idx,lp_state,lp_action,l_reward,lp_next_state);
+			cout << "With state pointer "<< lp_state << endl;
+			break;
+
+		case TD:
+			//update with tuple with high TD error
+			cout << "This update option is not implemented yet"<< endl;
+			break;
+
+		default:
+			cout << "This update option does not exist!" <<endl;
+			throw std::invalid_argument("Given update option does not exist. Please use RANDOM");
+	}
+
+	if(lp_state == NULL || lp_action == NULL || lp_next_state == NULL) {
+		cout << "Something went wrong during update from memory." << endl;
+		throw "Noo! I can't update my network with NULL pointers!";
+	} else {
+			cout << "Updating old tuple\n";
+			mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
+							false, mp_experiment->learningRate, mp_experiment->gamma);
+	}
 }

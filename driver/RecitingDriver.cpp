@@ -226,8 +226,8 @@ CarControl RecitingDriver::wDrive(CarState cs)
     	return carStuckControl(cs);
     }
 	//Car is not stuck:
-	if(g_first_time) {
-		g_learning_done = mp_Qinterface->learningUpdateStep();
+	if(g_first_time) { ///////HO, nu zijn er twee checks voor first_time. de andere zit in de update van LI
+		g_learning_done = mp_Qinterface->learningUpdateStep(false); //Niet opslaan. Er is immers geen reward
 		g_first_time = false;
 	}
 	//START LEARNING CODE
@@ -242,13 +242,34 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		mp_Qinterface->setRewardPrevAction(l_reward);
 		l_reward = 0;
 		//do the actual learning step
-		doLearning(cs);
+		try{
+			doLearning(cs);
+		}catch (exception& e){
+			cout << e.what() << endl;
+			char end;
+			cin >> end;
+			exit(-1);
+		}
 		//get the driver's action
 		mp_action_set = mp_Qinterface->getAction();
-		if (mp_action_set == NULL)
+		if (mp_action_set == NULL) {
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
+			exit(-1);
+		}
 
 	} else {
+		if (g_count > g_steps_per_action) //DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE EPISODE<-- UPDATE HIJ DUS NIET!!
+		{
+			//cout << "Driver: updating random old tuple\n";
+			try{
+				mp_Qinterface->updateWithOldTuple(LearningInterface::RANDOM);
+			}catch (exception& e){
+				cout << e.what() << endl;
+				char end;
+				cin >> end;
+				exit(-1);
+			}
+		}
 		//cout << "Repeating action : " << mp_action_set[0] << "  " << mp_action_set[1] << endl;
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
@@ -301,7 +322,7 @@ void RecitingDriver::doLearning(CarState &cs)
 	while(g_count > g_learn_steps_per_tick && g_learn_step_count < g_learn_steps_per_tick){
 		/*if(g_learn_step_count ==0)
 			cout << "\nlearning "<< g_learn_steps_per_tick << "times:";*/
-		g_learning_done = mp_Qinterface->learningUpdateStep();
+		g_learning_done = mp_Qinterface->learningUpdateStep(true);
 		g_learn_step_count++;
 	}
 	//if end_of_episode was set due to stuck, it needs to be reset after the first learning step with eoe == true
