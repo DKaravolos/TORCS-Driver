@@ -12,9 +12,11 @@ RecitingDriver::RecitingDriver()
 	m_last_dist_from_start = 0;
 	m_last_damage = 0;
 
-	g_print_mod = 20;
-	g_steps_per_action = 20;
-	g_learn_steps_per_tick = 1;
+	g_steps_per_action = 10;
+	g_print_mod = g_steps_per_action;
+	g_learn_steps_per_tick = 10;
+	g_reupdate_steps_per_tick = 10;
+
 	g_stuck_penalty = 10;
 }
 
@@ -157,7 +159,8 @@ float RecitingDriver::getAccel(CarState &cs)
 
 void RecitingDriver::init(float *angles)
 {
-	g_learn_step_count = 0;
+	g_learn_step_count = 0; //unnecessary, but good practice
+	g_reupdate_step_count = 0; //unnecessary, but good practice
 	g_count = -1;
 	g_learning_done = false;
 	g_first_time = true;
@@ -205,13 +208,13 @@ CarControl RecitingDriver::wDrive(CarState cs)
         //stuck = 0; // update stuck counter
    // }	
 
-	if( (fabs(cs.getTrackPos()) > 0.9) && fabs(cs.getAngle()) >= 0.087266)
+	if( (fabs(cs.getTrackPos()) > 0.9) && fabs(cs.getAngle()) >= 0.087266) //5 degrees
 		stuck++; //if agent is driving on side of the track with nose pointed outwards, correct it.
 	else if ( fabs(cs.getAngle()) > stuckAngle ) {
         stuck++; // update stuck counter
     }else {
-		if(stuck>= stuckTime)
-			cout << "unstuck :)" <<endl;
+		//if(stuck>= stuckTime)
+			//cout << "unstuck :)" <<endl;
         stuck = 0; // if not stuck reset stuck counter
 		
     }
@@ -219,19 +222,33 @@ CarControl RecitingDriver::wDrive(CarState cs)
 	// after car is stuck for a while apply recovering policy
     if (stuck > stuckTime) {
     	/* set control, assuming car is pointing in a direction out of track */
-		cout << "Stuck! :(" << endl;
+		if( g_count % g_print_mod == 0)
+			cout << "Stuck! :(" << endl;
 		g_stuck_step_count++;
 		mp_Qinterface->setEOE(true);
-		l_reward -= g_stuck_penalty; //This value was chosen completely random!
+		l_reward -= g_stuck_penalty; //This value was chosen randomly!
     	return carStuckControl(cs);
     }
+
+	//Do not use RL control if conditions are not right
+	//*
+	if(g_learning_done || cs.getCurLapTime() < 0){
+		cout << "time: " << cs.getCurLapTime() << ". using script\n";
+		return simpleBotControl(cs);
+	}
+	//*/
+
 	//Car is not stuck:
 	if(g_first_time) { ///////HO, nu zijn er twee checks voor first_time. de andere zit in de update van LI
 		g_learning_done = mp_Qinterface->learningUpdateStep(false); //Niet opslaan. Er is immers geen reward
 		g_first_time = false;
+		g_count = 0;
+		return simpleBotControl(cs);
 	}
+
 	//START LEARNING CODE
-	if(g_count % g_steps_per_action == 0) 
+	//For now: don't do anything before laptime == 0
+	if((cs.getCurLapTime() > 0 && g_count % g_steps_per_action == 0)) 
 	{
 		if( g_count % g_print_mod == 0)
 			cout << "Penalty: "<< l_reward;
@@ -258,11 +275,21 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		}
 
 	} else {
-		if (g_count > g_steps_per_action) //DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE EPISODE<-- UPDATE HIJ DUS NIET!!
+		mp_action_set = mp_Qinterface->getAction();
+		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
+			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
 		{
 			//cout << "Driver: updating random old tuple\n";
 			try{
-				mp_Qinterface->updateWithOldTuple(LearningInterface::RANDOM);
+				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
+				//Waarom is g_count hier de eerste keer 50??
+				g_reupdate_step_count = 0;
+				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
+					//Currently, these steps do not count for the max_steps of g_learning_done
+					mp_Qinterface->updateWithOldTuple(LearningInterface::RANDOM);
+					g_reupdate_step_count++;
+				}
+				
 			}catch (exception& e){
 				cout << e.what() << endl;
 				char end;
@@ -274,10 +301,6 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
-	//*
-	if(g_learning_done)
-		return simpleBotControl(cs);
-	//*
 	return rlControl(cs);
 }
 
@@ -319,9 +342,8 @@ void RecitingDriver::doLearning(CarState &cs)
 	
 	//Do some learning
 	g_learn_step_count = 0;
-	while(g_count > g_learn_steps_per_tick && g_learn_step_count < g_learn_steps_per_tick){
-		/*if(g_learn_step_count ==0)
-			cout << "\nlearning "<< g_learn_steps_per_tick << "times:";*/
+	while(debug_learn_count >= g_learn_steps_per_tick && g_learn_step_count < g_learn_steps_per_tick
+			&& !g_learning_done){
 		g_learning_done = mp_Qinterface->learningUpdateStep(true);
 		g_learn_step_count++;
 	}
@@ -360,14 +382,7 @@ CarControl RecitingDriver::carStuckControl(CarState & cs)
 
     // build a CarControl variable and return it
     CarControl cc (acc,0.0,gear,steer,clutch);
-	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
-		cc.setMeta(cc.META_RESTART);
-		g_count = 0;
-		cout << "Learning steps during this run: " << debug_learn_count << endl;
-		cout << "Stuck steps during this run: " << debug_stuck_count << endl;
-		debug_stuck_count = 0;
-		debug_learn_count = 0;
-	}
+	endOfRunCheck(cs, cc);
     return cc;
 }
 
@@ -405,16 +420,13 @@ CarControl RecitingDriver::simpleBotControl(CarState &cs)
 
 	// build a CarControl variable and return it
 	CarControl cc(accel,brake,gear,steer,clutch);
-	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
-		cc.setMeta(cc.META_RESTART);
-		g_count = 0;
-		cout << " YOU'RE DOING IT WRONG!!!!" << endl;
-	}
+	endOfRunCheck(cs, cc);
 	return cc;
 }
 
 CarControl RecitingDriver::rlControl(CarState &cs)
 {
+	cout << "Time: " << cs.getCurLapTime() << endl;
 	debug_learn_count++;
 	// compute gear 
     int gear = getGear(cs);
@@ -439,7 +451,15 @@ CarControl RecitingDriver::rlControl(CarState &cs)
 
     // build a CarControl variable and return it
     CarControl cc(accel,brake,gear,steer,clutch);
-	if(g_count >= 20000) { //Dit is mogelijk baanspecifiek
+	endOfRunCheck(cs, cc);
+
+    return cc;
+}
+
+void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+{
+	//Dit is mogelijk baanspecifiek
+	if(g_count >= 20000 || cs.getCurLapTime() > 390.00) { //20.000 ticks of 6.5 minuut game tijd
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
 		cout << "Learning steps during this run: " << debug_learn_count << endl;
@@ -447,8 +467,6 @@ CarControl RecitingDriver::rlControl(CarState &cs)
 		debug_stuck_count = 0;
 		debug_learn_count = 0;
 	}
-
-    return cc;
 }
 
 float RecitingDriver::filterABS(CarState &cs,float brake)

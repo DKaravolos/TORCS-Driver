@@ -167,8 +167,8 @@ void Qlearning::update( State * state, Action * action, double rt, State * nextS
 
             for ( int a = 0 ; a < numberOfActions ; a++ ) {
                 Qs[a] = QNN[a]->forwardPropagate( st_ )[0] ;
-				if (Qcount % 100 == 0)
-					cout << Qcount << " Qvalue of action :"<< a << " : " << Qs[a] << endl;
+				/*if (Qcount % 100 == 0)
+					cout << Qcount << " Qvalue of action :"<< a << " : " << Qs[a] << endl;*/
             }
 
             double maxQs = myMax( Qs, numberOfActions ) ;
@@ -179,9 +179,9 @@ void Qlearning::update( State * state, Action * action, double rt, State * nextS
 
         QNN[ at ]->backPropagate( st, QTarget, learningRate[0] ) ;
 		
-		Qcount++;
-		if(Qcount % 1000 == 0)
-			Qcount = 0;
+		//Qcount++;
+		//if(Qcount % 1000 == 0)
+		//	Qcount = 0;
     }
 
 }

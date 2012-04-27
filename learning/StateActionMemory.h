@@ -13,8 +13,8 @@ public:
 	~StateActionMemory();
 
 	//LI functions
-	void storeTuple(State* state, Action* action, double reward, State* next_state);
-	void retrieveTupleAt(int idx, State* state, Action* action, double& reward, State* next_state);
+	void storeTuple(State* state, Action* action, double reward, State* next_state, bool end_of_ep);
+	void retrieveTupleAt(int idx, State* state, Action* action, double& reward, State* next_state, bool& end_of_ep);
 	inline int getSize(){ return mp_states->size();}
 
 	//print functions
@@ -26,6 +26,7 @@ protected:
 	std::vector<Action>* mp_actions;
 	std::vector<double>* mp_rewards;
 	std::vector<State>* mp_next_states;
+	std::vector<bool>* mp_end_of_eps;
 
 };
 

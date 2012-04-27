@@ -71,7 +71,7 @@ class LearningInterface
 
 		double m_reward;
 
-		Writer* mp_writer;
+		Writer* mp_log;
 		StateActionMemory* mp_memory;
 
 		//functions:
