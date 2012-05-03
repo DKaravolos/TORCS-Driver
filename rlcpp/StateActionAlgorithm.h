@@ -2,6 +2,7 @@
 #define QALGORITHM_H
 
 # include <string>
+#include <sstream>
 # include <math.h>
 # include <vector>
 # include "cNeuralNetwork.h"
@@ -18,6 +19,8 @@ class StateActionAlgorithm : public Algorithm {
         bool getDiscreteStates() ;
         bool getContinuousActions() ;
         bool getDiscreteActions() ;
+
+		void writeQNN(std::string QNNFileName);
 
     protected:
         void getMaxActionFirst( State *, Action * action ) ;

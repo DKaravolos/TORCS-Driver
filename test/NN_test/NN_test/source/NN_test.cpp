@@ -19,11 +19,7 @@ int main()
 	Qlearning* algorithm2 = new Qlearning("TorcsWorldCfg", world, "test_QNN");
 	cout << "Done.\n";
 
-	char pause;
-	cin >> pause;
 	delete algorithm2;
-
-	cin >> pause;
 	delete world;
 
 	char end;

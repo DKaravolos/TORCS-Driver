@@ -607,9 +607,11 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 		layerOut      = new Matrix*[ nLayers ] ;
 		layerSize     = new int[ nLayers ] ;
     
+		//klopt deze loop wel??
 		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l ] + 1) ; // layerSize[ l ] + 1, for bias
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l  + 1]) ; // layerSize[ l ] + 1, for bias
 		}
+		//
 		for( int l = 0 ; l < nLayers ; l++ ) {
 			layerSize[ l ] = layerSizeInit[ l ] ;
 			layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
@@ -675,7 +677,7 @@ void cNeuralNetwork::readNetwork( string file ) {
 		layerSize     = new int[ nLayers ] ;
     
 		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l ] + 1) ; // layerSize[ l ] + 1, for bias
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l  + 1]) ; // layerSize[ l ] + 1, for bias
 		}
 		for( int l = 0 ; l < nLayers ; l++ ) {
 			layerSize[ l ] = layerSizeInit[ l ] ;
@@ -698,14 +700,13 @@ void cNeuralNetwork::readNetwork( string file ) {
 		cout << " Getting weights from file: " << file << endl;
 		// Get weights
 		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			cout << "Layer " << l << ":\n";
+			//cout << "Layer " << l << ":\n";
 			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
-				cout << "input: " << i << endl;
+				//cout << "input: " << i << endl;
 				for ( int o = 0 ; o < layerSize[ l + 1]  ; o++ ) {
-					cout << "\toutput: " << o << ". "; 
-					double weight = read_double( ifile );
-					cout << "weight: " << weight <<endl;
-					setWeights( l, i, o, weight  ) ; // GAAT STUK VANAF LAYER 1!
+					//cout << "\toutput: " << o << ". "; 
+					//cout << "weight: " << weight <<endl;
+					setWeights( l, i, o, read_double( ifile )  ) ;
 				}
 			}
 		}
@@ -746,7 +747,6 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 		layerSize     = new int[ nLayers ] ;
     
 		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			//VRAAG AAN HADO: layerSizeInit[ l + 1 ] --> layerSizeInit[ l ] + 1 ??
 			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1] ) ; // layerSize[ l ] + 1, for bias
 		}
 		for( int l = 0 ; l < nLayers ; l++ ) {

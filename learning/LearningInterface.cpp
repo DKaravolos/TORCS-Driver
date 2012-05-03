@@ -42,7 +42,7 @@ void LearningInterface::init()
 {
 	cout << "Initalizing remainder of interface.\n";
 	cout << "Creating Algorithm ... ";
-	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world ) ;
+	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world) ;
 	//cout << "in LI init2: mp_algorithm is at " << mp_algorithm << endl;
 	//cout << "in LI init2: mp_world is at " << mp_world << endl;
 	cout << "Done.\n";
@@ -50,6 +50,32 @@ void LearningInterface::init()
 	cout << "Creating Experiment ... ";
 	mp_experiment = new Experiment(Experiment::DEFAULT_Q);
 	cout << "Setting pointers to algorithm and world in experiment\n";
+	mp_experiment->algorithm = mp_algorithm;
+	mp_experiment->world = mp_world;
+	cout << "Done.\n";
+
+	cout << "Reading parameterfile ... ";
+	mp_experiment->readParameterFile("TorcsWorldCfg2");
+	cout << "Done.\n";
+
+	cout << "Initializing experiment runtime parameters ..." << endl;
+	initExperimentParam();
+	cout << "Done.\n";
+
+	initState();
+	initActions();
+}
+
+void LearningInterface::init(const char* nn_filename)
+{
+	cout << "Initalizing remainder of interface.\n";
+	cout << "Creating Algorithm ... ";
+	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world, nn_filename) ;
+	cout << "Done.\n";
+
+	cout << "Creating Experiment ... ";
+	mp_experiment = new Experiment(Experiment::DEFAULT_Q);
+	cout << "Setting pointers to algorithm and world in experiment ... ";
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
 	cout << "Done.\n";
@@ -168,6 +194,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 	
 	mp_parameters->rewardSum += m_reward ;
 	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Check if an episode has ended.
+	double l_td_error = 0;
 
 	if ( mp_parameters->train)
 	{
@@ -182,9 +209,15 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 				//Q values are updated with last state, last action and resulting reward and new state
 				//cout << "LI update: prev_state: state[0] = "<< mp_prev_state->continuousState[0] << endl;
 
-				mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+				/*mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);*/
+				if(strcmp(typeid(*mp_algorithm).name(),"Qlearning") ==0) {
+					Qlearning* l_qlearning = static_cast<Qlearning*>(mp_algorithm);
+					l_td_error = l_qlearning->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-
+				} else {
+					cerr << "This is supposed to be the QLearning case!!!\n";
+				}
 			}
 		} else {
 			cout << "First time step. Not performing learning because of invalid state values "  << endl;
@@ -202,7 +235,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 
 	//Copy current state and action to history
 	if(store_tuples && !mp_parameters->first_time_step){
-		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, mp_parameters->endOfEpisode);
+		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, mp_parameters->endOfEpisode, l_td_error);
 		//cout << "Tuples in memory: "<< ++g_tuples_in_mem << endl;
 	}
 	copyState( mp_current_state, mp_prev_state ) ;
@@ -233,7 +266,7 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 	Action* lp_action = new Action();
 	double l_reward = 0;
 	State* lp_next_state = new State();
-	bool end_of_ep = false;
+	bool l_end_of_ep = false;
 	int tuple_idx = 0;
 
 	//if(mp_memory->getSize() >= 5)
@@ -245,11 +278,12 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 			//update with random tuple from memory
 			tuple_idx = rand() % mp_memory->getSize();
 			//cout << "Retrieving tuple "<<tuple_idx <<endl;
-			mp_memory->retrieveTupleAt(tuple_idx,lp_state,lp_action,l_reward,lp_next_state, end_of_ep);
+			mp_memory->retrieveTupleAt(tuple_idx,lp_state,lp_action,l_reward,lp_next_state, l_end_of_ep);
 			break;
 
 		case TD:
 			//update with tuple with high TD error
+			//mp_memory->retrieveTupleAt(tuple_idx,lp_state,lp_action,l_reward,lp_next_state, l_end_of_ep, l_td_error);
 			cout << "This update option is not implemented yet"<< endl;
 			break;
 
@@ -264,6 +298,6 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 	} else {
 			//cout << "Updating old tuple\n";
 			mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
-							end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
+							l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
 	}
 }

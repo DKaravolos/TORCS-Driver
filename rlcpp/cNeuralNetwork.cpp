@@ -18,6 +18,11 @@ cNeuralNetwork::cNeuralNetwork( const char * nnFile ) {
     readNetwork( nnFile ) ;
 }
 
+cNeuralNetwork::cNeuralNetwork(ifstream& is) {
+    SIZEOFDOUBLE = sizeof( double ) ;
+    readNetwork(is) ;
+}
+
 cNeuralNetwork::cNeuralNetwork( int nLayersInit, int * layerSizeInit ) {
     int * layerFunctions = new int[ nLayersInit + 2 ] ;
     for ( int l = 1 ; l < nLayersInit + 1 ; l++ ) {
@@ -518,9 +523,9 @@ int         cNeuralNetwork::read_int(istream &is) {
     return result;
 }
 
-void        cNeuralNetwork::write_int(ostream &is, int result) {
+void        cNeuralNetwork::write_int(ostream &os, int result) {
     char *s = (char *) &result;
-    is.write(s, sizeof(result));
+    os.write(s, sizeof(result));
 }
 
 double      cNeuralNetwork::read_double(istream &is) {
@@ -539,83 +544,184 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
     ifstream ifile ;
     
     ifile.open( file, ifstream::in ) ;
+	if(ifile.is_open()){
+		nLayers                 = read_int( ifile ) ; 
     
-    nLayers                 = read_int( ifile ) ; 
+		int * layerSizeInit     = new int[nLayers] ;
+		int * layerFunctionInit = new int[nLayers] ;
     
-    int * layerSizeInit     = new int[nLayers] ;
-    int * layerFunctionInit = new int[nLayers] ;
-    
-    for ( int l = 0 ; l < nLayers ; l++ ) {
-        layerSizeInit[l]        = read_int( ifile ) ; 
-        layerFunctionInit[l]    = read_int( ifile ) ;
-    }
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			layerSizeInit[l]        = read_int( ifile ) ; 
+			layerFunctionInit[l]    = read_int( ifile ) ;
+		}
 
-    nInput  = layerSizeInit[ 0 ] ;
-    nOutput = layerSizeInit[ nLayers - 1 ] ;
-    //~ cout << "nInput" << nInput << endl ;
-    //~ cout << "nOutput" << nOutput << endl ;
-    //~ cout << "nLayers" << nLayers << endl ;
+		nInput  = layerSizeInit[ 0 ] ;
+		nOutput = layerSizeInit[ nLayers - 1 ] ;
+		//~ cout << "nInput" << nInput << endl ;
+		//~ cout << "nOutput" << nOutput << endl ;
+		//~ cout << "nLayers" << nLayers << endl ;
     
-    layerFunction = new cFunction*[ nLayers ] ;
-    layerFunctionInts   = new int[ nLayers ] ;
-    weights       = new Matrix*[ nLayers - 1 ] ; // # weights layers = # node layers - 1
-    layerIn       = new Matrix*[ nLayers ] ; 
-    layerOut      = new Matrix*[ nLayers ] ;
-    layerSize     = new int[ nLayers ] ;
+		layerFunction = new cFunction*[ nLayers ] ;
+		layerFunctionInts   = new int[ nLayers ] ;
+		weights       = new Matrix*[ nLayers - 1 ] ; // # weights layers = # node layers - 1
+		layerIn       = new Matrix*[ nLayers ] ; 
+		layerOut      = new Matrix*[ nLayers ] ;
+		layerSize     = new int[ nLayers ] ;
     
-    for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-        weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
-    }
-    for( int l = 0 ; l < nLayers ; l++ ) {
-        layerSize[ l ] = layerSizeInit[ l ] ;
-        layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
-        layerOut[ l ] = new Matrix( layerSize[ l ] ) ;
+		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
+		}
+		for( int l = 0 ; l < nLayers ; l++ ) {
+			layerSize[ l ] = layerSizeInit[ l ] ;
+			layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
+			layerOut[ l ] = new Matrix( layerSize[ l ] ) ;
             
-        layerFunctionInts[ l ] = layerFunctionInit[ l ] ;
-        if ( layerFunctionInit[ l ] == TANH ) {
-            layerFunction[ l ] = new cTanH() ;
-        } else if ( layerFunctionInit[ l ] == LINEAR ) {
-            layerFunction[ l ] = new cLinear() ;
-        } else {
-            cout << "WARNING: Unknown layer function type: " ;
-            cout << layerFunctionInit[ l ] << '\n' ;
-            cout << "layer: " << l << '\n' ;
-            exit(1) ;
-        }
-    }
-    // Get weights
-    for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-        for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
-            for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
-                setWeights( l, i, o, read_double( ifile ) ) ;
-            }
-        }
-    }
-    recentlyUpdated = true ;
+			layerFunctionInts[ l ] = layerFunctionInit[ l ] ;
+			if ( layerFunctionInit[ l ] == TANH ) {
+				layerFunction[ l ] = new cTanH() ;
+			} else if ( layerFunctionInit[ l ] == LINEAR ) {
+				layerFunction[ l ] = new cLinear() ;
+			} else {
+				cout << "WARNING: Unknown layer function type: " ;
+				cout << layerFunctionInit[ l ] << '\n' ;
+				cout << "layer: " << l << '\n' ;
+				ifile.close();
+				exit(1) ;
+			}
+		}
+		// Get weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+					setWeights( l, i, o, read_double( ifile ) ) ;
+				}
+			}
+		}
+		recentlyUpdated = true ;
     
-    delete [] layerSizeInit ;
-    delete [] layerFunctionInit ;
+		delete [] layerSizeInit ;
+		delete [] layerFunctionInit ;
+		ifile.close();
+	} else
+		cerr << "Could not open neural network file" << endl;
+}
+
+
+void cNeuralNetwork::readNetwork(ifstream& ifile) { 
+
+	if(ifile.is_open()){
+		nLayers                 = read_int( ifile ) ; 
+    
+		int * layerSizeInit     = new int[nLayers] ;
+		int * layerFunctionInit = new int[nLayers] ;
+    
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			layerSizeInit[l]        = read_int( ifile ) ; 
+			layerFunctionInit[l]    = read_int( ifile ) ;
+		}
+
+		nInput  = layerSizeInit[ 0 ] ;
+		nOutput = layerSizeInit[ nLayers - 1 ] ;
+		//~ cout << "nInput" << nInput << endl ;
+		//~ cout << "nOutput" << nOutput << endl ;
+		//~ cout << "nLayers" << nLayers << endl ;
+    
+		layerFunction = new cFunction*[ nLayers ] ;
+		layerFunctionInts   = new int[ nLayers ] ;
+		weights       = new Matrix*[ nLayers - 1 ] ; // # weights layers = # node layers - 1
+		layerIn       = new Matrix*[ nLayers ] ; 
+		layerOut      = new Matrix*[ nLayers ] ;
+		layerSize     = new int[ nLayers ] ;
+    
+		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
+		}
+		for( int l = 0 ; l < nLayers ; l++ ) {
+			layerSize[ l ] = layerSizeInit[ l ] ;
+			layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
+			layerOut[ l ] = new Matrix( layerSize[ l ] ) ;
+            
+			layerFunctionInts[ l ] = layerFunctionInit[ l ] ;
+			if ( layerFunctionInit[ l ] == TANH ) {
+				layerFunction[ l ] = new cTanH() ;
+			} else if ( layerFunctionInit[ l ] == LINEAR ) {
+				layerFunction[ l ] = new cLinear() ;
+			} else {
+				cout << "WARNING: Unknown layer function type: " ;
+				cout << layerFunctionInit[ l ] << '\n' ;
+				cout << "layer: " << l << '\n' ;
+				ifile.close();
+				exit(1) ;
+			}
+		}
+		// Get weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+					setWeights( l, i, o, read_double( ifile ) ) ;
+				}
+			}
+		}
+		recentlyUpdated = true ;
+    
+		delete [] layerSizeInit ;
+		delete [] layerFunctionInit ;
+		//ifile.close();
+	} else
+		cerr << "Could not open neural network file" << endl;
 }
     
-void        cNeuralNetwork::writeNetwork( const char * file ) { 
+void cNeuralNetwork::writeNetwork( const char * file ) { 
     ofstream ofile ;
     
     ofile.open( file, ofstream::out ) ;
+    if(ofile.is_open())
+	{
+		write_int( ofile, nLayers ) ; 
     
-    write_int( ofile, nLayers ) ; 
-    
-    for ( int l = 0 ; l < nLayers ; l++ ) {
-        write_int( ofile, layerSize[l] ) ; 
-        write_int( ofile, layerFunctionInts[l] ) ;
-    }
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			write_int( ofile, layerSize[l] ) ; 
+			write_int( ofile, layerFunctionInts[l] ) ;
+		}
 
-    // Weights
-    for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-        for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
-            for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
-                write_double( ofile, getWeights( l, i, o ) ) ;
-            }
-        }
-    }
+		// Weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+					write_double( ofile, getWeights( l, i, o ) ) ;
+				}
+			}
+		}
+		ofile.close();
+	}else {
+		cerr << "Can't open file "<< file << "!\n";
+		throw std::invalid_argument("Can't open specified file");
+	}
+}
+
+   
+void cNeuralNetwork::writeNetwork( ofstream& ofile) { 
+    if(ofile.is_open())
+	{
+		write_int( ofile, nLayers ) ; 
+    
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			write_int( ofile, layerSize[l] ) ; 
+			write_int( ofile, layerFunctionInts[l] ) ;
+		}
+
+		// Weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+					write_double( ofile, getWeights( l, i, o ) ) ;
+				}
+			}
+		}
+		ofile.close();
+	}else {
+		cerr << "Please provide an open ofstream!\n";
+		throw std::invalid_argument("provided ofstream should be open");
+	}
 }
 

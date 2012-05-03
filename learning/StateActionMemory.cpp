@@ -8,6 +8,7 @@ StateActionMemory::StateActionMemory()
 	mp_rewards = new vector<double>();
 	mp_next_states = new vector<State>();
 	mp_end_of_eps = new vector<bool>();
+	mp_td_errors = new vector<double>();
 }
 
 StateActionMemory::~StateActionMemory()
@@ -17,9 +18,11 @@ StateActionMemory::~StateActionMemory()
 	delete mp_rewards;
 	delete mp_next_states;
 	delete mp_end_of_eps;
+	delete mp_td_errors;
 }
 
-void StateActionMemory::storeTuple(State* state, Action* action, double reward, State* next_state, bool end_of_ep)
+void StateActionMemory::storeTuple(State* state, Action* action, double reward, 
+									State* next_state, bool end_of_ep, double td_error)
 {
 	if(state == NULL)
 		throw std::invalid_argument("Cannot add NULL state to memory!");
@@ -36,13 +39,15 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward, 
 		mp_rewards->push_back(reward);
 		mp_next_states->push_back(*next_state);
 		mp_end_of_eps->push_back(end_of_ep);
+		mp_td_errors->push_back(td_error);
 
 		//cout << "Storing tuple(2). SAM values from vector: \n";
 		//cout << "State*: " << &mp_states->back() << "\tAction*: " << &mp_actions->back() << endl;
 	}
 }
 
-void StateActionMemory::retrieveTupleAt(int index, State* state, Action* action, double& reward, State* next_state, bool& end_of_ep)
+void StateActionMemory::retrieveTupleAt(int index, State* state, Action* action, double& reward, 
+										State* next_state, bool& end_of_ep)
 {
 	//This is making copies of the objects in the vector.
 	*state = mp_states->at(index);
@@ -50,6 +55,18 @@ void StateActionMemory::retrieveTupleAt(int index, State* state, Action* action,
 	reward = mp_rewards->at(index);
 	*next_state = mp_next_states->at(index);
 	end_of_ep = mp_end_of_eps->at(index);
+}
+
+void StateActionMemory::retrieveTupleAt(int index, State* state, Action* action, double& reward, 
+										State* next_state, bool& end_of_ep, double& td_error)
+{
+	//This is making copies of the objects in the vector.
+	*state = mp_states->at(index);
+	*action = mp_actions->at(index);
+	reward = mp_rewards->at(index);
+	*next_state = mp_next_states->at(index);
+	end_of_ep = mp_end_of_eps->at(index);
+	td_error = mp_td_errors->at(index);
 }
 
 void StateActionMemory::printTuple(int index)
@@ -63,6 +80,7 @@ void StateActionMemory::printTuple(int index)
 	State* next_state = &mp_next_states->at(index);
 	bool cont_s = state->continuous;
 	bool cont_a = action->continuous;
+
 	cout << "Tuple "<<index << " : ";
 	//print state
 	if(cont_s)
@@ -87,6 +105,9 @@ void StateActionMemory::printTuple(int index)
 
 	//print end of episode
 	cout << "\tend_of_ep: " << mp_end_of_eps->at(index);
+
+	//print td error
+	cout<< "\t TD error: " << mp_td_errors->at(index);
 	cout << endl;
 }
 

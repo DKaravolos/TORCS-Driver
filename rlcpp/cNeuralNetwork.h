@@ -16,6 +16,7 @@ using namespace std;
 class cNeuralNetwork {
     public:
         cNeuralNetwork( const char * );
+		cNeuralNetwork( ifstream& is);
         cNeuralNetwork( int, int * );
         cNeuralNetwork( int, int *, int * );
         ~cNeuralNetwork();
@@ -40,7 +41,10 @@ class cNeuralNetwork {
         void randomizeWeights( double, double, int ) ;
         void printNetwork() ;
         void readNetwork( const char * ) ;
+		void readNetwork(ifstream& is) ;
         void writeNetwork( const char * ) ;
+		void writeNetwork( ofstream& ofile);
+
     private:
         int nLayers, nInput, nOutput, nFormer, nNext ;
         unsigned int wPos ;

@@ -203,3 +203,21 @@ bool StateActionAlgorithm::getContinuousActions() {
 bool StateActionAlgorithm::getDiscreteActions() {
     return discreteActions ;
 }
+
+void StateActionAlgorithm::writeQNN(string QNNFileName) {
+	ofstream f_out;
+	//vector<cNeuralNetwork *>::iterator QNNit;
+
+	for(int action = 0; action < QNN.size(); action++){
+		stringstream nn_file_name;
+		nn_file_name << QNNFileName << "_action_"  << action;
+		f_out.open(nn_file_name.str(), ios::trunc);
+		if(f_out.is_open()){
+			f_out << "QNN\n";
+			QNN.at(action)->writeNetwork(f_out);
+			f_out.close();
+		} else {
+			cerr << "Could not open QNN file for writing!\n";
+		}
+	}
+}

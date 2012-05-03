@@ -6,6 +6,7 @@
 #include <fstream>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "..\rlcpp\Action.h"
 #include "..\rlcpp\World.h"
@@ -30,6 +31,7 @@ class LearningInterface
 		LearningInterface(void);
 		~LearningInterface(void);
 		void init();
+		void init(const char* nn_filename);
 		//Loop of a time step:
 		/*
 		- setRewardPrevAction()

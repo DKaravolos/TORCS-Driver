@@ -106,7 +106,7 @@ void Algorithm::read_moveTo( ifstream * ifile, string label ) {
 
         if ( ifile->eof() ) {
             cout << "\nRead error: Could not find label '" << label << "' while reading parameter file." << endl ;
-            exit(0) ;
+            exit(1) ;
         }
 
     }
