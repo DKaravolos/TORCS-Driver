@@ -3,12 +3,23 @@
 using namespace std;
 StateActionMemory::StateActionMemory()
 {
-	mp_states = new vector<State>();
-	mp_actions = new vector<Action>();
-	mp_rewards = new vector<double>();
-	mp_next_states = new vector<State>();
-	mp_end_of_eps = new vector<bool>();
-	mp_td_errors = new vector<double>();
+	mp_states = new deque<State>();
+	mp_actions = new deque<Action>();
+	mp_rewards = new deque<double>();
+	mp_next_states = new deque<State>();
+	mp_end_of_eps = new deque<bool>();
+	mp_td_errors = new deque<double>();
+}
+
+StateActionMemory::StateActionMemory(int size)
+	:m_max_size(size)
+{
+	mp_states = new deque<State>();
+	mp_actions = new deque<Action>();
+	mp_rewards = new deque<double>();
+	mp_next_states = new deque<State>();
+	mp_end_of_eps = new deque<bool>();
+	mp_td_errors = new deque<double>();
 }
 
 StateActionMemory::~StateActionMemory()
@@ -32,8 +43,15 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 		throw std::invalid_argument("Cannot add NULL next_state to memory!");
 	else
 	{
-		/*cout << "Storing tuple(2). SAM values: \n";
-		cout << "State*: " << state << "\tAction*: " << action << endl;*/
+		if(mp_states->size() > m_max_size)
+		{
+			mp_states->pop_front();
+			mp_actions->pop_front();
+			mp_rewards->pop_front();
+			mp_next_states->pop_front();
+			mp_end_of_eps->pop_front();
+			mp_td_errors->pop_front();
+		}
 		mp_states->push_back(*state);
 		mp_actions->push_back(*action);
 		mp_rewards->push_back(reward);
@@ -41,6 +59,8 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 		mp_end_of_eps->push_back(end_of_ep);
 		mp_td_errors->push_back(td_error);
 
+		//cout << "Storing tuple(2). SAM values: \n";
+		//cout << "State*: " << state << "\tAction*: " << action << endl;
 		//cout << "Storing tuple(2). SAM values from vector: \n";
 		//cout << "State*: " << &mp_states->back() << "\tAction*: " << &mp_actions->back() << endl;
 	}
@@ -113,6 +133,10 @@ void StateActionMemory::printTuple(int index)
 
 void StateActionMemory::printHead(int number)
 {
+	if(number> mp_states->size()) {
+		cerr << "Error in printHead: Can't print more tuples than amount stored in memory!\n";
+		return;
+	}
 	for(int idx = 0; idx < number; idx++)
 	{
 		printTuple(idx);

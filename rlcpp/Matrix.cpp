@@ -8,19 +8,26 @@ using namespace std ;
 
 Matrix::Matrix() {
     _data = new double[1] ;
-    _nRows = 0 ;
-    _nCols = 0 ;
+    _nRows = 1 ;
+    _nCols = 1 ;
+	_size = 1;
 }
 
 Matrix::Matrix(int size) {
+	_size = size ;
+    _data = new double[size] ;
     setSize( size ) ;
 }
 
 Matrix::Matrix(int nRows, int nCols) {
+	_size = nRows * nCols ;
+    _data = new double[ _size ] ;
     setSize( nRows, nCols ) ;
 }
 
 Matrix::Matrix(int nRows, int nCols, double *data) {
+	 _size = nRows * nCols ;
+    _data = new double[ _size ] ;
     setSize( nRows, nCols ) ;
     for ( int r = 0 ; r < nRows ; r++ ){
         for ( int c = 0 ; c < nCols ; c++ ){
@@ -30,12 +37,13 @@ Matrix::Matrix(int nRows, int nCols, double *data) {
 }
 
 Matrix::~Matrix() {
-    delete [] _data ;
+	//delete _data;
+	delete [] _data ;
 }
 
 void Matrix::setSize( int size ) {
-    _size = size ;
-    _data = new double[size] ;
+    //_size = size ;
+    //_data = new double[size] ;
     int x ;
     for ( x = 0 ; x < size ; x++ ){
         _data[ x ] = 0.0 ;
@@ -45,8 +53,8 @@ void Matrix::setSize( int size ) {
 }
 
 void Matrix::setSize( int nRows, int nCols ) {
-    _size = nRows * nCols ;
-    _data = new double[ _size ] ;
+    //_size = nRows * nCols ;
+    //_data = new double[ _size ] ;
     int x ;
     for ( x = 0 ; x < _size ; x++ ){
         _data[ x ] = 0.0 ;

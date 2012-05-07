@@ -10,7 +10,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			nExperiments = 1;
 			nAlgorithms = 1;
 			//THESE VALUES ARE QUITE RANDOM!
-			nSteps = 500000;
+			nSteps = 150000;
 			nEpisodes = 10;
 			nMaxStepsPerEpisode = 50000;
 			nResults =100; //?????

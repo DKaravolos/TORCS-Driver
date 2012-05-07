@@ -5,6 +5,7 @@
 #define THRESHOLD 2
 #define TANH 1
 #define LINEAR 0
+#define SIZEOFDOUBLE sizeof( double ) 
 
 
 #ifdef WIN32
@@ -14,13 +15,40 @@
 using namespace std ;
 
 cNeuralNetwork::cNeuralNetwork( const char * nnFile ) {
-    SIZEOFDOUBLE = sizeof( double ) ;
+	pointerInit();
+    readNetwork( nnFile ) ;
+}
+
+cNeuralNetwork::cNeuralNetwork( string nnFile ) {
+	pointerInit();
     readNetwork( nnFile ) ;
 }
 
 cNeuralNetwork::cNeuralNetwork(ifstream& is) {
-    SIZEOFDOUBLE = sizeof( double ) ;
+	pointerInit();
     readNetwork(is) ;
+}
+
+void cNeuralNetwork::pointerInit()
+{
+	    layerSize = NULL;
+        layerFunctionInts  = NULL;
+        formerOut  = NULL;
+        formerIn  = NULL;
+        nextIn  = NULL;
+        nextOut  = NULL;
+        iError  = NULL;
+        oError  = NULL;
+        w  = NULL;
+        inputIn  = NULL;
+        inputOut  = NULL;
+        outputIn  = NULL;
+        outputOut  = NULL;
+        error  = NULL;
+        layerFunction  = NULL;
+        weights  = NULL;
+        layerIn  = NULL;
+        layerOut  = NULL;
 }
 
 cNeuralNetwork::cNeuralNetwork( int nLayersInit, int * layerSizeInit ) {
@@ -55,7 +83,7 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
 	#endif
 
 
-    SIZEOFDOUBLE = sizeof( double ) ;
+    //SIZEOFDOUBLE = sizeof( double ) ;
     
     nLayers = nLayersInit + 2 ; // # node layers == # hidden layers + 2
     nInput  = layerSizeInit[ 0 ] ;
@@ -72,10 +100,10 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
     layerOut            = new Matrix*[ nLayers ] ;
     layerSize           = new int[ nLayers ] ;
     
-    for( l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+    for(int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
         weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
     }
-    for( l = 0 ; l < nLayers ; l++ ) {
+    for(int l = 0 ; l < nLayers ; l++ ) {
         layerSize[ l ] = layerSizeInit[ l ] ;
         layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
         layerOut[ l ] = new Matrix( layerSize[ l ] ) ;
@@ -100,17 +128,17 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
 
 cNeuralNetwork::~cNeuralNetwork( ) {
     //~ cout << "destructor NN\n" ;
-    for( l = 0 ; l < nLayers - 1 ; l++ ) {
-        delete weights[ l ] ;
+	for(int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+       delete weights[ l ];
     }
-    for( l = 0 ; l < nLayers ; l++ ) {
-        delete layerIn[ l ] ;
-        delete layerOut[ l ] ;
-        delete layerFunction[ l ] ;
-    }
+    for(int l = 0 ; l < nLayers ; l++ ) {
+       delete layerIn[ l ];
+       delete layerOut[ l ];
+       delete layerFunction[ l ];
+	}
     delete [] layerIn ;
     delete [] layerOut ;
-    delete [] layerFunction ;
+    delete [] layerFunction ; 
     delete [] layerFunctionInts ;
     delete [] layerSize ;
     delete [] weights ;
@@ -150,16 +178,16 @@ void        cNeuralNetwork::_forwardPropLayer( int layer ) {
     cFunction * f = layerFunction[layer+1] ;                 // The function on the next layer
 
     // Initialise inputs to the next layer to zero
-    for( o = 0 ; o < nNext ; o++ ) {
+    for(int o = 0 ; o < nNext ; o++ ) {
         nextIn[ o ] = 0.0 ;
     }
     
     // initialise counter for the weights
     int wPos = 0 ;
     // add weighted inputs
-    for( i = 0 ; i < nFormer ; i++ ) {
+    for(int i = 0 ; i < nFormer ; i++ ) {
         if ( formerOut[ i ] != 0.0) {
-            for( o = 0 ; o < nNext ; o++ ) {
+            for(int o = 0 ; o < nNext ; o++ ) {
                 nextIn[ o ] += w[ wPos ] * formerOut[ i ] ;
                 wPos++ ;
             }
@@ -168,7 +196,7 @@ void        cNeuralNetwork::_forwardPropLayer( int layer ) {
         }
     }
     // add bias and calculate output
-    for( o = 0 ; o < nNext ; o++ ) {
+    for(int o = 0 ; o < nNext ; o++ ) {
         nextIn[ o ] += w[ wPos ] ; 
         wPos++ ;
     }
@@ -193,13 +221,13 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
     
     if ( layer > 0 ) {
         
-        for( i = 0 ; i < nFormer ; i++ ) {
+        for(int i = 0 ; i < nFormer ; i++ ) {
             
             iError[ i ] = 0.0 ;
             
             if ( formerOut[ i ] != 0.0 ) {
                 
-                for ( o = 0 ; o < nNext ; o++ ) {
+                for (int o = 0 ; o < nNext ; o++ ) {
                     
                     // First get error:
                     iError[ i ] += w[ wPos ] * oError[ o ] ;
@@ -213,7 +241,7 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
                 
             } else {
                 
-                for ( o = 0 ; o < nNext ; o++ ) {
+                for (int o = 0 ; o < nNext ; o++ ) {
                     
                     // Only get error:
                     iError[ i ] += w[ wPos ] * oError[ o ] ;
@@ -230,11 +258,11 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
         
     } else {
         
-        for( i = 0 ; i < nFormer ; i++ ) {
+        for(int i = 0 ; i < nFormer ; i++ ) {
             
             if ( formerOut[ i ] != 0.0 ) {
                 
-                for ( o = 0 ; o < nNext ; o++ ) {
+                for (int o = 0 ; o < nNext ; o++ ) {
                    
                     // Only update weight:
                     w[ wPos ] += formerOut[ i ] * oError[ o ] ;
@@ -252,7 +280,7 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
         }
     }
 
-    for ( o = 0 ; o < nNext ; o++ ) {
+    for (int o = 0 ; o < nNext ; o++ ) {
         
         // Update the bias
         w[ wPos ] += oError[ o ] ;
@@ -277,7 +305,7 @@ void cNeuralNetwork::backPropagate( double *input, double *target, double learni
 		//Check whether the activations of the layers correspond with the present input
 		inputIn = layerIn[ 0 ]->getPtr() ;
 		bool useLastActivations = true ;
-		for ( i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
+		for (int i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
 			if ( input[i] != inputIn[i] ) {
 				useLastActivations = false ;
 			}
@@ -293,7 +321,7 @@ void cNeuralNetwork::backPropagate( double *input, double *target, double learni
     error = new double[ nOutput ] ; //error of the output layer.
     outputOut  = layerOut[ nLayers - 1 ]->getPtr() ;// Output of the output layer
     
-    for( o = 0 ; o < nOutput ; o++) {
+    for(int o = 0 ; o < nOutput ; o++) {
         error[ o ] = target[ o ] - outputOut[ o ] ;
     }
     //backPropagate the error
@@ -310,7 +338,7 @@ void        cNeuralNetwork::backPropagateError( double *input, double *error, do
         //Check whether the activations of the layers correspond with the present input
         inputIn = layerIn[ 0 ]->getPtr() ;
         bool useLastActivations = true ;
-        for ( i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
+        for (int i = 0 ; ( i < nInput ) & useLastActivations ; i++ ){
             if ( input[i] != inputIn[i] ) {
                 useLastActivations = false ;
             }
@@ -329,13 +357,13 @@ void        cNeuralNetwork::backPropagateError( double *input, double *error, do
     cFunction * f       = layerFunction[ nLayers - 1 ] ;    // Function of the output layer
 
     //First calculate the error of the input of the output layer:
-    for( o = 0 ; o < nOutput ; o++) {
+    for( int o = 0 ; o < nOutput ; o++) {
         oError[ o ] = learningSpeed*error[ o ] ;
         oError[ o ] *= f->derivative( outputIn[ o ], outputOut[ o ] ) ;
     }
     
     //Now propagate until reaching the input layer:
-    for ( l = nLayers - 2 ; l >= 0 ; l-- ) {
+    for (int l = nLayers - 2 ; l >= 0 ; l-- ) {
         iError = _backPropLayer( l, oError, learningSpeed ) ;
         delete [] oError ;
         oError = iError ;
@@ -355,14 +383,14 @@ double *    cNeuralNetwork::forwardPropagate( double *input ) {
     double * inputOut = layerOut[ 0 ]->getPtr() ; // Output of the first layer (to be set)
     
     //First set the first layer
-    for( i = 0 ; i < nInput ; i++ ) {
+    for( int i = 0 ; i < nInput ; i++ ) {
         inputIn[ i ] = input[ i ] ;
     }
     
     f->output( input, inputOut, nInput ) ;
     
     //Now propagate (sets layerIn and layerOut for each layer)
-    for ( l = 0 ; l < (nLayers - 1) ; l++ ) {
+    for ( int l = 0 ; l < (nLayers - 1) ; l++ ) {
         _forwardPropLayer( l ) ;
     }
     
@@ -380,7 +408,7 @@ double *    cNeuralNetwork::forwardPropagate( vector<double> *input_vector ) {
     }
     
     double * input = new double[ nInput ] ;
-    for ( i = 0 ; i < nInput ; i++ ) {
+    for ( int i = 0 ; i < nInput ; i++ ) {
         input[ i ] = input_vector->at( i ) ;
     }
     
@@ -403,14 +431,14 @@ void        cNeuralNetwork::forwardPropagate( double *input, List * output ) {
     //~ cout << "nLayers" << nLayers << endl ;
     
     //First set the first layer
-    for( i = 0 ; i < nInput ; i++ ) {
+    for( int i = 0 ; i < nInput ; i++ ) {
         inputIn[ i ] = input[ i ] ;
     }
     
     f->output( input, inputOut, nInput ) ;
     
     //Now propagate (sets layerIn and layerOut for each layer)
-    for ( l = 0 ; l < (nLayers - 1) ; l++ ) {
+    for ( int l = 0 ; l < (nLayers - 1) ; l++ ) {
         _forwardPropLayer( l ) ;
     }
 
@@ -418,7 +446,7 @@ void        cNeuralNetwork::forwardPropagate( double *input, List * output ) {
     
     //Finally, return the output of the last layer through the argument
     output->contents = new double[ nOutput ] ;
-    for ( o = 0 ; o < nOutput ; o++ ) {
+    for ( int o = 0 ; o < nOutput ; o++ ) {
         output->contents[ o ] = outputOut[ o ] ;
     }
     output->length = nOutput ;
@@ -436,7 +464,7 @@ void        cNeuralNetwork::getActivations( int layer, List * activations )  {
     //Return the output of the requested layer through the argument
     int nActivations = layerSize[ layer ] ;
     activations->contents = new double[ nActivations ] ;
-    for ( o = 0 ; o < nActivations ; o++ ) {
+    for ( int o = 0 ; o < nActivations ; o++ ) {
         activations->contents[ o ] = layerActivation[ o ] ;
     }
     activations->length = nActivations ;
@@ -452,13 +480,17 @@ double      cNeuralNetwork::getWeights( int layer, int i, int j )  {
 
 void        cNeuralNetwork::setWeights( int layer, int i, int j, double val ) {
     recentlyUpdated = true ;
-    weights[ layer ]->set( i*(layerSize[ layer + 1 ]) + j, val ) ;
+	//weights[ layer ]->set( i*(layerSize[ layer + 1 ]) + j, val ) ; //HIER
+	if(j == 0)
+		weights[ layer ]->set( i, val ) ;
+	else
+		weights[ layer ]->set( i, j, val ) ; 
 }
 
 void        cNeuralNetwork::randomizeWeights( double min, double max ) {
-    for ( l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-        for ( i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
-            for ( o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+    for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+        for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+            for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
 				#ifdef WIN32
 					setWeights( l, i, o, min + (max - min)* double(rand())/RAND_MAX) ;
 				#else
@@ -471,9 +503,9 @@ void        cNeuralNetwork::randomizeWeights( double min, double max ) {
 
 void        cNeuralNetwork::randomizeWeights( double min, double max, int seed ) {
     srand( seed ) ;
-    for ( l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-        for ( i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
-            for ( o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+    for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+        for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+            for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
                 
 					#ifdef WIN32
 						setWeights( l, i, o, min + (max - min)* double(rand())/RAND_MAX) ;
@@ -486,7 +518,7 @@ void        cNeuralNetwork::randomizeWeights( double min, double max, int seed )
 }
 
 void        cNeuralNetwork::printNetwork() {
-    for ( l = 0 ; l < (nLayers - 1) ; l++ ) {
+    for ( int l = 0 ; l < (nLayers - 1) ; l++ ) {
         _printLayer( l ) ;
     }
 }
@@ -502,15 +534,15 @@ void        cNeuralNetwork::_printLayer( int layer ) {
     cout << " nNext " << nNext << endl ;
     
     int wPos = 0 ;
-    for( i = 0 ; i < nFormer ; i++ ) {
-        for( o = 0 ; o < nNext ; o++ ) {
+    for( int i = 0 ; i < nFormer ; i++ ) {
+        for( int o = 0 ; o < nNext ; o++ ) {
             cout << w[ wPos ] << ", " ;
             wPos++ ;
         }
         cout << '\n' ;
     }
     // add bias and calculate output
-    for( o = 0 ; o < nNext ; o++ ) {
+    for( int o = 0 ; o < nNext ; o++ ) {
         cout << " B " <<  w[ wPos ] << '\n' ; 
         wPos++ ;
     }
@@ -518,26 +550,33 @@ void        cNeuralNetwork::_printLayer( int layer ) {
 
 int         cNeuralNetwork::read_int(istream &is) {
     int result;
-    char *s = (char *) &result;
-    is.read(s, sizeof(result));
+    //char *s = (char *) &result;
+    //is.read(s, sizeof(result));
+	is >> result;
     return result;
+
 }
 
 void        cNeuralNetwork::write_int(ostream &os, int result) {
-    char *s = (char *) &result;
-    os.write(s, sizeof(result));
+    //char *s = (char *) &result;
+    //os.write(s, sizeof(result));
+	os << setw(11);
+	os << result;
 }
 
 double      cNeuralNetwork::read_double(istream &is) {
     double result;
-    char *s = (char *) &result;
-    is.read(s, sizeof(result));
+    //char *s = (char *) &result;
+    //is.read(s, sizeof(result));
+	is >> result;
     return result;
 }
 
-void        cNeuralNetwork::write_double(ostream &is, double result) {
-    char *s = (char *) &result;
-    is.write(s, sizeof(result));
+void        cNeuralNetwork::write_double(ostream &os, double result) {
+    //char *s = (char *) &result;
+    //os.write(s, sizeof(result));
+	os << setw(11);
+	os << result;
 }
 
 void        cNeuralNetwork::readNetwork( const char * file ) { 
@@ -568,9 +607,11 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 		layerOut      = new Matrix*[ nLayers ] ;
 		layerSize     = new int[ nLayers ] ;
     
+		//klopt deze loop wel??
 		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l  + 1]) ; // layerSize[ l ] + 1, for bias
 		}
+		//
 		for( int l = 0 ; l < nLayers ; l++ ) {
 			layerSize[ l ] = layerSizeInit[ l ] ;
 			layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
@@ -594,6 +635,78 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
 				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
 					setWeights( l, i, o, read_double( ifile ) ) ;
+				}
+			}
+		}
+		recentlyUpdated = true ;
+    
+		delete [] layerSizeInit ;
+		delete [] layerFunctionInit ;
+		ifile.close();
+	} else
+		cerr << "Could not open neural network file" << endl;
+}
+
+
+void cNeuralNetwork::readNetwork( string file ) { 
+    ifstream ifile ;
+    
+    ifile.open( file, ifstream::in ) ;
+	if(ifile.is_open()){
+		nLayers                 = read_int( ifile ) ; 
+    
+		int * layerSizeInit     = new int[nLayers] ;
+		int * layerFunctionInit = new int[nLayers] ;
+    
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			layerSizeInit[l]        = read_int( ifile ) ; 
+			layerFunctionInit[l]    = read_int( ifile ) ;
+		}
+
+		nInput  = layerSizeInit[ 0 ] ;
+		nOutput = layerSizeInit[ nLayers - 1 ] ;
+		//~ cout << "nInput" << nInput << endl ;
+		//~ cout << "nOutput" << nOutput << endl ;
+		//~ cout << "nLayers" << nLayers << endl ;
+    
+		layerFunction = new cFunction*[ nLayers ] ;
+		layerFunctionInts   = new int[ nLayers ] ;
+		weights       = new Matrix*[ nLayers - 1 ] ; // # weights layers = # node layers - 1
+		layerIn       = new Matrix*[ nLayers ] ; 
+		layerOut      = new Matrix*[ nLayers ] ;
+		layerSize     = new int[ nLayers ] ;
+    
+		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l  + 1]) ; // layerSize[ l ] + 1, for bias
+		}
+		for( int l = 0 ; l < nLayers ; l++ ) {
+			layerSize[ l ] = layerSizeInit[ l ] ;
+			layerIn[ l ]  = new Matrix( layerSize[ l ] ) ;
+			layerOut[ l ] = new Matrix( layerSize[ l ] ) ;
+            
+			layerFunctionInts[ l ] = layerFunctionInit[ l ] ;
+			if ( layerFunctionInit[ l ] == TANH ) {
+				layerFunction[ l ] = new cTanH() ;
+			} else if ( layerFunctionInit[ l ] == LINEAR ) {
+				layerFunction[ l ] = new cLinear() ;
+			} else {
+				cout << "WARNING: Unknown layer function type: " ;
+				cout << layerFunctionInit[ l ] << '\n' ;
+				cout << "layer: " << l << '\n' ;
+				ifile.close();
+				exit(1) ;
+			}
+		}
+		cout << " Getting weights from file: " << file << endl;
+		// Get weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			//cout << "Layer " << l << ":\n";
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				//cout << "input: " << i << endl;
+				for ( int o = 0 ; o < layerSize[ l + 1]  ; o++ ) {
+					//cout << "\toutput: " << o << ". "; 
+					//cout << "weight: " << weight <<endl;
+					setWeights( l, i, o, read_double( ifile )  ) ;
 				}
 			}
 		}
@@ -634,7 +747,7 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 		layerSize     = new int[ nLayers ] ;
     
 		for( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
-			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1 ] ) ; // layerSize[ l ] + 1, for bias
+			weights[ l ]  = new Matrix( layerSizeInit[ l ] + 1, layerSizeInit[ l + 1] ) ; // layerSize[ l ] + 1, for bias
 		}
 		for( int l = 0 ; l < nLayers ; l++ ) {
 			layerSize[ l ] = layerSizeInit[ l ] ;
@@ -671,10 +784,40 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 		cerr << "Could not open neural network file" << endl;
 }
     
+void cNeuralNetwork::writeNetwork( std::string file ) { 
+    ofstream ofile ;
+    
+    ofile.open( file, ofstream::trunc ) ;
+    if(ofile.is_open())
+	{
+		write_int( ofile, nLayers ) ; 
+    
+		for ( int l = 0 ; l < nLayers ; l++ ) {
+			write_int( ofile, layerSize[l] ) ; 
+			write_int( ofile, layerFunctionInts[l] ) ;
+		}
+		ofile << "\n";
+		// Weights
+		for ( int l = 0 ; l < ( nLayers - 1 ) ; l++ ) {
+			for ( int i = 0 ; i < ( layerSize[l] + 1 ) ; i++ ) {
+				for ( int o = 0 ; o < layerSize[ l + 1 ] ; o++ ) {
+					write_double( ofile, getWeights( l, i, o ) ) ;
+				}
+			}
+			ofile << "\n";
+		}
+		ofile.close();
+	}else {
+		cerr << "Can't open file "<< file << "!\n";
+		throw std::invalid_argument("Can't open specified file");
+	}
+}
+
+    
 void cNeuralNetwork::writeNetwork( const char * file ) { 
     ofstream ofile ;
     
-    ofile.open( file, ofstream::out ) ;
+    ofile.open( file, ofstream::trunc ) ;
     if(ofile.is_open())
 	{
 		write_int( ofile, nLayers ) ; 
@@ -698,7 +841,6 @@ void cNeuralNetwork::writeNetwork( const char * file ) {
 		throw std::invalid_argument("Can't open specified file");
 	}
 }
-
    
 void cNeuralNetwork::writeNetwork( ofstream& ofile) { 
     if(ofile.is_open())

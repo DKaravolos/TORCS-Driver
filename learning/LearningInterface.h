@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <time.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@
 
 #include "..\rlcpp\Action.h"
 #include "..\rlcpp\World.h"
-#include "..\rlcpp\Algorithm.h"
+#include "..\rlcpp\StateActionAlgorithm.h"
 #include "..\rlcpp\Qlearning.h"
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Experiment.h"
@@ -62,7 +63,8 @@ class LearningInterface
 	protected:
 		//datamembers
 		TorcsWorld* mp_world;
-		Algorithm* mp_algorithm;
+		//StateActionAlgorithm* mp_algorithm;
+		Qlearning* mp_algorithm;
 		Experiment* mp_experiment;
 		State* mp_prev_state;
 		State* mp_current_state;

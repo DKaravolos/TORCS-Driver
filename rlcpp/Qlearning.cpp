@@ -100,35 +100,14 @@ Qlearning::Qlearning( const char * parameterFile, World * w, const char * nn_fil
 
     if ( discreteStates ) {
 
-        numberOfStates = w->getNumberOfStates() ;
-
-        Q = new double*[ numberOfStates ] ;
-
-        for ( int s = 0 ; s < numberOfStates ; s++ ) {
-
-            Q[s] = new double[ numberOfActions ] ;
-
-            for ( int a = 0 ; a < numberOfActions ; a++ ) {
-                Q[s][a] = 0.0 ;
-            }
-
-        }
-
+		cerr << "Warning: Discrete states not supported by neural network. Please call another constructor.";
+		exit(-1);
     } else {
 
         stateDimension = w->getStateDimension() ;
-		//int QNN_vector_size = readQNN(nn_file);
-
-  //      if(QNN_vector_size != numberOfActions) {
-		//	cerr << "Oh no! The input QNN does not have size numberOfActions!";
-		//	#ifdef WIN32:
-		//		char end_program;
-		//		cin >> end_program;
-		//	#endif
-		//	exit(-1) ;
-		//}
-        Qs = new double[ numberOfActions ] ;
+		Qs = new double[ numberOfActions ] ;
 		cout << "QL: numberOfActions :" << numberOfActions << endl;
+		readQNN(nn_file);
     }
 
     QTarget = new double[ 1 ] ;
@@ -291,7 +270,7 @@ double Qlearning::updateAndReturnTDError( State * state, Action * action, double
             double maxQs = myMax( Qs, numberOfActions ) ;
 
             QTarget[ 0 ] = rt + gamma*maxQs ;
-			double current_val = QNN[at]->forwardPropagate( st )[0];
+			double current_val = QNN[at]->forwardPropagate( st )[0]; //vector subscript out of range soms...
 			td_error = QTarget[0] -current_val;
         }
 
@@ -316,34 +295,13 @@ const char * Qlearning::getName() {
 
 }
 
-int Qlearning::readQNN(string nn_file)
+void Qlearning::readQNN(string nn_file)
 {
-	ifstream ifile;
-
 	for(int action = 0; action < numberOfActions; action++)
 	{
 		stringstream current_nn;
 		current_nn << nn_file << "_action_" << action;
-		ifile.open(current_nn.str());
-		string first_line;
-		if(ifile.is_open())
-		{
-			//Check if we are reading a properly formed QNN file
-			ifile >> first_line;
-			if(first_line.compare("QNN") == 0)
-				cerr << "I am reading a QNN from a file. fancy!\n";
-			else {
-				cerr << "I should be looking at a QNN file, but I am not.\n";
-				throw std::invalid_argument("This file does not contain a QNN!");
-				exit(-1);
-			}
-			cNeuralNetwork* nn = new cNeuralNetwork(ifile);
-			QNN.push_back(nn);
-
-			ifile.close();
-		} else {
-			cerr << "Can't open file "<< nn_file << "!\n";
-			throw std::invalid_argument("Can't open specified file");
-		}
+		cNeuralNetwork* nn = new cNeuralNetwork(current_nn.str());
+		QNN.push_back(nn);
 	}
 }

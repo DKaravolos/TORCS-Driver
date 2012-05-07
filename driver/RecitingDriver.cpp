@@ -14,8 +14,8 @@ RecitingDriver::RecitingDriver()
 
 	g_steps_per_action = 10;
 	g_print_mod = g_steps_per_action;
-	g_learn_steps_per_tick = 10;
-	g_reupdate_steps_per_tick = 10;
+	g_learn_steps_per_tick = 1;
+	g_reupdate_steps_per_tick = 5;
 
 	g_stuck_penalty = 10;
 }
@@ -170,11 +170,18 @@ void RecitingDriver::init(float *angles)
 	if (mp_Qinterface == NULL) {
 		cout << "Creating LearningInterface...\n";
 		mp_Qinterface = new LearningInterface();
-		cout << "mp_Qinterface is now at " << mp_Qinterface << endl;
-		mp_Qinterface->init();
+
+		ifstream is;
+		is.open("RD_first_run_QNN_action_0");
+		if(is.is_open()) {
+			is.close();
+			mp_Qinterface->init("RD_first_run_QNN");
+		}
+		else
+			mp_Qinterface->init();
 		cout << "Done.\n";
 	} else {
-		cout << "Already created a LearningInterface. Skipping constructor and init.\n";
+		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
 	}
 	m_last_dist = 0;
 
@@ -352,8 +359,12 @@ void RecitingDriver::doLearning(CarState &cs)
 	if(mp_Qinterface->getEOE())
 		mp_Qinterface->setEOE(false);
 
-	//if (g_learning_done)
-	//	cout << "LEARNING IS DONE! (i'm doing nothing with this information, though)\n";
+	if (g_learning_done){
+		cout << "LEARNING IS DONE!\n";
+		char end;
+		cin>>end;
+		exit(0);
+	}
 }
 
 CarControl RecitingDriver::carStuckControl(CarState & cs)
@@ -426,7 +437,7 @@ CarControl RecitingDriver::simpleBotControl(CarState &cs)
 
 CarControl RecitingDriver::rlControl(CarState &cs)
 {
-	cout << "Time: " << cs.getCurLapTime() << endl;
+	//cout << "Time: " << cs.getCurLapTime() << endl;
 	debug_learn_count++;
 	// compute gear 
     int gear = getGear(cs);

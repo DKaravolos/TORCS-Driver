@@ -2,7 +2,9 @@
 #define CNEURALNETWORK_H
 # include <vector>
 # include <iostream>
+# include <iomanip> //for writing to file
 # include <fstream>
+# include <string>
 # include "cFunction.h"
 # include "cTanH.h"
 # include "cLinear.h"
@@ -16,6 +18,7 @@ using namespace std;
 class cNeuralNetwork {
     public:
         cNeuralNetwork( const char * );
+		cNeuralNetwork( std::string);
 		cNeuralNetwork( ifstream& is);
         cNeuralNetwork( int, int * );
         cNeuralNetwork( int, int *, int * );
@@ -40,12 +43,15 @@ class cNeuralNetwork {
         void randomizeWeights( double, double ) ;
         void randomizeWeights( double, double, int ) ;
         void printNetwork() ;
-        void readNetwork( const char * ) ;
-		void readNetwork(ifstream& is) ;
+        void readNetwork (const char *);
+		void readNetwork (std::string);
+		void readNetwork (ifstream& is);
         void writeNetwork( const char * ) ;
+		void writeNetwork( std::string ) ;
 		void writeNetwork( ofstream& ofile);
 
     private:
+		//datamembers:
         int nLayers, nInput, nOutput, nFormer, nNext ;
         unsigned int wPos ;
         int * layerSize ;
@@ -66,9 +72,11 @@ class cNeuralNetwork {
         Matrix ** weights ;
         Matrix ** layerIn ;
         Matrix ** layerOut ;
-        int i, h, o, l ; //Indices
-        int SIZEOFDOUBLE ;
-        void _forwardPropLayer( int ) ;
+       // int i, h, o, l ; //Indices
+
+		//functions:
+		void pointerInit();
+		void _forwardPropLayer( int ) ;
         double * _backPropLayer( int layer, double * outError, double learningSpeed ) ;
         bool recentlyUpdated ;
         void _printLayer( int ) ;
@@ -76,6 +84,7 @@ class cNeuralNetwork {
         void write_int( ostream &, int ) ;
         double read_double( istream & ) ;
         void write_double( ostream &, double ) ;
+
 };
 
 #endif // CNEURALNETWORK_H

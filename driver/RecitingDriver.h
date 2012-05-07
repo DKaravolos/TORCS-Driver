@@ -2,6 +2,7 @@
 #define RecitingDriver_H_
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include "BaseDriver.h"
 #include "CarState.h"

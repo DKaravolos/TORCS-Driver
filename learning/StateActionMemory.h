@@ -1,7 +1,7 @@
 #ifndef STATE_ACTION_MEMORY_H_
 #define STATE_ACTION_MEMORY_H_
 #include <iostream>
-#include <vector>
+#include <deque>
 
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Action.h"
@@ -10,6 +10,7 @@ class StateActionMemory
 {
 public:
 	StateActionMemory();
+	StateActionMemory(int max_size);
 	~StateActionMemory();
 
 	//LI functions
@@ -27,12 +28,13 @@ public:
 	void printHead(int number);
 
 protected:
-	std::vector<State>* mp_states;
-	std::vector<Action>* mp_actions;
-	std::vector<double>* mp_rewards;
-	std::vector<State>* mp_next_states;
-	std::vector<bool>* mp_end_of_eps;
-	std::vector<double>* mp_td_errors;
+	std::deque<State>* mp_states;
+	std::deque<Action>* mp_actions;
+	std::deque<double>* mp_rewards;
+	std::deque<State>* mp_next_states;
+	std::deque<bool>* mp_end_of_eps;
+	std::deque<double>* mp_td_errors;
+	int m_max_size;
 
 };
 

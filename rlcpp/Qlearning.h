@@ -18,7 +18,7 @@ class Qlearning : public StateActionAlgorithm {
 										bool endOfEpisode, double * learningRate, double gamma);
         unsigned int getNumberOfLearningRates() ;
         const char * getName() ;
-		int readQNN(string nn_file);
+		void readQNN(string nn_file);
 
 	private:
 		int Qcount;

@@ -11,6 +11,7 @@ LearningInterface::LearningInterface(void)
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld();
 	mp_log = new Writer("interface_output.txt");
+	mp_log->write("Hello file!");
 	mp_memory = new StateActionMemory();
 	m_reward = 0;
 	cout << "Done.\n";
@@ -182,12 +183,18 @@ bool LearningInterface::learningUpdateStep()
 int g_tuples_in_mem = 0;
 bool LearningInterface::learningUpdateStep(bool store_tuples)
 {
-	//if((mp_parameters->step >= mp_experiment->nSteps) || 
-	   //(mp_parameters->episode >= mp_experiment->nEpisodes)) {
-	//if( (mp_parameters->step >= 1000000) || (mp_parameters->episode >= 100) ){
-	//	cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
-	//	return true;
-	//}
+	//Check for stop conditions
+	if( (mp_parameters->step >= mp_experiment->nSteps) ){
+		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
+		mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN to file if done with learning
+		mp_log->write("Writing QNN after stop condition\n", true);
+		return true;
+	}
+
+	if(mp_parameters->step % 10000 == 1) {
+		mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
+		mp_log->write("Writing QNN\n");
+	}
 
 	mp_experiment->explore( mp_current_state, mp_current_action); //Computes new action based on current state
 	//current_action wordt gevuld.
@@ -199,7 +206,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 	if ( mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
-		///////HO, nu zijn er twee checks voor first_time. de andere zit in wdrive van driver
+		///////LET OP, nu zijn er twee checks voor first_time. de andere zit in wdrive van driver
 		{
 			if ( mp_experiment->algorithmName.compare("Sarsa") == 0 ) {
 				cout << "SARSA is not implemented yet, please use Q-learning. LearningMainloop is now shutting down.\n";
@@ -211,13 +218,16 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 
 				/*mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);*/
-				if(strcmp(typeid(*mp_algorithm).name(),"Qlearning") ==0) {
+				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+				cout << "I am using the following algorithm: " << typeid(*mp_algorithm).name() << endl;
+				/*if(strcmp(typeid(*mp_algorithm).name(),"Qlearning") ==0) {
 					Qlearning* l_qlearning = static_cast<Qlearning*>(mp_algorithm);
 					l_td_error = l_qlearning->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 				} else {
 					cerr << "This is supposed to be the QLearning case!!!\n";
-				}
+				}*/
 			}
 		} else {
 			cout << "First time step. Not performing learning because of invalid state values "  << endl;
@@ -226,22 +236,19 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 		}
 	}
 
-	//cout << "Storing tuple. LI values: \n";
-	//printf("state[1] = %.4f", mp_prev_state->continuousState[1]);
-	//cout << "\taction = " << mp_prev_action->discreteAction;
-	//printf("\treward: %.4f",m_reward);
-	//printf("\tnext_state[1] = %.4f", mp_current_state->continuousState[1]);
-	//cout << "\n\n";
-
 	//Copy current state and action to history
-	if(store_tuples && !mp_parameters->first_time_step){
-		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, mp_parameters->endOfEpisode, l_td_error);
+	if(store_tuples && !mp_parameters->first_time_step	//if not first time step
+					&& mp_parameters->step % 10			//store a tuple every 10 steps
+					&& mp_memory->getSize() < 1000		// until a 1000 tuples are stored
+	){	
+		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
+								mp_parameters->endOfEpisode, l_td_error);
 		//cout << "Tuples in memory: "<< ++g_tuples_in_mem << endl;
 	}
 	copyState( mp_current_state, mp_prev_state ) ;
 	copyAction( mp_current_action, mp_prev_action ) ;
 
-	/*if(mp_memory->getSize() > 0)
+	/*if(mp_memory->getSize() > 990)
 		mp_memory->printTuple(mp_memory->getSize()-1);*/
 
 	//Keep track of time
@@ -249,7 +256,10 @@ bool LearningInterface::learningUpdateStep(bool store_tuples)
 		mp_parameters->episode++ ;
 	}
 	mp_parameters->step++;
-	if(mp_parameters->step % 500 == 0) {
+	if(mp_parameters->step % 1000 == 0) {
+		stringstream message;
+		message << "Number of steps so far: " << mp_parameters->step;
+		mp_log->write(message.str());
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
 		cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}
