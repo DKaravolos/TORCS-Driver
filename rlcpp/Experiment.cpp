@@ -62,8 +62,65 @@ Experiment::Experiment(Experiment::Configuration config) {
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
+		case CACLA:
+			nExperiments = 1;
+			nAlgorithms = 1;
+			//THESE VALUES ARE QUITE RANDOM!
+			nSteps = 150000;
+			//nEpisodes = 10;
+			//nMaxStepsPerEpisode = 50000;
+			//nResults =100; //?????
+			//nTrainSteps = 500000;
+			//nTrainEpisodes = 10;
+			//nMaxStepsPerTrainEpisode = 50000;  
+			//nTrainResults = 100;
+			//trainStorePer = 100;
+			//nTestSteps = 0;
+			//nTestEpisodes = 0;
+			//nMaxStepsPerTestEpisode = 0;
+			//nTestResults = 0;
+			//testStorePer = 0;
+			//END OF RANDOM
+
+			stateDimension = 13;
+			actionDimension = 2;
+			discreteStates = int(-1);
+			discreteActions = 0;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = false;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
+			gaussian = true;
+
+			algorithmName = "Cacla";
+			algorithms.push_back(algorithmName);
+			/*
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.01; ////IMPORTANT
+
+			taus.push_back(0.01);
+			epsilons.push_back(0.01);
+			sigmas.push_back(0.01);
+			tau = 0.01;
+			epsilon = 0.01;
+			sigma = 0.01;
+			gamma = 0.99;
+        */
+			train = true;
+			cout << "\tBoltzmann exploration: " << boltzmann << endl;
+			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
 		default:
-			cout << "There is no default configuration for experiment. Please try again.\n";
+			cerr << "There is no default configuration for Experiment.";
+			cerr << "Please specify which configuration to use: DEFAULT_Q or CACLA.\n";
 			char end;
 			cin >> end;
 			exit(-1);

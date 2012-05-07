@@ -22,11 +22,12 @@ class Experiment {
 		enum Configuration
 		{
 			DEFAULT_Q,
-			SOMETHING_ELSE,
+			CACLA,
 			X
 		};
 
 		friend class LearningInterface;
+		friend class CaclaLearningI;
 		Experiment(){}
 		Experiment(Configuration config);
 

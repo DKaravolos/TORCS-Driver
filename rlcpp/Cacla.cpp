@@ -19,24 +19,17 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
     readParameterFile( parameterFile ) ;
 
     if ( discreteStates ) {
-
         numberOfStates = w->getNumberOfStates() ;
-
         A = new double*[ numberOfStates ] ;
         V = new double[ numberOfStates ] ;
 
-        for ( int s = 0 ; s < numberOfStates ; s++ ) {
-
+        for ( int s = 0 ; s < numberOfStates ; s++ )
+		{
+			V[ s ] = 0.0 ;
             A[ s ] = new double[ actionDimension ] ;
-
-            for ( int a = 0 ; a < actionDimension ; a++ ) {
+            for ( int a = 0 ; a < actionDimension ; a++ )
                 A[ s ][ a ] = 0.0 ;
-            }
-
-            V[ s ] = 0.0 ;
-
         }
-
     } else {
 
         stateDimension = w->getStateDimension() ;
@@ -49,6 +42,44 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
 
         VTarget = new double[ 1 ] ;
 
+    }
+
+    storedGauss = false ;
+
+}
+
+Cacla::Cacla( const char * parameterFile, World * w, const char* nn_file ) {
+
+    discreteStates      = w->getDiscreteStates() ;
+    actionDimension     = w->getActionDimension() ;
+
+    #ifdef WIN32
+		srand( clock() ) ;
+	#else
+		srand48( clock() ) ;
+	#endif
+
+    readParameterFile( parameterFile ) ;
+
+    if ( discreteStates )
+	{
+		cerr << "Error in Cacla constructor!";
+		throw std::invalid_argument("Please do not specify a NN file when using discrete states!!");
+    } else {
+		//not implemented yet
+		cerr << "Calling unimplemented constructor! Exiting....";
+		exit(-1);
+
+        stateDimension = w->getStateDimension() ;
+
+        int layerSizesA[] = { stateDimension, nHiddenQ, actionDimension } ;
+        int layerSizesV[] = { stateDimension, nHiddenV, 1 } ;
+
+        ANN = new cNeuralNetwork( 1, layerSizesA ) ;
+        VNN = new cNeuralNetwork( 1, layerSizesV ) ;
+
+        VTarget = new double[ 1 ] ;
+		
     }
 
     storedGauss = false ;
@@ -139,8 +170,8 @@ void Cacla::explore( State * state, Action * action, double explorationRate, str
 
     if ( explorationType.compare("boltzmann") == 0 ) {
 
-        cout << "Boltzmann exploration is as of yet undefined for Cacla." << endl ;
-        exit(0) ;
+        cerr << "Boltzmann exploration is as of yet undefined for Cacla." << endl ;
+        exit(-1) ;
 
     } else if ( explorationType.compare("egreedy") == 0  ) {
 
@@ -152,8 +183,8 @@ void Cacla::explore( State * state, Action * action, double explorationRate, str
 
     } else {
 
-        cout << "Warning, no exploreType: " << explorationType << endl ;
-        exit(0) ;
+        cerr << "Warning, no exploreType: " << explorationType << endl ;
+        exit(-1) ;
 
     }
 

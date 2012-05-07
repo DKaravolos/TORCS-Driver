@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
+
 #include "..\rlcpp\world.h"
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Action.h"
@@ -11,12 +13,14 @@
 class TorcsWorld : public World
 {
 public:
+	enum Configuration { QLEARNING, CACLA};
 	TorcsWorld();
+	TorcsWorld(Configuration);
 	~TorcsWorld(void);
 
 	double act( Action * ); //DEPRECATED. returns reward
-	double* convertAction(Action* action);
-	void convertAction(Action* action, double* torcs_action);
+	void convertDiscreteAction(Action* action, double* torcs_action);
+	void convertContinuousAction(Action* action, double* torcs_action);
 
 private:
 	//datamembers

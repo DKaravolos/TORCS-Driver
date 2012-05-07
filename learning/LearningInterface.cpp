@@ -140,7 +140,7 @@ void LearningInterface::initExperimentParam()
 double* LearningInterface::getAction()
 {
 	//double* torcs_action = mp_world->convertAction(mp_current_action);
-	mp_world->convertAction(mp_current_action, mp_torcs_action);
+	mp_world->convertDiscreteAction(mp_current_action, mp_torcs_action);
 	if (mp_torcs_action == NULL)
 	{
 		cout << "ERROR: request for action, while action is empty!\n";

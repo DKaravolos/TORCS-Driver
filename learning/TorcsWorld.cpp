@@ -1,4 +1,5 @@
 #include "TorcsWorld.h"
+using namespace std;
 
 TorcsWorld::TorcsWorld()
 {
@@ -16,7 +17,47 @@ TorcsWorld::TorcsWorld()
 
 	m_reward = 0;
 	m_end_of_ep = false;
-	//initState();
+}
+
+TorcsWorld::TorcsWorld(Configuration config)
+{
+	switch(config) {
+		case QLEARNING:
+			continuousStates	= true ;
+			discreteStates		= false ;
+			continuousActions	= false ;
+			discreteActions		= true ;
+			stateDimension		= 13;
+			actionDimension		= 0;
+			numberOfStates		= 0;
+			numberOfActions		= 15;
+
+			mp_state = NULL;
+			mp_action = NULL;
+
+			m_reward = 0;
+			m_end_of_ep = false;
+			break;
+
+		case CACLA:
+			continuousStates	= true ;
+			continuousActions	= true ;
+
+			discreteStates		= false ;
+			discreteActions		= false ;
+
+			stateDimension		= 13;
+			actionDimension		= 2;
+			numberOfStates		= 0;
+			numberOfActions		= 0;
+
+			mp_state = NULL;
+			mp_action = NULL;
+
+			m_reward = 0;
+			m_end_of_ep = false;
+			break;
+	}
 }
 
 
@@ -42,158 +83,7 @@ double TorcsWorld::act( Action * action)
 	return m_reward;
 }
 
-/*
-convertAction could be changed into a void function, with a double* as input.
-This means less chance of memory leak, but also less readability
-*/
-double* TorcsWorld::convertAction(Action* action)
-{
-	/*
-	Discrete action conversion scheme.
-	2 dimensions: acceleration (-1,0,1) and steer (-1,0,1) (or: left, middle, right)
-	Mapping: (steer,accel)
-	i.e.: 1 =  (-1,-1), 2 = (-1,0), 3 = (-1,1), ..., 9= (1,1)
-
-	*/
-	double* torcs_action = new double[2]; //This is deleted in MyFirstDriver.
-
-	if(action->discrete && numberOfActions == 9)
-	{
-		switch(action->discreteAction)
-		{
-			case 0:
-				torcs_action[0] = -1;
-				torcs_action[1] = -1;
-				break;
-
-			case 1:
-				torcs_action[0] = 0;
-				torcs_action[1] = -1;
-				break;
-
-			case 2:
-				torcs_action[0] = 1;
-				torcs_action[1] = -1;
-				break;
-
-			case 3:
-				torcs_action[0] = -1;
-				torcs_action[1] = 0;
-				break;
-
-			case 4:
-				torcs_action[0] = 0;
-				torcs_action[1] = 0;
-				break;
-
-			case 5:
-				torcs_action[0] = 1;
-				torcs_action[1] = 0;
-				break;
-
-			case 6:
-				torcs_action[0] = -1;
-				torcs_action[1] = 1;
-				break;
-
-			case 7:
-				torcs_action[0] = 0;
-				torcs_action[1] = 1;
-				break;
-
-			case 8:
-				torcs_action[0] = 1;
-				torcs_action[1] = 1;
-				break;
-		}
-		return torcs_action;
-	}
-	else if(action->discrete && numberOfActions == 15)
-	{
-		switch(action->discreteAction)
-		{
-			case 0:
-				torcs_action[0] = -1;
-				torcs_action[1] = -1;
-				break;
-
-			case 1:
-				torcs_action[0] = -0.5;
-				torcs_action[1] = -1;
-				break;
-
-			case 2:
-				torcs_action[0] = 0;
-				torcs_action[1] = -1;
-				break;
-
-			case 3:
-				torcs_action[0] = 0.5;
-				torcs_action[1] = -1;
-				break;
-
-			case 4:
-				torcs_action[0] = 1;
-				torcs_action[1] = -1;
-				break;
-
-			case 5:
-				torcs_action[0] = -1;
-				torcs_action[1] = 0;
-				break;
-
-			case 6:
-				torcs_action[0] = -0.5;
-				torcs_action[1] = 0;
-				break;
-
-			case 7:
-				torcs_action[0] = 0;
-				torcs_action[1] = 0;
-				break;
-
-			case 8:
-				torcs_action[0] = 0.5;
-				torcs_action[1] = 0;
-				break;
-
-			case 9:
-				torcs_action[0] = 1;
-				torcs_action[1] = 0;
-				break;
-
-			case 10:
-				torcs_action[0] = -1;
-				torcs_action[1] = 1;
-				break;
-
-			case 11:
-				torcs_action[0] = -0.5;
-				torcs_action[1] = 1;
-				break;
-
-			case 12:
-				torcs_action[0] = 0;
-				torcs_action[1] = 1;
-				break;
-
-			case 13:
-				torcs_action[0] = 0.5;
-				torcs_action[1] = 1;
-				break;				
-			
-			case 14:
-				torcs_action[0] = 1;
-				torcs_action[1] = 1;
-				break;
-		}
-		return torcs_action;
-	}
-	else
-		return NULL;
-}
-
-void TorcsWorld::convertAction(Action* action, double* torcs_action)
+void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 {
 	/*
 	Discrete action conversion scheme.
@@ -246,7 +136,22 @@ void TorcsWorld::convertAction(Action* action, double* torcs_action)
 				break;
 		}
 	} else {
-		std::cout << "Wrong action input. Setting action pointer to NULL" << std::endl;
+		std::cerr << "Wrong action input. Setting action pointer to NULL" << std::endl;
 		torcs_action = NULL;
 	}
+}
+
+void TorcsWorld::convertContinuousAction(Action* action, double* torcs_action)
+{
+	//Get action[0] within boundaries of -1 and 1
+	if(action->continuousAction[0] > 0)
+		torcs_action[0] = min(action->continuousAction[0], 1.0);
+	else
+		torcs_action[0] = max(action->continuousAction[0], -1.0);
+
+	//Get action[1] within boundaries of -1 and 1
+	if(action->continuousAction[1] > 0)
+		torcs_action[1] = min(action->continuousAction[1], 1.0);
+	else
+		torcs_action[1] = max(action->continuousAction[1], -1.0);
 }

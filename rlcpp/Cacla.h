@@ -12,7 +12,9 @@
 class Cacla : public Algorithm {
     public:
         Cacla( const char * parameterFile, World * w ) ;
+		Cacla( const char * parameterFile, World * w, const char* nnFile ) ;
         ~Cacla() ;
+
         void readParameterFile( const char * parameterFile ) ;
         void getMaxAction( State * state, Action * action ) ;
         void getRandomAction( State * state, Action * action ) ;
