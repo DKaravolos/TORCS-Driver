@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
      if(nRet == SOCKET_ERROR)
      {
  	std::cout << "Failed to init WinSock library" << std::endl;
+	char end;
+	cin >> end;
 	exit(1);
      }
 #endif

@@ -117,6 +117,8 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
             cout << "WARNING: Unknown layer function type: " ;
             cout << layerFunctionInit[ l ] << '\n' ;
             cout << "layer: " << l << '\n' ;
+			char end;
+			cin >> end;
             exit(1) ;
         }
     }
@@ -627,6 +629,8 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
+				char end;
+				cin >> end;
 				exit(1) ;
 			}
 		}
@@ -694,6 +698,9 @@ void cNeuralNetwork::readNetwork( string file ) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
+					char end;
+	cin >> end;
+
 				exit(1) ;
 			}
 		}
@@ -764,6 +771,8 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
+					char end;
+	cin >> end;
 				exit(1) ;
 			}
 		}

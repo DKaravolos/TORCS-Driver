@@ -34,10 +34,10 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
 
         stateDimension = w->getStateDimension() ;
 
-        int layerSizesA[] = { stateDimension, nHiddenQ, actionDimension } ;
+        int layerSizesA[] = { stateDimension, nHiddenQ, actionDimension } ; //hier kun je extra laag toevoegen
         int layerSizesV[] = { stateDimension, nHiddenV, 1 } ;
 
-        ANN = new cNeuralNetwork( 1, layerSizesA ) ;
+        ANN = new cNeuralNetwork( 1, layerSizesA ) ; //hier moet 1 ->2 voor extra laag.
         VNN = new cNeuralNetwork( 1, layerSizesV ) ;
 
         VTarget = new double[ 1 ] ;
@@ -48,7 +48,7 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
 
 }
 
-Cacla::Cacla( const char * parameterFile, World * w, const char* nn_file ) {
+Cacla::Cacla( const char * parameterFile, World * w, const char* ann_file, const char* vnn_file ) {
 
     discreteStates      = w->getDiscreteStates() ;
     actionDimension     = w->getActionDimension() ;
@@ -66,24 +66,12 @@ Cacla::Cacla( const char * parameterFile, World * w, const char* nn_file ) {
 		cerr << "Error in Cacla constructor!";
 		throw std::invalid_argument("Please do not specify a NN file when using discrete states!!");
     } else {
-		//not implemented yet
-		cerr << "Calling unimplemented constructor! Exiting....";
-		exit(-1);
-
-        stateDimension = w->getStateDimension() ;
-
-        int layerSizesA[] = { stateDimension, nHiddenQ, actionDimension } ;
-        int layerSizesV[] = { stateDimension, nHiddenV, 1 } ;
-
-        ANN = new cNeuralNetwork( 1, layerSizesA ) ;
-        VNN = new cNeuralNetwork( 1, layerSizesV ) ;
+        ANN = new cNeuralNetwork(ann_file) ;
+        VNN = new cNeuralNetwork(vnn_file) ;
 
         VTarget = new double[ 1 ] ;
-		
     }
-
     storedGauss = false ;
-
 }
 
 Cacla::~Cacla() {
@@ -304,6 +292,17 @@ void Cacla::update( State * state, Action * action, double rt, State * nextState
 
 }
 
+void Cacla::readNN(string ANN_file, string VNN_file)
+{
+	ANN = new cNeuralNetwork(ANN_file);
+	VNN = new cNeuralNetwork(VNN_file);
+}
+
+void Cacla::writeNN(string ANN_file, string VNN_file)
+{
+	ANN->writeNetwork(ANN_file);
+	VNN->writeNetwork(VNN_file);
+}
 
 unsigned int Cacla::getNumberOfLearningRates() {
 

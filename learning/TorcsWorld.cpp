@@ -144,12 +144,14 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 void TorcsWorld::convertContinuousAction(Action* action, double* torcs_action)
 {
 	//Get action[0] within boundaries of -1 and 1
+	//steer
 	if(action->continuousAction[0] > 0)
-		torcs_action[0] = min(action->continuousAction[0], 1.0);
+		torcs_action[0] = min(action->continuousAction[0]/2.0, 1.0); //let op! Exploratie is nu geschaald met factor 0.5!
 	else
-		torcs_action[0] = max(action->continuousAction[0], -1.0);
+		torcs_action[0] = max(action->continuousAction[0]/2.0, -1.0);
 
 	//Get action[1] within boundaries of -1 and 1
+	//accel
 	if(action->continuousAction[1] > 0)
 		torcs_action[1] = min(action->continuousAction[1], 1.0);
 	else

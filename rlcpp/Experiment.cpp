@@ -98,12 +98,13 @@ Experiment::Experiment(Experiment::Configuration config) {
 
 			algorithmName = "Cacla";
 			algorithms.push_back(algorithmName);
-			/*
+			
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.01; ////IMPORTANT
-
+			learningRate[0] = 0.01; ////Dit wordt niet goed uit de parameterfile gelezen
+			learningRate[1] = 0.01;
+			/*
 			taus.push_back(0.01);
 			epsilons.push_back(0.01);
 			sigmas.push_back(0.01);
@@ -111,11 +112,11 @@ Experiment::Experiment(Experiment::Configuration config) {
 			epsilon = 0.01;
 			sigma = 0.01;
 			gamma = 0.99;
-        */
+			*/
 			train = true;
-			cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			cout << "\tGaussian : " << gaussian << endl;
-			cout << "\tLearningRate: " << learningRate[0] << endl;
+			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
+			//cout << "\tGaussian : " << gaussian << endl;
+			//cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		default:
