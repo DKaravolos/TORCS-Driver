@@ -9,6 +9,9 @@
 # include "Algorithm.h"
 # include "StateActionUtils.h"
 
+#include <sstream>
+#include "../utilities/Writer.h"
+
 class Cacla : public Algorithm {
     public:
         Cacla( const char * parameterFile, World * w ) ;
@@ -45,6 +48,8 @@ class Cacla : public Algorithm {
         cNeuralNetwork * ANN ;
         cNeuralNetwork * VNN ;
         double * VTarget ;
+
+		Writer* mp_critic_log;
 };
 
 #endif //CACLA_H

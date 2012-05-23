@@ -3,6 +3,7 @@
 # include <vector>
 # include <iostream>
 # include <iomanip> //for writing to file
+#include <sstream>
 # include <fstream>
 # include <string>
 # include "cFunction.h"
@@ -12,7 +13,7 @@
 # include "List.h"
 # include "cThreshold.h"
 
-
+#include "..\utilities\Writer.h"
 using namespace std;
 
 class cNeuralNetwork {
@@ -73,6 +74,7 @@ class cNeuralNetwork {
         Matrix ** layerIn ;
         Matrix ** layerOut ;
        // int i, h, o, l ; //Indices
+		Writer* mp_NN_log;
 
 		//functions:
 		void pointerInit();

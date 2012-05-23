@@ -49,6 +49,8 @@ void cNeuralNetwork::pointerInit()
         weights  = NULL;
         layerIn  = NULL;
         layerOut  = NULL;
+
+		mp_NN_log = new Writer("log_files/NN_log.txt");
 }
 
 cNeuralNetwork::cNeuralNetwork( int nLayersInit, int * layerSizeInit ) {
@@ -82,9 +84,8 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
 		srand48( time(0) ) ;
 	#endif
 
+	mp_NN_log = new Writer("log_files/NN_log.txt");
 
-    //SIZEOFDOUBLE = sizeof( double ) ;
-    
     nLayers = nLayersInit + 2 ; // # node layers == # hidden layers + 2
     nInput  = layerSizeInit[ 0 ] ;
     nOutput = layerSizeInit[ nLayers - 1 ] ;
@@ -117,9 +118,11 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
             cout << "WARNING: Unknown layer function type: " ;
             cout << layerFunctionInit[ l ] << '\n' ;
             cout << "layer: " << l << '\n' ;
-			char end;
-			cin >> end;
-            exit(1) ;
+			#ifdef WIN32
+					char end;
+					cin>>end;
+			#endif
+            exit(-2) ;
         }
     }
     
@@ -144,6 +147,8 @@ cNeuralNetwork::~cNeuralNetwork( ) {
     delete [] layerFunctionInts ;
     delete [] layerSize ;
     delete [] weights ;
+
+	delete mp_NN_log;
 }
 
 void        cNeuralNetwork::changeFunction( int layer, int function ) {
@@ -254,8 +259,15 @@ double *    cNeuralNetwork::_backPropLayer( int layer, double * oError, double l
                 
             }
             // Pass the error through the layers function:
-            iError[ i ] *= f->derivative( formerIn[ i ], formerOut[ i ] ) ;
-            
+			//stringstream s_out;
+			//s_out << "iError[" << i << "] = " << iError[ i ] ;
+			double deriv = f->derivative( formerIn[ i ], formerOut[ i ] ) ;
+            iError[ i ] *= deriv;
+
+			//s_out << "\t\tderivative = " << deriv;
+			//s_out << "\t\tnew iError[" << i << "] = " << iError[ i ] ;
+
+			//mp_NN_log->write(s_out.str());
         }
         
     } else {
@@ -359,18 +371,27 @@ void        cNeuralNetwork::backPropagateError( double *input, double *error, do
     cFunction * f       = layerFunction[ nLayers - 1 ] ;    // Function of the output layer
 
     //First calculate the error of the input of the output layer:
+	//mp_NN_log->write("Writing error of the input of the output layer");
     for( int o = 0 ; o < nOutput ; o++) {
+		//stringstream s_out;
         oError[ o ] = learningSpeed*error[ o ] ;
-        oError[ o ] *= f->derivative( outputIn[ o ], outputOut[ o ] ) ;
+		//s_out << "oError[" << o << "] = " << oError[o];
+		double deriv = f->derivative( outputIn[ o ], outputOut[ o ] );
+        oError[ o ] *= deriv;
+		//s_out << "\t\tderivative = " << deriv;
+		//s_out << "\t\tnew oError[" << o << "] = " << oError[o];
+		//mp_NN_log->write(s_out.str());
     }
-    
+    //mp_NN_log->write("End of error of input of output layer\n");
+	//mp_NN_log->write("Propagating error until reaching input layer.");
     //Now propagate until reaching the input layer:
     for (int l = nLayers - 2 ; l >= 0 ; l-- ) {
         iError = _backPropLayer( l, oError, learningSpeed ) ;
         delete [] oError ;
         oError = iError ;
+		//mp_NN_log->write("End of layer");
     }
-    
+   //mp_NN_log->write("Done propagating.\n");
     delete [] iError ;
     
     recentlyUpdated = true ;
@@ -562,7 +583,7 @@ int         cNeuralNetwork::read_int(istream &is) {
 void        cNeuralNetwork::write_int(ostream &os, int result) {
     //char *s = (char *) &result;
     //os.write(s, sizeof(result));
-	os << setw(11);
+	os << setw(15);
 	os << result;
 }
 
@@ -577,7 +598,7 @@ double      cNeuralNetwork::read_double(istream &is) {
 void        cNeuralNetwork::write_double(ostream &os, double result) {
     //char *s = (char *) &result;
     //os.write(s, sizeof(result));
-	os << setw(11);
+	os << setw(15);
 	os << result;
 }
 
@@ -629,9 +650,11 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
-				char end;
-				cin >> end;
-				exit(1) ;
+				#ifdef WIN32
+					char end;
+					cin>>end;
+				#endif
+				exit(-2) ;
 			}
 		}
 		// Get weights
@@ -698,10 +721,11 @@ void cNeuralNetwork::readNetwork( string file ) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
+				#ifdef WIN32
 					char end;
-	cin >> end;
-
-				exit(1) ;
+					cin>>end;
+				#endif
+				exit(-2) ;
 			}
 		}
 		cout << " Getting weights from file: " << file << endl;
@@ -771,9 +795,11 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 				cout << layerFunctionInit[ l ] << '\n' ;
 				cout << "layer: " << l << '\n' ;
 				ifile.close();
-					char end;
-	cin >> end;
-				exit(1) ;
+				#ifdef WIN32
+						char end;
+						cin>>end;
+				#endif
+				exit(-2) ;
 			}
 		}
 		// Get weights

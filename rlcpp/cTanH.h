@@ -1,7 +1,9 @@
 #ifndef CTANH_H
 #define CTANH_H
 
+# include <math.h>
 #include "cFunction.h"
+
 using namespace std;
 class cTanH : public cFunction {
     public:

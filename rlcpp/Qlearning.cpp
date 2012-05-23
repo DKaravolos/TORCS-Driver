@@ -17,7 +17,7 @@ Qlearning::Qlearning( const char * parameterFile, World * w ) {
 			char end_program;
 			cin >> end_program;
 		#endif
-		exit(0) ;
+		exit(-4) ;
 
     } else {
 
@@ -84,7 +84,7 @@ Qlearning::Qlearning( const char * parameterFile, World * w, const char * nn_fil
 			char end_program;
 			cin >> end_program;
 		#endif
-		exit(0) ;
+		exit(-4) ;
 
     } else {
         numberOfActions = w->getNumberOfActions() ;
@@ -101,7 +101,7 @@ Qlearning::Qlearning( const char * parameterFile, World * w, const char * nn_fil
     if ( discreteStates ) {
 
 		cerr << "Warning: Discrete states not supported by neural network. Please call another constructor.";
-		exit(-1);
+		exit(-4);
     } else {
 
         stateDimension = w->getStateDimension() ;

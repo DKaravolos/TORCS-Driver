@@ -270,15 +270,21 @@ CarControl RecitingDriver::wDrive(CarState cs)
 			doLearning(cs);
 		}catch (exception& e){
 			cout << e.what() << endl;
-			char end;
-			cin >> end;
-			exit(-1);
+			#ifdef WIN32
+					char end;
+					cin>>end;
+			#endif
+			exit(-5);
 		}
 		//get the driver's action
 		mp_action_set = mp_Qinterface->getAction();
 		if (mp_action_set == NULL) {
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
-			exit(-1);
+			#ifdef WIN32
+				char end;
+				cin>>end;
+			#endif
+			exit(-5);
 		}
 
 	} else {
@@ -299,9 +305,11 @@ CarControl RecitingDriver::wDrive(CarState cs)
 				
 			}catch (exception& e){
 				cout << e.what() << endl;
-				char end;
-				cin >> end;
-				exit(-1);
+				#ifdef WIN32
+						char end;
+						cin>>end;
+				#endif
+				exit(-5);
 			}
 		}
 		//cout << "Repeating action : " << mp_action_set[0] << "  " << mp_action_set[1] << endl;
@@ -361,8 +369,10 @@ void RecitingDriver::doLearning(CarState &cs)
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
-		char end;
-		cin>>end;
+		#ifdef WIN32
+				char end;
+				cin>>end;
+		#endif
 		exit(0);
 	}
 }

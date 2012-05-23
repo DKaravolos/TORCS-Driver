@@ -117,6 +117,10 @@ int main(int argc, char *argv[])
     if (hostInfo == NULL)
     {
         cout << "Error: problem interpreting host: " << hostName << "\n";
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
         exit(1);
     }
 
@@ -153,6 +157,10 @@ int main(int argc, char *argv[])
     if (INVALID(socketDescriptor))
     {
         cerr << "cannot create socket\n";
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
         exit(1);
     }
 
@@ -188,6 +196,10 @@ int main(int argc, char *argv[])
             {
                 cerr << "cannot send data ";
                 CLOSE(socketDescriptor);
+				#ifdef WIN32
+					char end;
+					cin>>end;
+				#endif
                 exit(1);
             }
 
@@ -236,12 +248,22 @@ int main(int argc, char *argv[])
                 {
                     cerr << "didn't get response from server?";
                     CLOSE(socketDescriptor);
-                    exit(1);
+
+					//BY DANIEL:
+					#ifdef WIN32
+						char end;
+						cin>>end;
+					#endif
+					d.onRestart();
+                    cerr << "Client Restart" << endl;
+                    break;
+					//END
+                    //exit(1);
                 }
 
-#ifdef __UDP_CLIENT_VERBOSE__
-                cout << "Received: " << buf << endl;
-#endif
+				#ifdef __UDP_CLIENT_VERBOSE__
+								cout << "Received: " << buf << endl;
+				#endif
 
                 if (strcmp(buf,"***shutdown***")==0)
                 {
@@ -278,6 +300,10 @@ int main(int argc, char *argv[])
                 {
                     cerr << "cannot send data ";
                     CLOSE(socketDescriptor);
+					#ifdef WIN32
+						char end;
+						cin>>end;
+					#endif
                     exit(1);
                 }
 #ifdef __UDP_CLIENT_VERBOSE__

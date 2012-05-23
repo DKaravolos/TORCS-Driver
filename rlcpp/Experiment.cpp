@@ -64,27 +64,26 @@ Experiment::Experiment(Experiment::Configuration config) {
 
 		case CACLA:
 			nExperiments = 1;
-			nAlgorithms = 1;
 			//THESE VALUES ARE QUITE RANDOM!
-			nSteps = 150000;
-			//nEpisodes = 10;
-			//nMaxStepsPerEpisode = 50000;
-			//nResults =100; //?????
-			//nTrainSteps = 500000;
-			//nTrainEpisodes = 10;
-			//nMaxStepsPerTrainEpisode = 50000;  
-			//nTrainResults = 100;
-			//trainStorePer = 100;
-			//nTestSteps = 0;
-			//nTestEpisodes = 0;
-			//nMaxStepsPerTestEpisode = 0;
-			//nTestResults = 0;
-			//testStorePer = 0;
+				nSteps = 100000;
+				nEpisodes = 10;
+				nMaxStepsPerEpisode = 50000;
+				nResults =100; //?????
+				nTrainSteps = 100000;
+				nTrainEpisodes = 10;
+				nMaxStepsPerTrainEpisode = 50000;  
+				nTrainResults = 100;
+				trainStorePer = 100;
+				nTestSteps = 0;
+				nTestEpisodes = 0;
+				nMaxStepsPerTestEpisode = 0;
+				nTestResults = 0;
+				testStorePer = 0;
 			//END OF RANDOM
 
-			stateDimension = 13;
+			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
 			actionDimension = 2;
-			discreteStates = int(-1);
+			discreteStates = 0;
 			discreteActions = 0;
 
 			endOfEpisode  = false;
@@ -96,23 +95,27 @@ Experiment::Experiment(Experiment::Configuration config) {
 			egreedy = false;			////IMPORTANT
 			gaussian = true;
 
+			nAlgorithms = 1;
 			algorithmName = "Cacla";
 			algorithms.push_back(algorithmName);
 			
 			learningRateDecreaseType = "none";
-			nLearningRates = 1;
+			nLearningRates = 2;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.01; ////Dit wordt niet goed uit de parameterfile gelezen
-			learningRate[1] = 0.01;
-			/*
-			taus.push_back(0.01);
-			epsilons.push_back(0.01);
-			sigmas.push_back(0.01);
+			learningRate[0] = 0.001; ////Dit wordt niet goed uit de parameterfile gelezen
+			learningRate[1] = 0.001;
+
 			tau = 0.01;
-			epsilon = 0.01;
-			sigma = 0.01;
+			epsilon = 0.1;
+			sigma = 0.5;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
+			
+			
 			gamma = 0.99;
-			*/
+			
 			train = true;
 			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
 			//cout << "\tGaussian : " << gaussian << endl;
@@ -122,8 +125,10 @@ Experiment::Experiment(Experiment::Configuration config) {
 		default:
 			cerr << "There is no default configuration for Experiment.";
 			cerr << "Please specify which configuration to use: DEFAULT_Q or CACLA.\n";
-			char end;
-			cin >> end;
+			#ifdef WIN32
+					char end;
+					cin>>end;
+			#endif
 			exit(-1);
 	}
 }
@@ -215,6 +220,10 @@ void Experiment::setAlgorithm( string algorithmName, World * world ) {
     } else {
 
         cout << "Unknown algorithm: " << algorithmName << endl ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
         exit(-1) ;
 
     }
@@ -633,7 +642,11 @@ void Experiment::read_moveTo( ifstream * ifile, string label ) {
 
         if ( ifile->eof() ) {
             cout << "Read error: Could not find label '" << label << "' while reading parameter file '" << parameterFile << "'" << endl ;
-            exit(0) ;
+            #ifdef WIN32
+				char end;
+				cin>>end;
+			#endif
+			exit(-1) ;
         }
 
     }

@@ -1,9 +1,5 @@
-#ifndef CTANH
-#define CTANH
-
-using namespace std;
-//# include <math.h>
 # include "cTanH.h"
+using namespace std;
 
 cTanH::cTanH() : cFunction() {
     //~ cout << "constructor TanH\n" ;
@@ -31,7 +27,8 @@ double cTanH::output( double input ) {
         output = -0.96016;
     }
     return output;
-    //~ return tanh( input ) ;
+ //   
+	//return tanh( input ) ;
 }
 
 void cTanH::output( double * input , double * output , int n ) {
@@ -47,6 +44,7 @@ void cTanH::output( double * input , double * output , int n ) {
         } else {
             output[i] = -0.96016;
         }
+		/*output[i] = tanh(input[i]);*/
     }
 }
 
@@ -59,5 +57,3 @@ void cTanH::derivative( double * input, double * output, double * derivative, in
         derivative[i] = 1.0 - (output[i]*output[i]) ;
     }
 }
-
-#endif //CTANH

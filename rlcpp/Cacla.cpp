@@ -5,7 +5,7 @@
 #endif
 
 Cacla::Cacla( const char * parameterFile, World * w ) {
-
+	mp_critic_log = new Writer("log_files/cacla_critic_log.txt");
     discreteStates      = w->getDiscreteStates() ;
 
     actionDimension     = w->getActionDimension() ;
@@ -37,8 +37,10 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
         int layerSizesA[] = { stateDimension, nHiddenQ, actionDimension } ; //hier kun je extra laag toevoegen
         int layerSizesV[] = { stateDimension, nHiddenV, 1 } ;
 
-        ANN = new cNeuralNetwork( 1, layerSizesA ) ; //hier moet 1 ->2 voor extra laag.
-        VNN = new cNeuralNetwork( 1, layerSizesV ) ;
+		int ANN_settings[] = {0,1,1};
+        ANN = new cNeuralNetwork( 1, layerSizesA, ANN_settings ) ; //hier moet 1 ->2 voor extra laag.
+		int VNN_settings[] = {0,1,0};
+		VNN = new cNeuralNetwork( 1, layerSizesV, VNN_settings) ;
 
         VTarget = new double[ 1 ] ;
 
@@ -49,7 +51,7 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
 }
 
 Cacla::Cacla( const char * parameterFile, World * w, const char* ann_file, const char* vnn_file ) {
-
+	mp_critic_log = new Writer("cacla_critic_log");
     discreteStates      = w->getDiscreteStates() ;
     actionDimension     = w->getActionDimension() ;
 
@@ -93,7 +95,7 @@ Cacla::~Cacla() {
         delete [] VTarget ;
 
     }
-
+	delete mp_critic_log;
 }
 
 
@@ -159,6 +161,10 @@ void Cacla::explore( State * state, Action * action, double explorationRate, str
     if ( explorationType.compare("boltzmann") == 0 ) {
 
         cerr << "Boltzmann exploration is as of yet undefined for Cacla." << endl ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
         exit(-1) ;
 
     } else if ( explorationType.compare("egreedy") == 0  ) {
@@ -172,6 +178,10 @@ void Cacla::explore( State * state, Action * action, double explorationRate, str
     } else {
 
         cerr << "Warning, no exploreType: " << explorationType << endl ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
         exit(-1) ;
 
     }
@@ -264,15 +274,15 @@ void Cacla::update( State * state, Action * action, double rt, State * nextState
     } else {
 
         double * st = state->continuousState ;
-        double * st_ = nextState->continuousState ;
-
+        double * st_ = nextState->continuousState ; 
+		double Vs_ = 0;
         if ( endOfEpisode ) {
 
             VTarget[ 0 ] = rt ;
 
         } else {
 
-            double Vs_   = VNN->forwardPropagate( st_ )[0] ;
+             Vs_ = VNN->forwardPropagate( st_ )[0] ;
 
             VTarget[ 0 ] = rt + gamma*Vs_ ;
 
@@ -288,6 +298,19 @@ void Cacla::update( State * state, Action * action, double rt, State * nextState
 
         }
 
+		double Vt_after = VNN->forwardPropagate( st )[0] ;
+		//LOG CRITIC VALUE
+		//stringstream value;
+		//value	<< "output netwerk: " << Vt
+		//		<< "\tTarget: " << VTarget[ 0 ]
+		//		<< "\tReward: " << rt
+		//		<< "\tGamma: " << gamma
+		//		<< "\tVs_" << Vs_
+		//		<< "\tVt_after " << Vt_after
+		//		<< "\t learningRate[0] " << learningRate[0]
+		//		<< "\t learningRate[1] " << learningRate[1];
+
+		//mp_critic_log->write(value.str());
     }
 
 }

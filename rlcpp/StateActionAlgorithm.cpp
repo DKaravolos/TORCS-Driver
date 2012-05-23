@@ -84,12 +84,20 @@ void StateActionAlgorithm::explore( State * state, Action * action, double explo
 
         cout << "You are trying to use gaussian exploration for an algorithm that" << endl ;
         cout << "does not support it. Please check your parameter file." << endl ;
-        exit(0) ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
+        exit(-1) ;
 
     } else {
 
     cout << "Warning, no exploreType: " << explorationType << endl ;
-    exit(0) ;
+	#ifdef WIN32
+			char end;
+			cin>>end;
+	#endif
+    exit(-1) ;
 
     }
 
@@ -180,6 +188,10 @@ void StateActionAlgorithm::boltzmann( Action * action, double tau ) {
                 cout << Qs[_a] << " " ;
             }
             cout << endl ;
+			#ifdef WIN32
+				char end;
+				cin>>end;
+			#endif
             exit(0) ;
         }
     }

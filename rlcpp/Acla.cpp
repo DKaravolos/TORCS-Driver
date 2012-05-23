@@ -12,7 +12,11 @@ Acla::Acla( const char * parameterFile, World * w ) {
 
         cout << "Acla does not support continuous actions." << endl ;
         cout << "Please check which MDP you are using it on." << endl ;
-        exit(0) ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
+        exit(-1) ;
 
     } else {
 
