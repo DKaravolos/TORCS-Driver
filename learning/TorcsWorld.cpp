@@ -102,38 +102,76 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 				torcs_action[0] = -1;
 				torcs_action[1] = -1;
 				break;
+
 			case 1:
-				torcs_action[0] = -1;
-				torcs_action[1] = 0;
-				break;
-			case 2:
-				torcs_action[0] = -1;
-				torcs_action[1] = 1;
-				break;
-			case 3:
 				torcs_action[0] = 0;
 				torcs_action[1] = -1;
 				break;
+
+			case 2:
+				torcs_action[0] = 1;
+				torcs_action[1] = -1;
+				break;
+
+			case 3:
+				torcs_action[0] = -1;
+				torcs_action[1] = 0;
+				break;
+
 			case 4:
 				torcs_action[0] = 0;
 				torcs_action[1] = 0;
 				break;
+
 			case 5:
-				torcs_action[0] = 0;
-				torcs_action[1] = 1;
-				break;
-			case 6:
-				torcs_action[0] = 1;
-				torcs_action[1] = -1;
-				break;
-			case 7:
 				torcs_action[0] = 1;
 				torcs_action[1] = 0;
 				break;
+
+			case 6:
+				torcs_action[0] = -1;
+				torcs_action[1] = 1;
+				break;
+			case 7:
+				torcs_action[0] = 0;
+				torcs_action[1] = 1;
+				break;
+
 			case 8:
 				torcs_action[0] = 1;
 				torcs_action[1] = 1;
 				break;
+			//steer half right
+			case 9:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = -1;
+				break;
+
+			case 10:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = 0;
+				break;
+
+			case 11:
+				torcs_action[0] = -0.5;
+				torcs_action[1] = 1;
+				break;
+			//steer half
+			case 12:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = -1;
+				break;
+			case 13:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = 0;
+				break;
+
+			case 14:
+				torcs_action[0] = 0.5;
+				torcs_action[1] = 1;
+				break;
+
+
 		}
 	} else {
 		std::cerr << "Wrong action input. Setting action pointer to NULL" << std::endl;

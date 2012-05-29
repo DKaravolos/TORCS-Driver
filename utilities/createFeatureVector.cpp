@@ -27,11 +27,11 @@ vector<double>* createFeatureVectorPointer(CarState state)
 	vector<double>* featureVector = new vector<double>;
 	featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 
-	bool speed_x = state.getSpeedX() > 70;
-	featureVector->push_back(double(speed_x));
+	//bool speed_x = state.getSpeedX() > 70;
+	featureVector->push_back(state.getSpeedX());
 	
-	bool speed_y = state.getSpeedY() > 0.5;
-	featureVector->push_back(double(speed_y));
+	//bool speed_y = state.getSpeedY() > 0.5;
+	featureVector->push_back(state.getSpeedY());
 
 	featureVector->push_back(state.getTrackPos()); //Zit al tussen -1 (rechts) en 1 (links). Waarde buiten deze range betekent off-track.
 	for(int i = 0; i < 10; i++)

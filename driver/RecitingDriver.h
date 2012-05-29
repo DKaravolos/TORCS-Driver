@@ -1,8 +1,10 @@
 #ifndef RecitingDriver_H_
 #define RecitingDriver_H_
 
+#include <conio.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 #include "BaseDriver.h"
 #include "CarState.h"
@@ -15,6 +17,7 @@
 #include "..\utilities\createFeatureVector.h"
 #include "..\utilities\printFeatureVector.h"
 #include "..\learning\LearningInterface.h"
+#include "..\utilities\Writer.h"
 
 
 #define PI 3.14159265
@@ -124,6 +127,9 @@ private:
 	double m_last_dist_from_start;
 	double m_last_damage;
 	double* mp_action_set;
+	Writer* mp_log;
+	Writer* mp_reward_writer;
+
 	////////Functions added by Daniel:
 	double computeReward(CarState &cs);
 	void doLearning(CarState &cs);
@@ -131,11 +137,13 @@ private:
 	CarControl simpleBotControl(CarState &cs);
 	CarControl rlControl(CarState &cs);
 	void endOfRunCheck(CarState &cs, CarControl &cc);
+	char getKeyboardInput();
 	
 	int g_count;
 	int g_learn_step_count;
 	int g_stuck_step_count;
 	int g_reupdate_step_count;
+	int g_experiment_count;
 
 	int g_print_mod;
 

@@ -48,12 +48,13 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRate = new double[nLearningRates];
 			learningRate[0] = 0.01; ////IMPORTANT
 
-			taus.push_back(0.01);
-			epsilons.push_back(0.01);
-			sigmas.push_back(0.01);
 			tau = 0.01;
 			epsilon = 0.01;
 			sigma = 0.01;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
 			gamma = 0.99;
         
 			train = true;
@@ -111,8 +112,6 @@ Experiment::Experiment(Experiment::Configuration config) {
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);
-			
-			
 			
 			gamma = 0.99;
 			

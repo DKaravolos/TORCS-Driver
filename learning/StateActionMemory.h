@@ -15,7 +15,7 @@ public:
 
 	//LI functions
 	void storeTuple	(State* state, Action* action, double reward, State* next_state, 
-					bool end_of_ep, double td_error);
+					bool end_of_ep, double td_error, int option = 0);
 
 	void retrieveTupleAt(int idx, State* state, Action* action, double& reward, 
 						State* next_state, bool& end_of_ep);

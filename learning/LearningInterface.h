@@ -48,6 +48,9 @@ class LearningInterface
 		//state functions
 		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
 		void printState();
+		void logState(int timestamp);
+		
+		void logAction(int timestamp);
 	
 		//world functions
 		//void computeReward(int new_dist);
@@ -57,7 +60,7 @@ class LearningInterface
 
 		//other
 		bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
-		bool learningUpdateStep(bool store_tuples);
+		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
 
 	protected:
@@ -76,6 +79,7 @@ class LearningInterface
 		double m_reward;
 
 		Writer* mp_log;
+		Writer* mp_reward_log;
 		StateActionMemory* mp_memory;
 
 		//functions:
@@ -85,8 +89,6 @@ class LearningInterface
 		void initExperimentParam();
 
 			//other
-		//void explore(State*, Action*);
-		//inline void worldSetAction() {dp_action = dp_world->getAction();}
 };
 
 #endif /*LEARNING_INTERFACE_H*/

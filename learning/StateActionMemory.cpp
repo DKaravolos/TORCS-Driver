@@ -9,6 +9,7 @@ StateActionMemory::StateActionMemory()
 	mp_next_states = new deque<State>();
 	mp_end_of_eps = new deque<bool>();
 	mp_td_errors = new deque<double>();
+	m_max_size = 10000;
 }
 
 StateActionMemory::StateActionMemory(int size)
@@ -33,8 +34,9 @@ StateActionMemory::~StateActionMemory()
 }
 
 void StateActionMemory::storeTuple(State* state, Action* action, double reward, 
-									State* next_state, bool end_of_ep, double td_error)
+									State* next_state, bool end_of_ep, double td_error, int option)
 {
+	//cout << "Storing Tuple \n";
 	if(state == NULL)
 		throw std::invalid_argument("Cannot add NULL state to memory!");
 	else if(action == NULL)
@@ -43,6 +45,7 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 		throw std::invalid_argument("Cannot add NULL next_state to memory!");
 	else
 	{
+		//Check if maximum size is reached. If so, delete most unimportant tuple (the first).
 		if(mp_states->size() > m_max_size)
 		{
 			mp_states->pop_front();
@@ -52,17 +55,86 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 			mp_end_of_eps->pop_front();
 			mp_td_errors->pop_front();
 		}
-		mp_states->push_back(*state);
-		mp_actions->push_back(*action);
-		mp_rewards->push_back(reward);
-		mp_next_states->push_back(*next_state);
-		mp_end_of_eps->push_back(end_of_ep);
-		mp_td_errors->push_back(td_error);
 
-		//cout << "Storing tuple(2). SAM values: \n";
-		//cout << "State*: " << state << "\tAction*: " << action << endl;
-		//cout << "Storing tuple(2). SAM values from vector: \n";
-		//cout << "State*: " << &mp_states->back() << "\tAction*: " << &mp_actions->back() << endl;
+		if( option == 0) //LearningInterface::UpdateOption::RANDOM
+		{
+			//If storage option is random, just add a new tuple to the front of the deque.
+			mp_states->push_back(*state);
+			mp_actions->push_back(*action);
+			mp_rewards->push_back(reward);
+			mp_next_states->push_back(*next_state);
+			mp_end_of_eps->push_back(end_of_ep);
+			mp_td_errors->push_back(td_error);
+			cout << "option 0\n";
+			return;
+		}
+		else if (option == 1) //LearningInterface::UpdateOption::TD
+		{
+			//If storage option is TD, add a new tuple at the appriopriate place, based on the TD error.
+			//
+			//cout << " using TD option" << endl;
+			deque<State>::iterator st_it = mp_states->begin();
+			deque<Action>::iterator act_it = mp_actions->begin();
+			deque<State>::iterator nxt_st_it = mp_next_states->begin();
+			deque<double>::iterator rew_it = mp_rewards->begin();
+			deque<bool>::iterator eoe_it = mp_end_of_eps->begin();
+			deque<double>::iterator td_it = mp_td_errors->begin();
+
+			//Special case: deques are empty. Just add the new tuple.
+			if(mp_td_errors->size() == 0)
+			{
+				mp_states->push_back(*state);
+				mp_actions->push_back(*action);
+				mp_rewards->push_back(reward);
+				mp_next_states->push_back(*next_state);
+				mp_end_of_eps->push_back(end_of_ep);
+				mp_td_errors->push_back(td_error);
+			} else 
+			{
+				//Loop through stored tuples with iterators.
+				for(td_it = mp_td_errors->begin(); td_it < mp_td_errors->end(); ++td_it){
+					//cout << "Comparing: " << td_error << " with " << *td_it << endl << endl;
+					//If new TD error is smaller, insert it in front of the checked tuple.
+					if(td_error < *td_it) {
+						//cout << "Found a place to insert" << endl;
+						mp_states->insert(st_it,*state);
+						mp_actions->insert(act_it,*action);
+						mp_rewards->insert(rew_it,reward);
+						mp_next_states->insert(nxt_st_it,*next_state);
+						mp_end_of_eps->insert(eoe_it,end_of_ep);
+						mp_td_errors->insert(td_it,td_error);
+						break; //The iterators are now invalid, a break from the loop is necessary.
+					}
+
+					//If the end is reached, this tuple has the largest td error. So, add it to the end.
+					else if ((td_it != mp_td_errors->end()) && (td_it + 1 == mp_td_errors->end()))
+					{
+						//cout << "Arrived at last element. Pushing back." << endl;
+						mp_states->push_back(*state);
+						mp_actions->push_back(*action);
+						mp_rewards->push_back(reward);
+						mp_next_states->push_back(*next_state);
+						mp_end_of_eps->push_back(end_of_ep);
+						mp_td_errors->push_back(td_error);
+						break; //Added the break for similarity with previous if-statement.
+					}
+					
+					//If a larger tuple is not found and we have not yet reached the last tuple, increase the other iterators as well.
+					else {
+						++st_it;
+						++act_it;
+						++nxt_st_it;
+						++rew_it;
+						++eoe_it;
+					}
+
+				}
+			}
+			//Here you can do stuff after inserting the tuple, like printing some part of the current SA Memory.
+			//printHead(mp_td_errors->size());
+		} else {
+			cerr << "Please select an implemented option for StateActionMemory storage" << endl;
+		}
 	}
 }
 
@@ -126,7 +198,7 @@ void StateActionMemory::printTuple(int index)
 	//print end of episode
 	cout << "\tend_of_ep: " << mp_end_of_eps->at(index);
 
-	//print td error
+	print td error
 	cout<< "\t TD error: " << mp_td_errors->at(index);
 	cout << endl;
 }
