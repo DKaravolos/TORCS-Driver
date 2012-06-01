@@ -23,6 +23,9 @@ class Cacla : public Algorithm {
         void getRandomAction( State * state, Action * action ) ;
         void explore( State * state, Action * action, double explorationRate, string explorationType, bool endOfEpisode ) ;
         void update( State * st, Action * action, double rt, State * st_, bool endOfEpisode, double * learningRate, double gamma  ) ;
+		//new:
+		double updateAndReturnTDError( State * st, Action * action, double rt, State * st_,
+										bool endOfEpisode, double * learningRate, double gamma  ) ;
 
 		void readNN(std::string ANN_file, std::string VNN_file);
 		void writeNN(std::string ANN_file, std::string VNN_file);

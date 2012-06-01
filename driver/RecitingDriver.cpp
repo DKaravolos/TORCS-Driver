@@ -302,18 +302,18 @@ CarControl RecitingDriver::wDrive(CarState cs)
 			cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1] << endl;
 
 	} else {
+		//If Driver is not choosing an action, repeat learning update with an old tuple and return the previous action
+
 		mp_action_set = mp_Qinterface->getAction();
 		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
 			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
 		{
-			//cout << "Driver: updating random old tuple\n";
 			try{
 				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
-				//Waarom is g_count hier de eerste keer 50??
 				g_reupdate_step_count = 0;
 				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
-					//Currently, these steps do not count for the max_steps of g_learning_done
-					mp_Qinterface->updateWithOldTuple(LearningInterface::RANDOM);
+					//These steps do not count for the max_steps of g_learning_done
+					mp_Qinterface->updateWithOldTuple(LearningInterface::TD);
 					g_reupdate_step_count++;
 				}
 				
@@ -337,7 +337,7 @@ double RecitingDriver::computeReward(CarState &cs)
 		//
 		///////////DISTANCE
 		double distance = cs.getDistRaced();
-		double dist_reward = 10* (distance - m_last_dist);
+		double dist_reward = 100* (distance - m_last_dist);
 		m_last_dist = distance;
 
 		if(g_count % g_print_mod == 0)
@@ -346,7 +346,7 @@ double RecitingDriver::computeReward(CarState &cs)
 
 		///////////POSITION
 		double pos_reward = abs(cs.getTrackPos());
-		reward -= pos_reward;
+		reward -= 100* pos_reward;
 		if(g_count % g_print_mod == 0)
 			cout << "Position reward: -"<< pos_reward << endl;
 		///////////DAMAGE
@@ -416,9 +416,9 @@ void RecitingDriver::doLearning(CarState &cs)
 	while(l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
-			g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::RANDOM);
+			g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::TD);
 		else
-			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::RANDOM);
+			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::TD);
 		l_learn_step_count++;
 		g_learn_step_count++;
 	}

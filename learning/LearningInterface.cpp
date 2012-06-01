@@ -285,8 +285,12 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 	int tuple_idx = 0;
 	double l_td_error;
 
-	if(mp_memory->getSize() >= 5)
-		mp_memory->printHead(5);
+	//if(mp_memory->getSize() >= 5)
+	//	mp_memory->printHead(5);
+	if(mp_memory->getSize() >= 5) {
+		mp_log->write("Before reupdate:");
+		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
+	}
 
 	switch(option)
 	{
@@ -301,7 +305,7 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 			//update with tuple with high TD error
 			tuple_idx = mp_memory->getSize()-1;
 			mp_memory->retrieveTupleAt(tuple_idx,lp_state,lp_action,l_reward,lp_next_state, l_end_of_ep, l_td_error);
-			cout << "updating tuple with td error of "<< l_td_error << endl;
+			//cout << "updating tuple with TD error of "<< l_td_error << endl;
 			break;
 
 		default:
@@ -326,13 +330,15 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 							
 					//since the TD error has changed, it should be removed and inserted again with the new TD error
+
+					mp_memory->popBack();
 					mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 					break;
-
-					//NOTE TO SELF: DE TUPLE MOET NOG VERWIJDERD WORDEN UIT HET GEHEUGEN EN JE MOET OOK NOG EVEN GOED CHECKEN OF
-					//OF HET GEHUGEN NU WEL IN DE GOEDE VOLGORDE OPGEBOUWD WORDT. WELLICHT IS DIT HANDIG OM TE DOEN IN HET 
-					//STATE ACTION MEMORY PROJECT!
 			}
+	}
+	if(mp_memory->getSize() >= 5) {
+		mp_log->write("After reupdate:");
+		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
 	}
 }

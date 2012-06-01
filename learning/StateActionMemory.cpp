@@ -72,7 +72,7 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 		{
 			//If storage option is TD, add a new tuple at the appriopriate place, based on the TD error.
 			//
-			//cout << " using TD option" << endl;
+			//cout << "Reupdate using TD option" << endl;
 			deque<State>::iterator st_it = mp_states->begin();
 			deque<Action>::iterator act_it = mp_actions->begin();
 			deque<State>::iterator nxt_st_it = mp_next_states->begin();
@@ -161,6 +161,17 @@ void StateActionMemory::retrieveTupleAt(int index, State* state, Action* action,
 	td_error = mp_td_errors->at(index);
 }
 
+void StateActionMemory::popBack()
+{
+	mp_states->pop_back();
+	mp_actions->pop_back();
+	mp_rewards->pop_back();
+	mp_next_states->pop_back();
+	mp_end_of_eps->pop_back();
+	mp_td_errors->pop_back();
+
+}
+
 void StateActionMemory::printTuple(int index)
 {
 	//Actually, there is no need for pointers. We could use objects (more memory on the stack) 
@@ -198,19 +209,61 @@ void StateActionMemory::printTuple(int index)
 	//print end of episode
 	cout << "\tend_of_ep: " << mp_end_of_eps->at(index);
 
-	print td error
+	//print td error
 	cout<< "\t TD error: " << mp_td_errors->at(index);
 	cout << endl;
 }
 
-void StateActionMemory::printHead(int number)
+void StateActionMemory::printHead(unsigned int number)
 {
 	if(number> mp_states->size()) {
 		cerr << "Error in printHead: Can't print more tuples than amount stored in memory!\n";
 		return;
 	}
-	for(int idx = 0; idx < number; idx++)
+	for(unsigned int idx = 0; idx < number; idx++)
 	{
 		printTuple(idx);
 	}
+}
+
+void StateActionMemory::writeTuple(Writer* writer, int index)
+{
+	State* state = &mp_states->at(index);
+	Action* action = &mp_actions->at(index);
+	State* next_state = &mp_next_states->at(index);
+	bool cont_s = state->continuous;
+	bool cont_a = action->continuous;
+
+	stringstream sout;
+	sout << setprecision(6);
+
+	sout << "Tuple "<<index << " : ";
+	//print state
+	if(cont_s)
+		sout << "state[1] = "<< state->continuousState[1];
+	else
+		sout << "state = " << state->discreteState;
+	
+	//print action
+	if(cont_a)
+		sout << "\taction[0] = " << action->continuousAction[0];
+	else
+		sout << "\taction = " << action->discreteAction;
+	
+	//print reward
+	sout << "\treward: "<< mp_rewards->at(index);
+	
+	//print next state
+	if(cont_s)
+		sout << "\nnext_state[1] = " << next_state->continuousState[1];
+	else
+		sout << "\nnext_state = " << state->discreteState;
+
+	//print end of episode
+	sout << "\tend_of_ep: " << mp_end_of_eps->at(index);
+
+	//print td error
+	sout<< "\t TD error: " << mp_td_errors->at(index);
+	
+	writer->write(sout.str());
 }

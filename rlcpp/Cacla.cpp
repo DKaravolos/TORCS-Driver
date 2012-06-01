@@ -299,6 +299,8 @@ void Cacla::update( State * state, Action * action, double rt, State * nextState
         }
 
 		double Vt_after = VNN->forwardPropagate( st )[0] ;
+
+
 		//LOG CRITIC VALUE
 		//stringstream value;
 		//value	<< "output netwerk: " << Vt
@@ -313,6 +315,79 @@ void Cacla::update( State * state, Action * action, double rt, State * nextState
 		//mp_critic_log->write(value.str());
     }
 
+}
+
+double Cacla::updateAndReturnTDError( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma  ) {
+
+    double * at = action->continuousAction ;
+	double td_error = 0;
+
+    if ( state->discrete ) {
+
+        int st      = state->discreteState ;
+        int st_     = nextState->discreteState ;
+
+        double Vt = V[ st ] ;
+
+        if ( endOfEpisode ) {
+			td_error = rt - V[ st ];
+            V[ st ]       += learningRate[1]*( rt - V[ st ] ) ;
+        } else {
+			td_error = rt + gamma*V[ st_ ] - V[ st ];
+            V[ st ]       += learningRate[1]*( rt + gamma*V[ st_ ] - V[ st ] ) ;
+        }
+
+        if ( V[ st ] > Vt ) {
+
+            for ( int a = 0 ; a < actionDimension ; a++ ) {
+                A[ st ][ a ] += learningRate[0]*( at[ a ] - A[ st ][ a ] ) ;
+            }
+        }
+
+    } else {
+
+        double * st = state->continuousState ;
+        double * st_ = nextState->continuousState ; 
+		double Vs_ = 0;
+        if ( endOfEpisode ) {
+
+            VTarget[ 0 ] = rt ;
+
+        } else {
+
+             Vs_ = VNN->forwardPropagate( st_ )[0] ;
+
+            VTarget[ 0 ] = rt + gamma*Vs_ ;
+
+        }
+
+        double Vt = VNN->forwardPropagate( st )[0] ;
+
+        VNN->backPropagate( st, VTarget, learningRate[1] ) ;
+
+        if ( VTarget[0] > Vt ) {
+
+            ANN->backPropagate( st, at, learningRate[0] ) ;
+
+        }
+
+		double Vt_after = VNN->forwardPropagate( st )[0] ;
+		td_error = VTarget[0] - Vt_after;
+
+		//LOG CRITIC VALUE
+		//stringstream value;
+		//value	<< "output netwerk: " << Vt
+		//		<< "\tTarget: " << VTarget[ 0 ]
+		//		<< "\tReward: " << rt
+		//		<< "\tGamma: " << gamma
+		//		<< "\tVs_" << Vs_
+		//		<< "\tVt_after " << Vt_after
+		//		<< "\t learningRate[0] " << learningRate[0]
+		//		<< "\t learningRate[1] " << learningRate[1];
+
+		//mp_critic_log->write(value.str());
+    }
+	return td_error;
 }
 
 void Cacla::readNN(string ANN_file, string VNN_file)

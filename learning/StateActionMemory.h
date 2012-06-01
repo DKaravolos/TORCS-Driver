@@ -1,11 +1,13 @@
 #ifndef STATE_ACTION_MEMORY_H_
 #define STATE_ACTION_MEMORY_H_
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <deque>
 
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Action.h"
-
+#include "..\utilities\Writer.h"
 class StateActionMemory
 {
 public:
@@ -22,10 +24,12 @@ public:
 	void retrieveTupleAt(int idx, State* state, Action* action, double& reward, 
 						State* next_state, bool& end_of_ep, double& td_error);
 	inline int getSize(){ return mp_states->size();}
+	void popBack();
 
 	//print functions
 	void printTuple(int index);
-	void printHead(int number);
+	void printHead(unsigned int number);
+	void writeTuple(Writer* writer, int index);
 
 protected:
 	std::deque<State>* mp_states;
