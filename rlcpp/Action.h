@@ -10,6 +10,9 @@ struct Action {
 
     int discreteAction ;
     double * continuousAction ;
+
+	double* min_val; //don't forget to init!
+	double* max_val; //don't forget to init!
 };
 
 #endif //Action

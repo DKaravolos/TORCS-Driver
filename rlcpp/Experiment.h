@@ -23,10 +23,11 @@ class Experiment {
 		{
 			DEFAULT_Q,
 			CACLA,
-			X
+			BAS
 		};
 
 		friend class LearningInterface;
+		friend class BASLearningInterface;
 		friend class CaclaLearningI;
 		Experiment(){}
 		Experiment(Configuration config);

@@ -189,7 +189,6 @@ bool LearningInterface::learningUpdateStep()
 	return learningUpdateStep(false, LearningInterface::RANDOM);
 }
 
-int g_tuples_in_mem = 0;
 bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
 	//Check for stop conditions
@@ -248,7 +247,6 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
-		//cout << "Tuples in memory: "<< ++g_tuples_in_mem << endl;
 	}
 	copyState( mp_current_state, mp_prev_state ) ;
 	copyAction( mp_current_action, mp_prev_action ) ;

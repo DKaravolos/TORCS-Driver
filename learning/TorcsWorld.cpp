@@ -57,6 +57,25 @@ TorcsWorld::TorcsWorld(Configuration config)
 			m_reward = 0;
 			m_end_of_ep = false;
 			break;
+
+		case BAS:
+			continuousStates	= true ;
+			continuousActions	= true ;
+
+			discreteStates		= false ;
+			discreteActions		= false ;
+
+			stateDimension		= 13;
+			actionDimension		= 2;
+			numberOfStates		= 0;
+			numberOfActions		= 0;
+
+			mp_state = NULL;
+			mp_action = NULL;
+
+			m_reward = 0;
+			m_end_of_ep = false;
+			break;
 	}
 }
 
@@ -184,9 +203,9 @@ void TorcsWorld::convertContinuousAction(Action* action, double* torcs_action)
 	//Get action[0] within boundaries of -1 and 1
 	//steer
 	if(action->continuousAction[0] > 0)
-		torcs_action[0] = min(action->continuousAction[0]*0.1, 1.0);
+		torcs_action[0] = min(action->continuousAction[0], 1.0);
 	else
-		torcs_action[0] = max(action->continuousAction[0]*0.1, -1.0);
+		torcs_action[0] = max(action->continuousAction[0], -1.0);
 
 	//Get action[1] within boundaries of -1 and 1
 	//accel

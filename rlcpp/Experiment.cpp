@@ -108,7 +108,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 
 			tau = 0.01;
 			epsilon = 0.1;
-			sigma = 0.5;
+			sigma = 0.2;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);
@@ -121,9 +121,66 @@ Experiment::Experiment(Experiment::Configuration config) {
 			//cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
+		case BAS:
+			nExperiments = 1;
+			//THESE VALUES ARE QUITE RANDOM!
+				nSteps = 200000;
+				nEpisodes = 10;
+				nMaxStepsPerEpisode = 50000;
+				nResults =100; //?????
+				nTrainSteps = 200000;
+				nTrainEpisodes = 10;
+				nMaxStepsPerTrainEpisode = 50000;  
+				nTrainResults = 100;
+				trainStorePer = 100;
+				nTestSteps = 0;
+				nTestEpisodes = 0;
+				nMaxStepsPerTestEpisode = 0;
+				nTestResults = 0;
+				testStorePer = 0;
+			//END OF RANDOM
+
+			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
+			actionDimension = 2;
+			discreteStates = 0;
+			discreteActions = 0;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = false;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
+			gaussian = true;
+			
+			tau = 0.01;
+			epsilon = 0.1;
+			sigma = 0.2;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+
+			nAlgorithms = 1;
+			algorithmName = "BinaryActionSearch";
+			algorithms.push_back(algorithmName);
+			
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.001;
+			
+			gamma = 0.99;
+			
+			train = true;
+			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
+			//cout << "\tGaussian : " << gaussian << endl;
+			//cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
 		default:
 			cerr << "There is no default configuration for Experiment.";
-			cerr << "Please specify which configuration to use: DEFAULT_Q or CACLA.\n";
+			cerr << "Please specify which configuration to use: DEFAULT_Q, CACLA or BAS.\n";
 			#ifdef WIN32
 					char end;
 					cin>>end;
