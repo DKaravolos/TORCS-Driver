@@ -45,6 +45,7 @@ class BinaryActionSearch: public Algorithm
 
     private:
 		//functions:
+		void _init(const char* parameterFile, World*w);
 		void readParameterFile( const char * parameterFile );
         void gaussian( State * state, Action * action, double sigma ) ;
 		double gaussianRandom() ;
@@ -64,7 +65,7 @@ class BinaryActionSearch: public Algorithm
 
 		//neural network:
 		int nHiddenQ;
-		cNeuralNetwork* QNN ;
+		vector<cNeuralNetwork*> QNN ;
 
 		//Other datamembers:
 		Writer* mp_BAS_log;

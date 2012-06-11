@@ -21,7 +21,7 @@ vector<double> createFeatureVector(CarState state)
 	return featureVector;
 }
 */
-//*
+/*
 vector<double>* createFeatureVectorPointer(CarState state)
 {
 	vector<double>* featureVector = new vector<double>;
@@ -40,7 +40,7 @@ vector<double>* createFeatureVectorPointer(CarState state)
 }
 //*/
 
-/*
+//*
 vector<double>* createFeatureVectorPointer(CarState state)
 {
 	vector<double>* featureVector = new vector<double>;

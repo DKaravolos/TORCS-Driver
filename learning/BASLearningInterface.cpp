@@ -215,13 +215,13 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 	//Check for stop conditions
 	if( (mp_parameters->step >= mp_experiment->nSteps) ){
 		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
-		mp_algorithm->writeQNN("BASDriver_QNN.txt"); //write NN to file if done with learning
+		mp_algorithm->writeQNN("log_files/BASDriver_QNN"); //write NN to file if done with learning
 		mp_log->write("Writing QNN after stop condition\n", true);
 		return true;
 	}
 
 	if(mp_parameters->step % 1000 == 0) {
-		mp_algorithm->writeQNN("BASDriver_QNN.txt"); //write NN every 10.000 steps
+		mp_algorithm->writeQNN("log_files/BASDriver_QNN"); //write NN every 10.000 steps
 		mp_log->write("Writing QNN\n");
 	}
 

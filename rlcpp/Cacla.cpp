@@ -372,7 +372,7 @@ double Cacla::updateAndReturnTDError( State * state, Action * action, double rt,
         }
 
 		double Vt_after = VNN->forwardPropagate( st )[0] ;
-		td_error = VTarget[0] - Vt_after;
+		td_error = VTarget[0] - Vt; // OF MOET DIT MET VT_AFTER BEREKEND WORDEN???
 
 		//LOG CRITIC VALUE
 		//stringstream value;

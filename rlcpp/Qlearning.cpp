@@ -258,6 +258,7 @@ double Qlearning::updateAndReturnTDError( State * state, Action * action, double
         if ( endOfEpisode ) {
 
             QTarget[ 0 ] = rt ;
+			td_error = rt - QNN[at]->forwardPropagate( st )[0] ;
 
         } else {
 

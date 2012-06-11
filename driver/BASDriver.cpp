@@ -180,14 +180,15 @@ void BASDriver::init(float *angles)
 
 			bool load_network = true;
 			ifstream is;
-			is.open("log_files/BAS_QNN.txt");
+			is.open("log_files/BASDriver_QNN_actionDim_0.txt");
 			if(load_network && is.is_open()) {
 				is.close();
-				cout << "Loading NN from file.";
-				mp_Qinterface->init("log_files/BAS_QNN.txt");
+				cout << "Loading NN from file.\n";
+				mp_Qinterface->init("log_files/BASDriver_QNN");
 			}
-			else
+			else{
 				mp_Qinterface->init();
+			}
 			cout << "Done.\n";
 		} catch (exception& e)
 		{
@@ -299,7 +300,7 @@ CarControl BASDriver::wDrive(CarState cs)
 		//stringstream log;
 		//log << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 		//mp_log->write(log.str());
-		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
+		cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1] << endl;
 
 	} else {
 		mp_action_set = mp_Qinterface->getAction();
@@ -347,7 +348,7 @@ double BASDriver::computeReward(CarState &cs)
 		m_last_dist = distance;
 
 		if( g_count % g_print_mod == 0) { 
-			cout << "Distance reward: "<< dist_reward;
+			cout << "Distance reward: "<< dist_reward << endl;
 		}
 		reward+= dist_reward;
 
@@ -355,14 +356,22 @@ double BASDriver::computeReward(CarState &cs)
 		double pos_reward = abs(cs.getTrackPos());
 		reward -= pos_reward;
 		if(g_count % g_print_mod == 0)
-			cout << "Position reward: -"<< pos_reward << endl;
-		///////////DAMAGE
-		//double damage_reward = -(cs.getDamage() - m_last_damage);
-		////if( g_count % g_print_mod == 0) {
-		////	cout << "   Damage reward: " << damage_reward;
-		////}
-		//m_last_damage = cs.getDamage();
-		//reward += damage_reward;
+			cout << "\nPosition reward: -"<< pos_reward << "\n\n";
+		if(pos_reward > 0.8)
+		{
+			//cout << "Going out of track!! Penalty time!\n\n";
+			reward -= 5;
+		}
+
+		/////////////DAMAGE
+		double damage_reward = (cs.getDamage() - m_last_damage);
+		//if( g_count % g_print_mod == 0) {
+		//	cout << " Damage reward: " << damage_reward << endl;
+		//}
+		m_last_damage = cs.getDamage();
+		//reward -= damage_reward;
+		if(damage_reward)
+			reward -= 1;
 
 		/////////OUTPUT
 		//if( g_count % g_print_mod == 0)
