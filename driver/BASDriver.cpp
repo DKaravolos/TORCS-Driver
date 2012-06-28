@@ -8,9 +8,7 @@ BASDriver::BASDriver()
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
 	mp_Qinterface = NULL;
-	m_last_dist = 0;
-	m_last_dist_from_start = 0;
-	m_last_damage = 0;
+	gp_prev_state = NULL;
 
 	g_steps_per_action = 10;
 	g_print_mod = g_steps_per_action;
@@ -176,19 +174,7 @@ void BASDriver::init(float *angles)
 		cout << "Creating BASLearningInterface...\n";
 		try
 		{
-			mp_Qinterface = new BASLearningInterface();
-
-			bool load_network = true;
-			ifstream is;
-			is.open("log_files/BASDriver_QNN_actionDim_0.txt");
-			if(load_network && is.is_open()) {
-				is.close();
-				cout << "Loading NN from file.\n";
-				mp_Qinterface->init("log_files/BASDriver_QNN");
-			}
-			else{
-				mp_Qinterface->init();
-			}
+			initInterface(true);
 			cout << "Done.\n";
 		} catch (exception& e)
 		{
@@ -200,9 +186,8 @@ void BASDriver::init(float *angles)
 			exit(-3);
 		}
 	} else {
-		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
+		cout << "\nAlready created a BASLearningInterface. Skipping constructor and init.\n";
 	}
-	m_last_dist = 0;
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 
@@ -220,13 +205,24 @@ void BASDriver::init(float *angles)
 	angles[9]=0;
 }
 
-//double l_c_reward = 0; //use this variable for cumulative stuck penalty
+void BASDriver::initInterface(bool load_network)
+{
+	mp_Qinterface = new BASLearningInterface();
+	ifstream is;
+	is.open("log_files/BASDriver_QNN_step_9000_actionDim_0_left.txt"); // CHECK NOG EVEN DEZE BESTANDSNAAM!
+	if(load_network && is.is_open()) {
+		is.close();
+		cout << "Loading NN from file.\n\n";
+		mp_Qinterface->init("log_files/BASDriver_QNN_step_9000");
+	}
+	else
+		mp_Qinterface->init();
+}
+
 CarControl BASDriver::wDrive(CarState cs)
 {
 	//keep track of time
 	g_count++;
-	//temporary reward variable
-	double l_c_reward = 0;
 
 	// check if car is currently stuck
 	if( (fabs(cs.getTrackPos()) > 0.9) && fabs(cs.getAngle()) >= 0.087266) //5 degrees
@@ -241,8 +237,7 @@ CarControl BASDriver::wDrive(CarState cs)
     if (stuck > stuckTime) {
     	/* set control, assuming car is pointing in a direction out of track */
 		g_stuck_step_count++;
-		mp_Qinterface->setEOE(true);
-		l_c_reward -= g_stuck_penalty; //This value was chosen randomly!
+		mp_Qinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
 		//cc.setMeta(cc.META_RESTART); //NEW: Stuck means restart of race without penalty
 		return cc;
@@ -267,18 +262,23 @@ CarControl BASDriver::wDrive(CarState cs)
 	
 	if(g_count % g_steps_per_action == 0) 
 	{
-		//if( g_count % g_print_mod == 0)
-		//	cout << "Penalty: "<< l_c_reward;
-
 		//Compute reward of last action
-		l_c_reward += computeReward(cs);
+		double l_reward;
+		if(gp_prev_state != NULL)
+			l_reward = computeReward(*gp_prev_state, mp_action_set, cs);
+		else{
+			l_reward = 0;
+			cout << "gp_prev_state is NULL. l_reward is zero.\n";
+		}
+		
 		//if( g_count % g_print_mod == 0)
 		//	cout << "\tFinal Reward: " << l_c_reward <<endl;
-		mp_Qinterface->setRewardPrevAction(l_c_reward);
-		//l_c_reward = 0; //use this for cumulative stuck penalty
+		mp_Qinterface->setRewardPrevAction(l_reward);
 
 		//do the actual learning step
 		try{
+			mp_log->write("Do learning.");
+
 			doLearning(cs);
 		}catch (exception& e){
 			cout << e.what() << endl;
@@ -288,42 +288,47 @@ CarControl BASDriver::wDrive(CarState cs)
 		}
 
 		//get the driver's action
-		mp_action_set = mp_Qinterface->getAction();
+		mp_action_set = mp_Qinterface->getAction(); //update after computing reward, so it can be used as "last action" for computeReward
 		if (mp_action_set == NULL) {
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
 			char end;
 			cin >> end;
 			exit(-3);
 		}
+
+		//Save current state as prev_state for computing reward next state
+		if (gp_prev_state == NULL)
+			gp_prev_state = new CarState();
+		*gp_prev_state = cs;
 
 		////write info to log
 		//stringstream log;
 		//log << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 		//mp_log->write(log.str());
-		cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1] << endl;
+		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 
 	} else {
 		mp_action_set = mp_Qinterface->getAction();
-		if (mp_action_set == NULL) {
-			cout << "Action is a NULL POINTER. Something went wrong.\n";
-			char end;
-			cin >> end;
-			exit(-3);
-		}
 		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
 			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
 		{
 			//cout << "Driver: updating random old tuple\n";
 			try{
 				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
-				//Waarom is g_count hier de eerste keer 50??
 				g_reupdate_step_count = 0;
+				stringstream log;
+				
 				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
+					log << "Reupdating...\n";
 					//Currently, these steps do not count for the max_steps of g_learning_done
-					mp_Qinterface->updateWithOldTuple(BASLearningInterface::TD);
+					log << "reupdate count: " << g_reupdate_step_count << "   reupdate steps per tick: "
+						<< g_reupdate_steps_per_tick << endl;
+					mp_Qinterface->updateWithOldTuple(BASLearningInterface::RANDOM);
 					g_reupdate_step_count++;
 				}
-				
+				if(g_reupdate_step_count > 0)
+					log << "\nDone reupdating.\n";
+				mp_log->write(log.str());
 			}catch (exception& e){
 				cout << e.what() << endl;
 				char end;
@@ -338,58 +343,40 @@ CarControl BASDriver::wDrive(CarState cs)
 	return rlControl(cs);
 }
 
-double BASDriver::computeReward(CarState &cs)
+double BASDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
-		double reward = 0;
+	//double[2] action is not used for computing the reward
+	double reward = 0;
 		
-		/////////DISTANCE
-		double distance = cs.getDistRaced();
-		double dist_reward = (distance - m_last_dist);
-		m_last_dist = distance;
+	/////////DISTANCE
+	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
+	cout << "Distance reward: "<< dist_reward <<endl;
+	reward+= dist_reward;
 
-		if( g_count % g_print_mod == 0) { 
-			cout << "Distance reward: "<< dist_reward << endl;
-		}
-		reward+= dist_reward;
+	///////////POSITION
+	double pos_reward = -abs(next_state.getTrackPos());
+	reward += pos_reward;
+	cout << "Position reward: "<< pos_reward << endl;
 
-		///////////POSITION
-		double pos_reward = abs(cs.getTrackPos());
-		reward -= pos_reward;
-		if(g_count % g_print_mod == 0)
-			cout << "\nPosition reward: -"<< pos_reward << "\n\n";
-		if(pos_reward > 0.8)
-		{
-			//cout << "Going out of track!! Penalty time!\n\n";
-			reward -= 5;
-		}
+	///////////DAMAGE
+	//double damage_reward = -(next_state.getDamage() - state.getDamage());
+	//cout << "Damage reward: " << damage_reward << endl;
+	//reward += damage_reward;
 
-		/////////////DAMAGE
-		double damage_reward = (cs.getDamage() - m_last_damage);
-		//if( g_count % g_print_mod == 0) {
-		//	cout << " Damage reward: " << damage_reward << endl;
-		//}
-		m_last_damage = cs.getDamage();
-		//reward -= damage_reward;
-		if(damage_reward)
-			reward -= 1;
+	/////////ACTION
+	//if(g_count != 0)
+	//	reward += action[1];
 
-		/////////OUTPUT
-		//if( g_count % g_print_mod == 0)
-		//	cout << "\tReward: " << reward;
+	/////////OUTPUT
+	stringstream log;
+	log << "time: " << g_count <<"\treward: " << reward << ". ";
+	mp_log->write(log.str());
+	stringstream rew_log;
+	rew_log << reward;
+	mp_reward_writer->write(rew_log.str());
+	cout << endl << log.str() << endl;
 
-		//if(g_count != 0)
-		//	reward += mp_action_set[1];
-
-		/// Voor cacla: alleen in kosten denken. behalve optimale oplossing. oftewel kosten voor buiten range geen pos reward.
-
-		stringstream log;
-		log << "time: " << g_count <<"\treward: " << reward << ". ";
-		mp_log->write(log.str());
-		stringstream rew_log;
-		rew_log << reward;
-		mp_reward_writer->write(rew_log.str());
-		cout << endl << log.str() << endl;
-		return reward;
+	return reward;
 }
 
 void BASDriver::doLearning(CarState &cs) 
@@ -408,12 +395,12 @@ void BASDriver::doLearning(CarState &cs)
 	
 	//Do some learning
 	int l_learn_step_count = 0;
-	while(l_learn_step_count < g_learn_steps_per_tick
+	while(	l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
-			g_learning_done = mp_Qinterface->learningUpdateStep(true, BASLearningInterface::TD);
+			g_learning_done = mp_Qinterface->learningUpdateStep(true, BASLearningInterface::RANDOM);
 		else
-			g_learning_done = mp_Qinterface->learningUpdateStep(false, BASLearningInterface::TD);
+			g_learning_done = mp_Qinterface->learningUpdateStep(false, BASLearningInterface::RANDOM);
 		l_learn_step_count++;
 		g_learn_step_count++;
 	}
@@ -422,11 +409,6 @@ void BASDriver::doLearning(CarState &cs)
 	//mp_Qinterface->logState(g_count);
 	//log original action for debug purposes
 	mp_Qinterface->logAction(g_count);
-
-	//if end_of_episode was set due to stuck, it needs to be reset after the first learning step with eoe == true
-	//if end_of_ep is set to false when agent realises that it isn't stuck, then there is no learning update with eoe
-	if(mp_Qinterface->getEOE())
-		mp_Qinterface->setEOE(false);
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
@@ -441,7 +423,7 @@ void BASDriver::doLearning(CarState &cs)
 CarControl BASDriver::carStuckControl(CarState & cs)
 {
 	debug_stuck_count++;
-	float acc = 0.8;
+	float acc = 0.8f;
 	// to bring car parallel to track axis
     float steer =  - cs.getAngle() / steerLock; 
     int gear=-1; // gear R
@@ -451,7 +433,7 @@ CarControl BASDriver::carStuckControl(CarState & cs)
     {
         gear = 1;
         steer = -steer;
-		acc = 0.8;
+		acc = 0.8f;
     }
 
 	//if agent is driving on side of the track with nose pointed outwards, correct it.
@@ -489,11 +471,11 @@ CarControl BASDriver::simpleBotControl(CarState &cs)
 	if (accel_and_brake>0)
 	{
 		accel = accel_and_brake;
-		brake = 0;
+		brake = 0.0f;
 	}
 	else
 	{
-		accel = 0;
+		accel = 0.0f;
 		// apply ABS to brake
 		brake = filterABS(cs,-accel_and_brake);
 	}
@@ -519,11 +501,11 @@ CarControl BASDriver::rlControl(CarState &cs)
     if (mp_action_set[1]>0)
     {
         accel = mp_action_set[1];
-        brake = 0;
+        brake = 0.0f;
     }
     else
     {
-        accel = 0;
+        accel = 0.0f;
         // apply ABS to brake
         brake = filterABS(cs,-mp_action_set[1]);
     }
@@ -545,7 +527,7 @@ void BASDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cc.setMeta(cc.META_RESTART);
 
 	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count >= 5000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	if(g_learn_step_count + g_reupdate_step_count >= 10000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
@@ -559,7 +541,7 @@ void BASDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cout << "Experiment nr: " << g_experiment_count;
 	}
 
-	if(g_experiment_count == 20) {
+	if(g_experiment_count == 5) {
 		cout << "\nExperiments done.\n";
 		#ifdef WIN32
 				char end;
@@ -606,6 +588,7 @@ void BASDriver::onShutdown()
 	delete mp_reward_writer;
 	delete mp_action_set;
 	delete mp_Qinterface; 
+	delete gp_prev_state;
 }
 
 void BASDriver::onRestart()
@@ -622,8 +605,7 @@ void BASDriver::onRestart()
 	mp_reward_writer = new Writer(newfile.str());
 
 	try{
-		mp_Qinterface = new BASLearningInterface();
-		mp_Qinterface->init();
+		initInterface(true);
 	} catch(exception& e) {
 		cout << e.what() << endl;
 	}

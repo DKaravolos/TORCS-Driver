@@ -16,8 +16,8 @@
 /* Uncomment the following lines under windows */
 //#define __DRIVER_CLASS__ BASDriver
 //#define __DRIVER_INCLUDE__ "BASDriver.h"
-#define __DRIVER_CLASS__ CaclaDriver
-#define __DRIVER_INCLUDE__ "CaclaDriver.h"
+//#define __DRIVER_CLASS__ CaclaDriver
+//#define __DRIVER_INCLUDE__ "CaclaDriver.h"
 //#define __DRIVER_CLASS__ RecitingDriver
 //#define __DRIVER_INCLUDE__ "RecitingDriver.h"
 //#define __DRIVER_CLASS__ MyFirstDriver

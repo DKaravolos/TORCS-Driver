@@ -10,10 +10,10 @@ LearningInterface::LearningInterface(void)
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
-	mp_log = new Writer("log_files/interface_output.txt");
-	//mp_reward_log = new Writer("log_files/QL_cumulative_reward.txt");
+	mp_log = new Writer("log_files/qlearning_interface_output.txt");
+	mp_reward_log = new Writer("log_files/qlearning_cumulative_reward.txt");
 	mp_log->write("Interface created.");
-	mp_memory = new StateActionMemory(5000);
+	mp_memory = new StateActionMemory(6000);
 	m_reward = 0;
 	cout << "Done.\n";
 }
@@ -22,7 +22,7 @@ LearningInterface::~LearningInterface(void)
 {
 	cout << "Destroying LearningInterface... Goodbye cruel world!" << endl;
 	delete mp_log;
-	//delete mp_reward_log;
+	delete mp_reward_log;
 	delete mp_memory;
 
 	delete mp_world;
@@ -33,6 +33,8 @@ LearningInterface::~LearningInterface(void)
 	delete mp_current_state;
 	delete mp_prev_state;
 
+	delete[] mp_current_action->continuousAction;
+	delete[] mp_prev_action->continuousAction;
 	delete mp_current_action; //bij continue acties: apart het double array deleten
 	delete mp_prev_action;
 
@@ -42,12 +44,12 @@ LearningInterface::~LearningInterface(void)
 void LearningInterface::init()
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world) ;
+	mp_algorithm = new Qlearning("TorcsWorldCaclaCfg", mp_world) ;
 
-	mp_experiment = new Experiment(Experiment::DEFAULT_Q);
+	mp_experiment = new Experiment(Experiment::QLEARNING);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCfg2");
+	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
 
 	initExperimentParam();
 	initState();
@@ -58,11 +60,11 @@ void LearningInterface::init()
 void LearningInterface::init(const char* nn_filename)
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Qlearning("TorcsWorldCfg2", mp_world, nn_filename) ;
-	mp_experiment = new Experiment(Experiment::DEFAULT_Q);
+	mp_algorithm = new Qlearning("TorcsWorldCaclaCfg", mp_world, nn_filename) ;
+	mp_experiment = new Experiment(Experiment::QLEARNING);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCfg2");
+	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
 
 	initExperimentParam();
 	initState();
@@ -97,7 +99,7 @@ void LearningInterface::initExperimentParam()
     mp_parameters->step = 0 ;
     mp_parameters->result = 0 ;
     mp_parameters->rewardSum = 0.0 ;
-	mp_parameters->endOfEpisode = true;
+	mp_parameters->endOfEpisode = false;
 	mp_parameters->train = true;
 	mp_parameters->first_time_step = true;
 
@@ -123,7 +125,7 @@ double* LearningInterface::getAction()
 
 	if (mp_torcs_action == NULL)
 	{
-		cout << "ERROR: request for action, while action is empty!\n";
+		cerr << "ERROR: request for action, while action is empty!\n";
 		return NULL;
 	}
 	else	
@@ -150,7 +152,7 @@ void LearningInterface::setState(vector<double>* features)
 
 void LearningInterface::printState()
 {
-	cout << "Printing dimensions of State through LearningInterface.\n";
+	cout << "Printing dimensions of State through LearningInterface.";
 
 	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
 		cout << "Dimension " << idx << " : " << mp_current_state->continuousState[idx] << endl;
@@ -160,7 +162,7 @@ void LearningInterface::printState()
 void LearningInterface::logState(int timestamp)
 {
 	stringstream state_log;
-	state_log << timestamp << ": Printing dimensions of State through CaclaLearningI.\n";
+	state_log << timestamp << ": Printing dimensions of State through LearningInterface.\n";
 	mp_log->write(state_log.str());
 
 	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
@@ -170,65 +172,92 @@ void LearningInterface::logState(int timestamp)
 	}
 }
 
+void LearningInterface::setEOE(){
+	//If an episode has ended, keep track of this and make sure that the next state-action pair
+	//is not updated with info from previous episode
+	mp_parameters->endOfEpisode = true;
+}
 
 void LearningInterface::logAction(int timestamp)
 {
-	double* lp_converted_action = new double[2];
-	mp_world->convertDiscreteAction(mp_current_action, lp_converted_action);
-	stringstream action;
-	action	<< timestamp << ": "
-			<< "Actor output:\n\t steer: " << lp_converted_action[0] 
-			<< "\n\t accel: " << lp_converted_action[1];
-	mp_log->write(action.str());
-	delete lp_converted_action;
+	if(mp_current_action->continuous)
+	{
+		stringstream action;
+		action	<< timestamp << ": "
+				<< "Actor output:\n\t steer: " << mp_current_action->continuousAction[0] 
+				<< "\n\t accel: " << mp_current_action->continuousAction[1];
+		mp_log->write(action.str());
+	} else {
+		stringstream action;
+		double* lp_converted_action = new double[2];
+		mp_world->convertDiscreteAction(mp_current_action, lp_converted_action);
+		action	<< timestamp << ": "
+			<< "Actor output: "
+				<< "Q-action: " <<  mp_current_action->discreteAction
+				<< "\n\t steer: " << lp_converted_action[0]
+				<< "\n\t accel: " << lp_converted_action[1];
+		mp_log->write(action.str());
+		delete lp_converted_action;
+	}
 }
+
 
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
 bool LearningInterface::learningUpdateStep()
 {
-	return learningUpdateStep(false, LearningInterface::RANDOM);
+	return learningUpdateStep(false,LearningInterface::RANDOM);
 }
 
 bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
 	//Check for stop conditions
 	if( (mp_parameters->step >= mp_experiment->nSteps) ){
-		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
-		mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN to file if done with learning
-		mp_log->write("Writing QNN after stop condition\n", true);
+		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
+		mp_algorithm->writeQNN("log_files/QLearning"); //write NN to file if done with learning
+		mp_log->write("Writing QNN after stop condition\n");
 		return true;
 	}
 
-	if(mp_parameters->step % 4500 == 0) {
-		mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
+	//Store NN every X steps
+	if(mp_parameters->step % 4500 == 0) { //% 100 == 0 //< 5
+		//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
+		stringstream QNN_file;
+		//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
+		QNN_file << "log_files/QLearning_QNN_step_" << mp_parameters->step;
+		mp_algorithm->writeQNN(QNN_file.str());
 		mp_log->write("Writing QNN\n");
 	}
-
-	mp_experiment->explore( mp_current_state, mp_current_action); //Computes new action based on current state
-	//current_action wordt gevuld.
 	
-	mp_parameters->rewardSum += m_reward ;
-	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Check if an episode has ended.
-	double l_td_error = 0;
+	//Compute new action based on current state
+	mp_experiment->explore( mp_current_state, mp_current_action); 
+	//Current_action now has a value
+
+	double l_td_error; //declare td_error, which might be used for sorting tuples later
 
 	if ( mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
 		{
+			mp_parameters->rewardSum += m_reward; //Keep track of cumulative reward for statistics
+			stringstream rsum;
+			rsum << mp_parameters->rewardSum;
+			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("Sarsa") == 0 )
 			{
-				cerr << "SARSA is not implemented, please use Qlearning. LearningMainloop is now shutting down.\n";
+				cerr << "SARSA is not implemented, please use QLEARNING. LearningMainloop is now shutting down.\n";
 				return true;
 
 			} else if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
 				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				
+
 			} else if ( mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				//mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+				//l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 				//			mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				//
 				cerr << "This is the QDriver, not the CaclaDriver.Quitting.\n";
+				return true;
+			} else {
+				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
 			}
 		} else {
@@ -241,22 +270,18 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	}
 
 	//Copy current state and action to history
-	if(store_tuples && !mp_parameters->first_time_step	//if not first time step
-					&& mp_parameters->step % 10			//store a tuple every 10 steps
-					//&& mp_memory->getSize() < 5000		// until a 1000 tuples are stored
-	){	
+	if(store_tuples){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
 	copyState( mp_current_state, mp_prev_state ) ;
-	copyAction( mp_current_action, mp_prev_action ) ;
+	copyAction( mp_current_action, mp_prev_action );
 
-	/*if(mp_memory->getSize() > 990)
-		mp_memory->printTuple(mp_memory->getSize()-1);*/
-
-	//Keep track of time
+	//Keep track of time / episodes
 	if ( mp_parameters->endOfEpisode ) {
 		mp_parameters->episode++ ;
+		mp_parameters->first_time_step = true;
+		mp_parameters->endOfEpisode = false;
 	}
 	mp_parameters->step++;
 	if(mp_parameters->step % 1000 == 0) {
@@ -264,7 +289,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 		message << "Number of steps so far: " << mp_parameters->step;
 		mp_log->write(message.str());
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
-		cout << "Max learning steps: " << mp_experiment->nSteps << endl;
+		//cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}
 	return false;
 }
@@ -283,8 +308,6 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 	int tuple_idx = 0;
 	double l_td_error;
 
-	//if(mp_memory->getSize() >= 5)
-	//	mp_memory->printHead(5);
 	if(mp_memory->getSize() >= 5) {
 		mp_log->write("Before reupdate:");
 		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
@@ -322,6 +345,7 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 					mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
 										l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
 					break;
+
 				case TD:
 					//Update network with this tuple
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
@@ -335,6 +359,8 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 					break;
 			}
 	}
+
+	//Debug Log
 	if(mp_memory->getSize() >= 5) {
 		mp_log->write("After reupdate:");
 		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);

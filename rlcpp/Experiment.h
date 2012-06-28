@@ -21,7 +21,7 @@ class Experiment {
     public:
 		enum Configuration
 		{
-			DEFAULT_Q,
+			QLEARNING,
 			CACLA,
 			BAS
 		};

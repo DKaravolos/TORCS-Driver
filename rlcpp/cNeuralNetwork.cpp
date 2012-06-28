@@ -1,5 +1,5 @@
 # include "cNeuralNetwork.h"
-//# include <cstdlib>
+# include <cstdlib>
 //# include <math.h>
 
 #define THRESHOLD 2
@@ -50,7 +50,7 @@ void cNeuralNetwork::pointerInit()
         layerIn  = NULL;
         layerOut  = NULL;
 
-		mp_NN_log = new Writer("log_files/NN_log.txt");
+		//_createLog("log_files/NN_fromPointer_log");
 }
 
 cNeuralNetwork::cNeuralNetwork( int nLayersInit, int * layerSizeInit ) {
@@ -84,7 +84,9 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
 		srand48( time(0) ) ;
 	#endif
 
-	mp_NN_log = new Writer("log_files/NN_log.txt");
+	//Create adaptive NN log file, in case of multiple networks
+	//_createLog("log_files/NN_log");
+
 
     nLayers = nLayersInit + 2 ; // # node layers == # hidden layers + 2
     nInput  = layerSizeInit[ 0 ] ;
@@ -127,7 +129,7 @@ void cNeuralNetwork::init( int nLayersInit, int * layerSizeInit, int * layerFunc
     }
     
     // Initialise the weights randomly between -0.3 and 0.3
-    randomizeWeights( -0.3, 0.3 ) ;
+    randomizeWeights( -0.3, 0.3) ;
     recentlyUpdated = true ;
 }
 
@@ -148,7 +150,7 @@ cNeuralNetwork::~cNeuralNetwork( ) {
     delete [] layerSize ;
     delete [] weights ;
 
-	delete mp_NN_log;
+	//delete mp_NN_log;
 }
 
 void        cNeuralNetwork::changeFunction( int layer, int function ) {
@@ -170,7 +172,27 @@ void        cNeuralNetwork::changeFunction( int layer, int function ) {
     
     recentlyUpdated = true ;
 }
-    
+   
+void cNeuralNetwork::_createLog(string f_name)
+{
+	//Create adaptive NN log file, in case of multiple networks
+	ifstream check;
+	
+	for(int f_nr = 0; f_nr <=20; f_nr++)
+	{
+		stringstream file_name;
+		file_name << f_name << f_nr << ".txt";
+		check.open(file_name.str());
+		if(!check.is_open())
+		{
+			mp_NN_log = new Writer(file_name.str());
+			break;
+		}
+		else
+			check.close();
+	}
+}
+
 void        cNeuralNetwork::_forwardPropLayer( int layer ) {
 
     w = weights[ layer ]->getPtr() ; // The weights of the current layer

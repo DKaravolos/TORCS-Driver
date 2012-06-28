@@ -120,43 +120,48 @@ private:
 	// Solves the clucthing subproblems
 	void clutching(CarState &cs, float &clutch);
 
-	///////Datamembers added by Daniel:
-	vector<double>* mp_features;
-	BASLearningInterface* mp_Qinterface;
-	double m_last_dist;
-	double m_last_dist_from_start;
-	double m_last_damage;
-	double* mp_action_set;
-	Writer* mp_log;
-	Writer* mp_reward_writer;
-
-	////////Functions added by Daniel:
-	double computeReward(CarState &cs);
+	/* Functions added by Daniel: */
+	void initInterface(bool load_network);
+	double computeReward(CarState &state, double* action, CarState &next_state);
 	void doLearning(CarState &cs);
 	CarControl carStuckControl(CarState &cs);
 	CarControl simpleBotControl(CarState &cs);
 	CarControl rlControl(CarState &cs);
 	void endOfRunCheck(CarState &cs, CarControl &cc);
 	char getKeyboardInput();
+
+
+	/* Datamembers added by Daniel: */
+	vector<double>* mp_features;
+	BASLearningInterface* mp_Qinterface;
+	double* mp_action_set;
+	Writer* mp_log;
+	Writer* mp_reward_writer;
+
+	//Elements for computing rewards
+	CarState* gp_prev_state;
 	
+	//time counters
 	int g_count;
 	int g_learn_step_count;
 	int g_stuck_step_count;
 	int g_reupdate_step_count;
 	int g_experiment_count;
 
-	int g_print_mod;
-
+	//flags for learning
 	bool g_learning_done;
 	bool g_first_time;
-	int g_stuck_penalty;
 
+	//learning parameters
+	int g_stuck_penalty;
 	int g_steps_per_action;
 	int g_learn_steps_per_tick;
 	int g_reupdate_steps_per_tick;
 
+	//debug parameters
+	int g_print_mod;
 	int debug_stuck_count;
 	int debug_rlcontrol_count;
 };
 
-#endif /*BASDriver_H_*/s
+#endif /*BASDriver_H_*/

@@ -6,7 +6,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 	cout << "\nIn Experiment constructor:\n";
 
 	switch(config) {
-		case DEFAULT_Q:
+		case QLEARNING:
 			nExperiments = 1;
 			nAlgorithms = 1;
 			//THESE VALUES ARE QUITE RANDOM!
@@ -40,7 +40,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			egreedy = true;			////IMPORTANT
 			gaussian = false;
 
-			algorithmName = "Q";
+			algorithmName = "Qlearning";
 			algorithms.push_back(algorithmName);
 
 			learningRateDecreaseType = "none";
@@ -168,19 +168,19 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.001;
+			learningRate[0] = 0.01;
 			
 			gamma = 0.99;
 			
 			train = true;
 			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			//cout << "\tGaussian : " << gaussian << endl;
-			//cout << "\tLearningRate: " << learningRate[0] << endl;
+			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		default:
 			cerr << "There is no default configuration for Experiment.";
-			cerr << "Please specify which configuration to use: DEFAULT_Q, CACLA or BAS.\n";
+			cerr << "Please specify which configuration to use: QLEARNING, CACLA or BAS.\n";
 			#ifdef WIN32
 					char end;
 					cin>>end;

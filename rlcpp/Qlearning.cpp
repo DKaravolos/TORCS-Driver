@@ -271,7 +271,7 @@ double Qlearning::updateAndReturnTDError( State * state, Action * action, double
             double maxQs = myMax( Qs, numberOfActions ) ;
 
             QTarget[ 0 ] = rt + gamma*maxQs ;
-			double current_val = QNN[at]->forwardPropagate( st )[0]; //vector subscript out of range soms...
+			double current_val = QNN[at]->forwardPropagate( st )[0]; //vector subscript out of range soms... op een of andere manier wordt at 15
 			td_error = QTarget[0] -current_val;
         }
 

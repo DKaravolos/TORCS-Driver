@@ -1,19 +1,17 @@
 #include "RecitingDriver.h"
 
-int debug_stuck_count = 0;
-int debug_rlcontrol_count = 0;
-
 RecitingDriver::RecitingDriver()
 {
+	debug_stuck_count = 0;
+	debug_rlcontrol_count = 0;
+
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
 	mp_Qinterface = NULL;
-	m_last_dist = 0;
-	m_last_dist_from_start = 0;
-	m_last_damage = 0;
+	gp_prev_state = NULL;
 
 	g_steps_per_action = 10;
-	g_print_mod = 100*g_steps_per_action;
+	g_print_mod = g_steps_per_action;
 	g_learn_steps_per_tick = 2;
 	g_reupdate_steps_per_tick = 2;
 
@@ -176,18 +174,7 @@ void RecitingDriver::init(float *angles)
 		cout << "Creating LearningInterface...\n";
 		try
 		{
-			mp_Qinterface = new LearningInterface();
-			bool load_NN = true;
-
-			ifstream is;
-			is.open("RD_first_run_QNN");
-			if( load_NN && is.is_open()) {
-				is.close();
-				cout << "\nLoading NN\n";
-				mp_Qinterface->init("RD_first_run_QNN");
-			}
-			else
-				mp_Qinterface->init();
+			initInterface(true);
 			cout << "Done.\n";
 		} catch (exception& e)
 		{
@@ -201,7 +188,6 @@ void RecitingDriver::init(float *angles)
 	} else {
 		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
 	}
-	m_last_dist = 0;
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 
@@ -219,7 +205,20 @@ void RecitingDriver::init(float *angles)
 	angles[9]=0;
 }
 
-double l_reward = 0;
+void RecitingDriver::initInterface(bool load_network)
+{
+	mp_Qinterface = new LearningInterface();
+	ifstream is;
+	is.open("log_files/QLearning_QNN_step_9000_action_1");
+	if(load_network && is.is_open()) {
+		is.close();
+		cout << "Loading NN from file.";
+		mp_Qinterface->init("log_files/QLearning_QNN_step_9000");
+	}
+	else
+		mp_Qinterface->init();
+}
+
 CarControl RecitingDriver::wDrive(CarState cs)
 {
 	//keep track of time
@@ -238,8 +237,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
     if (stuck > stuckTime) {
     	/* set control, assuming car is pointing in a direction out of track */
 		g_stuck_step_count++;
-		mp_Qinterface->setEOE(true);
-		l_reward -= g_stuck_penalty; //This value was chosen randomly!
+		mp_Qinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
 		//cc.setMeta(cc.META_RESTART); //NEW: Stuck means restart of race without penalty
 		return cc;
@@ -264,15 +262,18 @@ CarControl RecitingDriver::wDrive(CarState cs)
 	
 	if(g_count % g_steps_per_action == 0) 
 	{
-		//if( g_count % g_print_mod == 0)
-		//	cout << "Penalty: "<< l_reward;
-
 		//Compute reward of last action
-		l_reward += computeReward(cs);
+		double l_reward;
+		if(gp_prev_state != NULL)
+			l_reward = computeReward(*gp_prev_state, mp_action_set, cs);
+		else{
+			l_reward = 0;
+			cout << "gp_prev_state is NULL. l_reward is zero.\n";
+		}
+		
 		//if( g_count % g_print_mod == 0)
-		//	cout << "\tFinal Reward: " << l_reward <<endl;
+		//	cout << "\tFinal Reward: " << l_c_reward <<endl;
 		mp_Qinterface->setRewardPrevAction(l_reward);
-		l_reward = 0;
 
 		//do the actual learning step
 		try{
@@ -285,7 +286,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		}
 
 		//get the driver's action
-		mp_action_set = mp_Qinterface->getAction();
+		mp_action_set = mp_Qinterface->getAction(); //update after computing reward, so it can be used as "last action" for computeReward
 		if (mp_action_set == NULL) {
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
 			char end;
@@ -293,26 +294,28 @@ CarControl RecitingDriver::wDrive(CarState cs)
 			exit(-3);
 		}
 
-		//write info to log
-		stringstream log;
-		log << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
-		mp_log->write(log.str());
+		//Save current state as prev_state for computing reward next state
+		if (gp_prev_state == NULL)
+			gp_prev_state = new CarState();
+		*gp_prev_state = cs;
 
-		if(g_count % g_print_mod == 0)
-			cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1] << endl;
+		////write info to log
+		//stringstream log;
+		//log << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
+		//mp_log->write(log.str());
+		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 
 	} else {
-		//If Driver is not choosing an action, repeat learning update with an old tuple and return the previous action
-
 		mp_action_set = mp_Qinterface->getAction();
 		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
 			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
 		{
+			//cout << "Driver: updating random old tuple\n";
 			try{
 				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
 				g_reupdate_step_count = 0;
 				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
-					//These steps do not count for the max_steps of g_learning_done
+					//Currently, these steps do not count for the max_steps of g_learning_done
 					mp_Qinterface->updateWithOldTuple(LearningInterface::TD);
 					g_reupdate_step_count++;
 				}
@@ -331,77 +334,47 @@ CarControl RecitingDriver::wDrive(CarState cs)
 	return rlControl(cs);
 }
 
-double RecitingDriver::computeReward(CarState &cs)
+double RecitingDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
-		double reward = 0;
-		//
-		///////////DISTANCE
-		double distance = cs.getDistRaced();
-		double dist_reward = 100* (distance - m_last_dist);
-		m_last_dist = distance;
-
-		if(g_count % g_print_mod == 0)
-			cout << "Distance reward: "<< dist_reward << endl;
-		reward+= dist_reward;
-
-		///////////POSITION
-		double pos_reward = abs(cs.getTrackPos());
-		reward -= 100* pos_reward;
-		if(g_count % g_print_mod == 0)
-			cout << "Position reward: -"<< pos_reward << endl;
-		///////////DAMAGE
-		//double damage_reward = -(cs.getDamage() - m_last_damage);
-		////if( g_count % g_print_mod == 0) {
-		////	cout << "   Damage reward: " << damage_reward;
-		////}
-		//m_last_damage = cs.getDamage();
-		//reward += damage_reward;
-
-		/////////OUTPUT
-		//if( g_count % g_print_mod == 0)
-		//	cout << "\tReward: " << reward;
-
-		////
-
-		//if(dist_reward > 0)
-		//	reward = 2;
-		//else
-		//	reward = -2;
-
-		//if(g_count != 0){
-		//	if(abs(mp_action_set[0]) < 0.2)
-		//		reward += 0.5;
-		//	else
-		//		reward -= 0.5;
-
-		//	if(mp_action_set[1] > 0)
-		//		reward += 1;
-		//	else
-		//		reward -= 1;
-		//}
+	//double[2] action is not used for computing the reward
+	double reward = 0;
 		
-		//// Voor cacla: alleen in kosten denken. behalve optimale oplossing. oftewel kosten voor buiten range geen pos reward.
-		if(g_count != 0)
-			reward += mp_action_set[1];
+	/////////DISTANCE
+	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
+	cout << "Distance reward: "<< dist_reward <<endl;
+	reward+= dist_reward;
 
+	///////////POSITION
+	double pos_reward = -abs(next_state.getTrackPos());
+	reward += pos_reward;
+	cout << "Position reward: "<< pos_reward << endl;
 
-		stringstream log;
-		log << "time: " << g_count <<"\treward: " << reward << ". ";
-		mp_log->write(log.str());
-		stringstream rew_log;
-		rew_log << reward;
-		mp_reward_writer->write(rew_log.str());
+	///////////DAMAGE
+	//double damage_reward = -(next_state.getDamage() - state.getDamage());
+	//cout << "Damage reward: " << damage_reward << endl;
+	//reward += damage_reward;
 
-		if(g_count % g_print_mod == 0)
-			cout << endl << log.str() << endl;
-		return reward;
+	/////////ACTION
+	//if(g_count != 0)
+	//	reward += action[1];
+
+	/////////OUTPUT
+	stringstream log;
+	log << "time: " << g_count <<"\treward: " << reward << ". ";
+	mp_log->write(log.str());
+	stringstream rew_log;
+	rew_log << reward;
+	mp_reward_writer->write(rew_log.str());
+	cout << endl << log.str() << endl;
+
+	return reward;
 }
 
 void RecitingDriver::doLearning(CarState &cs) 
 {
 	if (g_count % (g_print_mod) == 0){
 		//cout << "Time: " << g_count << ". ";
-		cout << "\nLearn steps: " << g_learn_step_count  + g_reupdate_step_count << endl << endl;
+		cout << "\tLearn steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
 	delete mp_features;
@@ -413,7 +386,7 @@ void RecitingDriver::doLearning(CarState &cs)
 	
 	//Do some learning
 	int l_learn_step_count = 0;
-	while(l_learn_step_count < g_learn_steps_per_tick
+	while(	l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
 			g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::TD);
@@ -428,11 +401,6 @@ void RecitingDriver::doLearning(CarState &cs)
 	//log original action for debug purposes
 	mp_Qinterface->logAction(g_count);
 
-	//if end_of_episode was set due to stuck, it needs to be reset after the first learning step with eoe == true
-	//if end_of_ep is set to false when agent realises that it isn't stuck, then there is no learning update with eoe
-	if(mp_Qinterface->getEOE())
-		mp_Qinterface->setEOE(false);
-
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
 		#ifdef WIN32
@@ -446,7 +414,7 @@ void RecitingDriver::doLearning(CarState &cs)
 CarControl RecitingDriver::carStuckControl(CarState & cs)
 {
 	debug_stuck_count++;
-	float acc = 0.8;
+	float acc = 0.8f;
 	// to bring car parallel to track axis
     float steer =  - cs.getAngle() / steerLock; 
     int gear=-1; // gear R
@@ -456,7 +424,7 @@ CarControl RecitingDriver::carStuckControl(CarState & cs)
     {
         gear = 1;
         steer = -steer;
-		acc = 0.8;
+		acc = 0.8f;
     }
 
 	//if agent is driving on side of the track with nose pointed outwards, correct it.
@@ -494,11 +462,11 @@ CarControl RecitingDriver::simpleBotControl(CarState &cs)
 	if (accel_and_brake>0)
 	{
 		accel = accel_and_brake;
-		brake = 0;
+		brake = 0.0f;
 	}
 	else
 	{
-		accel = 0;
+		accel = 0.0f;
 		// apply ABS to brake
 		brake = filterABS(cs,-accel_and_brake);
 	}
@@ -524,11 +492,11 @@ CarControl RecitingDriver::rlControl(CarState &cs)
     if (mp_action_set[1]>0)
     {
         accel = mp_action_set[1];
-        brake = 0;
+        brake = 0.0f;
     }
     else
     {
-        accel = 0;
+        accel = 0.0f;
         // apply ABS to brake
         brake = filterABS(cs,-mp_action_set[1]);
     }
@@ -549,9 +517,8 @@ void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	if (getKeyboardInput() == 'r')
 		cc.setMeta(cc.META_RESTART);
 
-	//Dit is mogelijk baanspecifiek
 	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count + g_reupdate_step_count >= 5000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	if(g_learn_step_count + g_reupdate_step_count >= 10000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
@@ -562,14 +529,10 @@ void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		debug_rlcontrol_count = 0;
 		g_learn_step_count = -1;
 		g_experiment_count++;
-		//cout << "Experiment nr: " << g_experiment_count;
-		stringstream msg;
-		msg << "Experiment nr: " << g_experiment_count;
-		mp_log->write(msg.str());
-		cout << msg;
+		cout << "Experiment nr: " << g_experiment_count;
 	}
 
-	if(g_experiment_count == 20) {
+	if(g_experiment_count == 15) {
 		cout << "\nExperiments done.\n";
 		#ifdef WIN32
 				char end;
@@ -616,13 +579,14 @@ void RecitingDriver::onShutdown()
 	delete mp_reward_writer;
 	delete mp_action_set;
 	delete mp_Qinterface; 
+	delete gp_prev_state;
 }
 
 void RecitingDriver::onRestart()
 {
 	//delete mp_features;
 	//delete mp_action_set;
-	//delete mp_Qinterface;
+	delete mp_Qinterface;
     cout << "Restarting the race!" << endl;
 	g_learn_step_count = -1;
 	delete mp_reward_writer;
@@ -632,8 +596,7 @@ void RecitingDriver::onRestart()
 	mp_reward_writer = new Writer(newfile.str());
 
 	try{
-		//mp_Qinterface = new LearningInterface();
-		//mp_Qinterface->init();
+		initInterface(true);
 	} catch(exception& e) {
 		cout << e.what() << endl;
 	}

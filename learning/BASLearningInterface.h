@@ -12,6 +12,7 @@
 #include "..\rlcpp\Action.h"
 #include "..\rlcpp\World.h"
 #include "BinaryActionSearch.h"
+#include "BASWithRoots.h"
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Experiment.h"
 #include "..\rlcpp\StateActionUtils.h"
@@ -43,17 +44,13 @@ class BASLearningInterface
 		double* getAction(); //called from TORCS to receive computed action
 		void setRewardPrevAction(double reward); //called from TORCS before mainloop to get reward of previous action
 
-		//state functions
+		//state of the world functions
 		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
 		void printState();
 		void logState(int timestamp);
-		
 		void logAction(int timestamp);
-	
-		//world functions
-		//void computeReward(int new_dist);
 		inline double getReward()	{ return m_reward;}
-		inline void setEOE(bool eoe){ mp_world->setEOE(eoe);}
+		void setEOE();
 		inline bool getEOE(){ return mp_world->endOfEpisode();}
 
 		//other
@@ -64,7 +61,7 @@ class BASLearningInterface
 	protected:
 		//datamembers
 		TorcsWorld* mp_world;
-		//StateActionAlgorithm* mp_algorithm;
+		//BASWithRoots* mp_algorithm;
 		BinaryActionSearch* mp_algorithm;
 		Experiment* mp_experiment;
 		State* mp_prev_state;

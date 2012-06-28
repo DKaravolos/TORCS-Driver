@@ -78,6 +78,7 @@ class cNeuralNetwork {
 
 		//functions:
 		void pointerInit();
+		void _createLog(string file_name);
 		void _forwardPropLayer( int ) ;
         double * _backPropLayer( int layer, double * outError, double learningSpeed ) ;
         bool recentlyUpdated ;

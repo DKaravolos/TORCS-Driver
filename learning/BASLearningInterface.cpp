@@ -11,10 +11,28 @@ BASLearningInterface::BASLearningInterface(void)
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::BAS);
 	mp_log = new Writer("log_files/BASinterface_output.txt");
-	//mp_reward_log = new Writer("log_files/QL_cumulative_reward.txt");
 	mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(5000);
 	m_reward = 0;
+	
+	//Create adaptive cumulative reward file
+	string f_name = "log_files/BAS_cumulative_reward";
+	ifstream check;
+	
+	for(int f_nr = 0; f_nr <=20; f_nr++)
+	{
+		stringstream file_name;
+		file_name << f_name << f_nr << ".txt";
+		check.open(file_name.str());
+		if(!check.is_open())
+		{
+			mp_reward_log = new Writer(file_name.str());
+			break;
+		}
+		else
+			check.close();
+	}
+
 	cout << "Done.\n";
 }
 
@@ -43,13 +61,14 @@ BASLearningInterface::~BASLearningInterface(void)
 	delete mp_current_action; //bij continue acties: apart het double array deleten
 	delete mp_prev_action;
 
-	delete[] mp_torcs_action;
+	//delete[] mp_torcs_action; //deze moet wel uitgevoerd worden, maar geeft af en toe zonder reden een foutmelding
 }
 
 void BASLearningInterface::init()
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_algorithm = new BinaryActionSearch("TorcsWorldCfg2", mp_world) ;
+	//mp_algorithm = new BASWithRoots("TorcsWorldCfg2", mp_world);
 	mp_experiment = new Experiment(Experiment::BAS);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
@@ -191,17 +210,33 @@ void BASLearningInterface::logState(int timestamp)
 	}
 }
 
-
 void BASLearningInterface::logAction(int timestamp)
 {
-	double* lp_converted_action = new double[2];
-	mp_world->convertContinuousAction(mp_current_action, lp_converted_action);
-	stringstream action;
-	action	<< timestamp << ": "
-			<< "Actor output:\n\t steer: " << lp_converted_action[0] 
-			<< "\n\t accel: " << lp_converted_action[1];
-	mp_log->write(action.str());
-	delete lp_converted_action;
+	if(mp_current_action->continuous)
+	{
+		stringstream action;
+		action	<< timestamp << ": "
+				<< "Actor output:\n\t steer: " << mp_current_action->continuousAction[0] 
+				<< "\n\t accel: " << mp_current_action->continuousAction[1];
+		mp_log->write(action.str());
+	} else {
+		stringstream action;
+		double* lp_converted_action = new double[2];
+		mp_world->convertDiscreteAction(mp_current_action, lp_converted_action);
+		action	<< timestamp << ": "
+			<< "Actor output: "
+				<< "Q-action: " <<  mp_current_action->discreteAction
+				<< "\n\t steer: " << lp_converted_action[0]
+				<< "\n\t accel: " << lp_converted_action[1];
+		mp_log->write(action.str());
+		delete lp_converted_action;
+	}
+}
+
+void BASLearningInterface::setEOE(){
+	//If an episode has ended, keep track of this and make sure that the next state-action pair
+	//is not updated with info from previous episode
+	mp_parameters->endOfEpisode = true;
 }
 
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
@@ -214,32 +249,46 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 {
 	//Check for stop conditions
 	if( (mp_parameters->step >= mp_experiment->nSteps) ){
-		cout << "Learning experiment is over. experimentMainLoop will not be ran.\n";
+		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
 		mp_algorithm->writeQNN("log_files/BASDriver_QNN"); //write NN to file if done with learning
 		mp_log->write("Writing QNN after stop condition\n", true);
 		return true;
 	}
 
-	if(mp_parameters->step % 1000 == 0) {
-		mp_algorithm->writeQNN("log_files/BASDriver_QNN"); //write NN every 10.000 steps
+	//CHECK NOG OF HET SCHRIJVEN NAAR BESTANDEN GOED GAAT!!!
+	//Store NN every X steps
+	if(mp_parameters->step % 4500 == 0) { //% 100 == 0
+		stringstream QNN_file;
+		//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
+		QNN_file << "log_files/BASDriver_QNN_step_" << mp_parameters->step;
+		mp_algorithm->writeQNN(QNN_file.str());
 		mp_log->write("Writing QNN\n");
 	}
 
-	mp_experiment->explore( mp_current_state, mp_current_action); //Computes new action based on current state
-	//current_action wordt gevuld.
+	//Compute new action based on current state
+	mp_experiment->explore( mp_current_state, mp_current_action); 
+	//Current_action now has a value
 	
-	mp_parameters->rewardSum += m_reward ;
-	mp_parameters->endOfEpisode = mp_world->endOfEpisode(); //Check if an episode has ended.
-	double l_td_error = 0;
+	double l_td_error;
 
 	if ( mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
 		{
+			mp_parameters->rewardSum += m_reward; //Keep track of cumulative reward for statistics
+			stringstream rsum;
+			rsum << mp_parameters->rewardSum;
+			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("BinaryActionSearch") == 0 )
 			{
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+				if(option == BASLearningInterface::TD)
+					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+				else {
+					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+					l_td_error = 0;
+				}
 			} else {
 				cerr << "Wrong algorithm selected. Quitting.\n";
 				return true;
@@ -254,21 +303,18 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 	}
 
 	//Copy current state and action to history
-	if(store_tuples && !mp_parameters->first_time_step	//if not first time step
-					&& mp_parameters->step % 10			//store a tuple every 10 steps
-	){	
+	if(store_tuples){
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
 	copyState( mp_current_state, mp_prev_state ) ;
 	copyAction( mp_current_action, mp_prev_action ) ;
 
-	/*if(mp_memory->getSize() > 990)
-		mp_memory->printTuple(mp_memory->getSize()-1);*/
-
-	//Keep track of time
+	//Keep track of time / episodes
 	if ( mp_parameters->endOfEpisode ) {
 		mp_parameters->episode++ ;
+		mp_parameters->first_time_step = true;
+		mp_parameters->endOfEpisode = false;
 	}
 	mp_parameters->step++;
 	if(mp_parameters->step % 1000 == 0) {
@@ -349,7 +395,7 @@ void BASLearningInterface::updateWithOldTuple(UpdateOption option)
 				break;
 		}
 	}
-
+	mp_log->write("Done reupdating. LI");
 	//Debug log
 	//if(mp_memory->getSize() >= 5) {
 	//	mp_log->write("After reupdate:");
