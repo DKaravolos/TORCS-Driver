@@ -20,7 +20,7 @@ BinaryActionSearch::BinaryActionSearch( const char * parameterFile, World * w )
 		readParameterFile( parameterFile ) ;
 
 		//Create Neural Network
-        int layerSizesA[] = { stateDimension + actionDimension, nHiddenQ, 1 } ; //state dimension+1, omdat de actie erbij komt. hier kan extra laag
+        int layerSizesA[] = { stateDimension + actionDimension, nHiddenQ, 1 } ; //state dimension+ action dimension, omdat de actie erbij komt. hier kan extra laag
 		//int QNN_settings[] = {0,1,1};
 
 		//Create Networks for Q-values of going left and right
@@ -182,7 +182,7 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 	if(action->continuous)
 	{
 		//Create input for neural network
-		int l_inputsize = stateDimension + actionDimension;
+		//int l_inputsize = stateDimension + actionDimension;
 		for(int idx = 0; idx < stateDimension; idx++)
 		{
 			m_NN_input->push_back(state->continuousState[idx]);
@@ -206,8 +206,8 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 				delta = m_deltas[act_idx]->at(depth);
 				
 				try{
-					double qval_left = QNN_left[act_idx]->forwardPropagate(m_NN_input)[0]; //Left cooresponds to choosing -delta
-					double qval_right = QNN_right[act_idx]->forwardPropagate(m_NN_input)[0]; //right cooresponds to choosing +delta
+					double qval_left = QNN_left[act_idx]->forwardPropagate(m_NN_input)[0]; //Left corresponds to choosing -delta
+					double qval_right = QNN_right[act_idx]->forwardPropagate(m_NN_input)[0]; //right corresponds to choosing +delta
 
 					//message << "Comparing at depth "<<depth<<".\n";
 					//message << "val left: " << qval_left << ". val right: "<<qval_right << endl;
@@ -293,8 +293,8 @@ void BinaryActionSearch::invertedLoopsGetMax( State * state, Action * action )
 				delta = m_deltas[act_idx]->at(depth);
 				
 				try{
-					double qval_left = QNN_left[act_idx]->forwardPropagate(m_NN_input)[0]; //Left cooresponds to choosing -delta
-					double qval_right = QNN_right[act_idx]->forwardPropagate(m_NN_input)[0]; //right cooresponds to choosing +delta
+					double qval_left = QNN_left[act_idx]->forwardPropagate(m_NN_input)[0]; //Left corresponds to choosing -delta
+					double qval_right = QNN_right[act_idx]->forwardPropagate(m_NN_input)[0]; //right corresponds to choosing +delta
 
 					if (qval_left > qval_right){ //compare the two children
 						//go left
@@ -339,7 +339,7 @@ void BinaryActionSearch::invertedLoopsGetMax( State * state, Action * action )
 void BinaryActionSearch::getRandomAction( State * state, Action * action )
 {
 	//Implemented for inheritance compatibility.
-	//You're probably not supposed to be using this.
+	//You are not supposed to be using this.
 	for ( int a = 0 ; a < actionDimension ; a++ ) {
 
 		#ifdef WIN32
@@ -388,6 +388,26 @@ void BinaryActionSearch::explore( State * state, Action * action, double explora
     }
 }
 
+
+void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option)
+{
+	switch(option)
+	{
+		case ORIGINAL:
+			originalUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
+			break;
+
+		case INVERTED_LOOPS:
+			invertedLoopsUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
+			break;
+
+		default:
+			cerr << "Unknown GetMaxOption, please check its value. Calling originalUpdate().\n";
+			originalUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
+	}
+}
+
+
 void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma  )
 {
 	double * l_action = action->continuousAction ;
@@ -411,7 +431,6 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 			NN_input_prime[stateDimension+idx] = 0; 
 		}
 
-
 		//Do the updates
 		for(int act=0; act < actionDimension; act++) //loop through actions
 		{
@@ -431,7 +450,7 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 			}
 				/*First: update actual action towards QTarget */
 
-				//reverse last step to get to intermediate state-action value
+				////reverse last step to get to intermediate state-action value
 				double l_last_step = m_last_sequence[act]->at(m_last_sequence.size()-1);
 				NN_input[stateDimension + act] -= l_last_step; 
 
@@ -493,6 +512,12 @@ double BinaryActionSearch::updateAndReturnTDError( State * state, Action * actio
 			NN_input_prime[stateDimension+idx] = 0; 
 		}
 
+		//Store value of current state-action pair
+		//double curr_q;
+		//double curr_qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
+		//double curr_qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
+		//curr_qval_left > curr_qval_right? curr_q = curr_qval_left: curr_q = curr_qval_right;
+
 		//Do the updates
 
 		for(int act=0; act < actionDimension; act++) //loop through actions
@@ -507,8 +532,8 @@ double BinaryActionSearch::updateAndReturnTDError( State * state, Action * actio
 				double next_q;
 				double qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
 				double qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
-				
 				qval_left > qval_right? next_q = qval_left: next_q = qval_right;
+				
 				QTarget[0] = rt + gamma * next_q;
 			}
 				/*First: update actual action towards QTarget */

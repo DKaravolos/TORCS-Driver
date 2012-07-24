@@ -33,7 +33,7 @@ class BinaryActionSearch: public Algorithm
 
 		virtual void update (State * st, Action * action, double rt, State * st_,
 							 bool endOfEpisode, double * learningRate, double gamma);
-
+		virtual void update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option);
 		virtual double updateAndReturnTDError  (State * st, Action * action, double rt, State * st_,
 												bool endOfEpisode, double * learningRate, double gamma);
 
