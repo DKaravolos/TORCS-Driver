@@ -67,9 +67,9 @@ vector<double>* createFeatureVectorPointer(CarState state)
 
 //*/
 
-/*
 void createFeatureVectorPointer(CarState state, vector<double>* featureVector)
 {
+	featureVector->clear();
 	featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 	featureVector->push_back(state.getSpeedX()/300);// Genormaliseerd. 300kmh lijkt max. praktisch bijna niet boven 290.
 	featureVector->push_back(state.getSpeedY()); // Geen idee wat we hiermee kunnen qua normalisatie
@@ -78,4 +78,3 @@ void createFeatureVectorPointer(CarState state, vector<double>* featureVector)
 		featureVector->push_back(state.getTrack(5+i)/200); //Genormaliseerd. 200m is de max_range
 	}
 }
-*/

@@ -1,5 +1,5 @@
 #include "LearningInterface.h"
-
+#include <Windows.h>
 using namespace std;
 
 ///////////////Initialization functions///////////////////
@@ -13,7 +13,7 @@ LearningInterface::LearningInterface(void)
 	mp_log = new Writer("log_files/qlearning_interface_output.txt");
 	mp_reward_log = new Writer("log_files/qlearning_cumulative_reward.txt");
 	mp_log->write("Interface created.");
-	mp_memory = new StateActionMemory(6000);
+	//mp_memory = new StateActionMemory(6000);
 	m_reward = 0;
 	cout << "Done.\n";
 }
@@ -218,16 +218,27 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 		return true;
 	}
 
-	//Store NN every X steps
-	if(mp_parameters->step % 4500 == 0) { //% 100 == 0 //< 5
-		//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
-		stringstream QNN_file;
-		//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-		QNN_file << "log_files/QLearning_QNN_step_" << mp_parameters->step;
-		mp_algorithm->writeQNN(QNN_file.str());
-		mp_log->write("Writing QNN\n");
-	}
-	
+	//timeBeginPeriod(1);
+	//DWORD start = timeGetTime();
+
+	////Store NN every X steps
+	//if(mp_parameters->step % 75 == 0) { //% 100 == 0 //< 5
+	//	//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
+	//	stringstream QNN_file;
+	//	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
+	//	QNN_file << "log_files/QLearning_QNN_step_" << mp_parameters->step;
+	//	mp_algorithm->writeQNN(QNN_file.str());
+	//	stringstream msg;
+	//	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
+	//	mp_log->write(msg.str());
+	//	//mp_log->write("Writing QNN\n");
+	//}
+	//
+	//DWORD end = timeGetTime();
+	//timeEndPeriod(1);
+	//DWORD  diff = end - start;
+	//cout << "storing QNN. time taken: " << diff << endl;
+
 	//Compute new action based on current state
 	mp_experiment->explore( mp_current_state, mp_current_action); 
 	//Current_action now has a value

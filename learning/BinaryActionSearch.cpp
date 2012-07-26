@@ -1,4 +1,5 @@
 #include "BinaryActionSearch.h"
+#include <windows.h>
 #ifdef WIN32
 	#include <time.h>
 #endif
@@ -178,7 +179,9 @@ void BinaryActionSearch::getMaxAction( State * state, Action * action, GetMaxOpt
 
 void BinaryActionSearch::originalGetMax( State * state, Action * action )
 {
-	stringstream message;
+	timeBeginPeriod(1);
+	DWORD start = timeGetTime();
+	//stringstream message;
 	if(action->continuous)
 	{
 		//Create input for neural network
@@ -239,7 +242,7 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 			}
 			//Stuff at the end of one action-cycle
 			//Debug log:
-			message << "\nFinal action[" << act_idx << "] : "<< m_NN_input->at(stateDimension + act_idx)<< "\n\n";
+			//message << "\nFinal action[" << act_idx << "] : "<< m_NN_input->at(stateDimension + act_idx)<< "\n\n";
 				
 
 			//Put the chosen actions in Action* action:
@@ -247,8 +250,16 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 			action->continuousAction[act_idx] = m_NN_input->at(stateDimension + act_idx);
 		}
 		//Stuff after both loops
-		mp_BAS_log->write(message.str());
+		//mp_BAS_log->write(message.str());
 		m_NN_input->clear();
+
+		DWORD end = timeGetTime();
+		timeEndPeriod(1);
+		DWORD  diff = end - start;
+		stringstream debug_message;
+		debug_message << "original getmax time taken: " << diff << endl;
+		mp_BAS_log->write(debug_message.str());
+
 	}
 	else
 	{
@@ -263,7 +274,7 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 
 void BinaryActionSearch::invertedLoopsGetMax( State * state, Action * action )
 {
-	stringstream message;
+	//stringstream message;
 	if(action->continuous)
 	{
 		//Create input for neural network
@@ -285,7 +296,7 @@ void BinaryActionSearch::invertedLoopsGetMax( State * state, Action * action )
 		//VARIABLE RESOLUTION IS DIFFICULT TO CODE AND NOT THE FOCUS ATM
 		for(int depth = 0; depth <  mp_resolution[0]; depth++) //for all resolution bits of this variable
 		{
-			message << "Resolution: " << depth << endl;
+			//message << "Resolution: " << depth << endl;
 			double delta;
 			for(int act_idx = 0; act_idx < actionDimension; act_idx++) //iterate over action variables
 			{
@@ -322,7 +333,7 @@ void BinaryActionSearch::invertedLoopsGetMax( State * state, Action * action )
 		for(int act_idx = 0; act_idx < actionDimension; act_idx++)
 			action->continuousAction[act_idx] = m_NN_input->at(stateDimension + act_idx);
 
-		mp_BAS_log->write(message.str());
+		//mp_BAS_log->write(message.str());
 		m_NN_input->clear();
 	}
 	else
@@ -351,7 +362,8 @@ void BinaryActionSearch::getRandomAction( State * state, Action * action )
 	cerr << "Are you sure you want to output a random action??\n";
 }
 
-void BinaryActionSearch::explore( State * state, Action * action, double explorationRate, std::string explorationType, bool endOfEpisode )
+void BinaryActionSearch::explore( State * state, Action * action, double explorationRate,
+								  std::string explorationType, bool endOfEpisode )
 {
 	if ( explorationType.compare("boltzmann") == 0 ) {
 
@@ -388,9 +400,19 @@ void BinaryActionSearch::explore( State * state, Action * action, double explora
     }
 }
 
-
-void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option)
+void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_,
+								 bool endOfEpisode, double * learningRate, double gamma)
 {
+	cerr << "update function did not get a GetMaxOption. Calling originalUpdate().\n";
+	originalUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
+}
+
+void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_,
+								 bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option)
+{
+	timeBeginPeriod(1);
+	DWORD start = timeGetTime();
+
 	switch(option)
 	{
 		case ORIGINAL:
@@ -405,15 +427,22 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 			cerr << "Unknown GetMaxOption, please check its value. Calling originalUpdate().\n";
 			originalUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
 	}
+
+	DWORD end = timeGetTime();
+	timeEndPeriod(1);
+	DWORD  diff = end - start;
+	stringstream debug_message;
+	debug_message << "original update. time taken: " << diff << endl;
+	mp_BAS_log->write(debug_message.str());
 }
 
-
-void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma  )
+void BinaryActionSearch::originalUpdate( State * state, Action * action, double rt, State * state_,
+										 bool endOfEpisode, double * learningRate, double gamma)
 {
 	double * l_action = action->continuousAction ;
 	if(state->continuous)
 	{
-		double* QTarget = new double[1]; //Hard coded that the output of the network is size 1
+		double l_nextQ; //Hard coded that the output of the network is size 1
 
 		//set NN representation of this state and next state
 		int input_size = stateDimension + actionDimension;
@@ -431,190 +460,149 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 			NN_input_prime[stateDimension+idx] = 0; 
 		}
 
+		//Set reward of last state-action pair
+		double l_reward = rt;
+
 		//Do the updates
-		for(int act=0; act < actionDimension; act++) //loop through actions
+		for(int act=actionDimension-1; act >= 0; --act) //loop through actions
 		{
+			//Compute QTarget for last state-action pair
 			if ( endOfEpisode )
 			{
-				QTarget[0] = rt;
+				l_nextQ = 0;
 			} else
 			{
 				//Compute QTarget:
 				//Compute max Q-val of next state
-				double next_q;
 				double qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
 				double qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
 				
-				qval_left > qval_right? next_q = qval_left: next_q = qval_right;
-				QTarget[0] = rt + gamma * next_q;
+				qval_left > qval_right? l_nextQ = gamma * qval_left: l_nextQ = gamma * qval_right;
 			}
-				/*First: update actual action towards QTarget */
 
-				////reverse last step to get to intermediate state-action value
-				double l_last_step = m_last_sequence[act]->at(m_last_sequence.size()-1);
+			for(int depth=m_last_sequence.size()-1; depth >= 0; --depth) //loop through resolution
+			{
+				//Set state
+				//Reverse last step to get to intermediate state-action value
+				double l_last_step = m_last_sequence[act]->at(depth);
 				NN_input[stateDimension + act] -= l_last_step; 
 
-				//Do update:
-				//Update the network that did the last step
-				if( l_last_step < 0)
-					QNN_left[act]->backPropagate(NN_input, QTarget, learningRate[0]) ;
-				else if (l_last_step > 0)
-					QNN_right[act]->backPropagate(NN_input, QTarget, learningRate[0]) ;
-				else 
-					cerr << "\n\nBAS: Last step of zero should be impossible. Something is wrong.\n\n";
+				//set augmented action
+				char left_right;
+				if(l_last_step < 0)
+					left_right = 'L';
+				else
+					left_right = 'R';
 
-				/* Then: loop through augmented state-actions and update towards Q-value of previous state-action node */
-				updateAugmentedStates(NN_input, act, learningRate[0]);
-		}
+				//Do the update
+				updateState(NN_input, left_right, act, l_reward, &l_nextQ, learningRate);
 
-		//LOG CRITIC VALUE
-		//stringstream value;
-		//value	<< "output netwerk: " << Vt
-		//		<< "\tTarget: " << QTarget[ 0 ]
-		//		<< "\tReward: " << rt
-		//		<< "\tGamma: " << gamma
-		//		<< "\tVs_" << Vs_
-		//		<< "\tVt_after " << Vt_after
-		//		<< "\t learningRate[0] " << learningRate[0]
-		//		<< "\t learningRate[1] " << learningRate[1];
-
-		//mp_critic_log->write(value.str());
-		delete[] QTarget;
-		delete[] NN_input;
-		delete[] NN_input_prime;
-	} else
-		cerr << "Do not use discrete states!\n";
-
-}
-
-double BinaryActionSearch::updateAndReturnTDError( State * state, Action * action, double rt, State * state_,
-								bool endOfEpisode, double * learningRate, double gamma  )								
-{
-	double * l_action = action->continuousAction ;
-	double td_error;
-	if(state->continuous)
-	{
-		double* QTarget = new double[1]; //Hard coded that the output of the network is size 1
-
-		//set NN representation of this state and next state
-		int input_size = stateDimension + actionDimension;
-		double* NN_input = new double[input_size];
-		double* NN_input_prime = new double[input_size];
-		for(int idx = 0; idx < stateDimension; idx++)
-		{
-			NN_input[idx] = state->continuousState[idx]; //values of current state
-			NN_input_prime[idx] = state_->continuousState[idx]; //values of next state
-		}
-		for(int idx = 0; idx < actionDimension; idx++)
-		{
-			NN_input[stateDimension+idx] = l_action[idx];
-			//hard coded, we know this is the middle of the range of all action dimensions:
-			NN_input_prime[stateDimension+idx] = 0; 
-		}
-
-		//Store value of current state-action pair
-		//double curr_q;
-		//double curr_qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
-		//double curr_qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
-		//curr_qval_left > curr_qval_right? curr_q = curr_qval_left: curr_q = curr_qval_right;
-
-		//Do the updates
-
-		for(int act=0; act < actionDimension; act++) //loop through actions
-		{
-			if ( endOfEpisode )
-			{
-				QTarget[0] = rt;
-			} else
-			{
-				//Compute QTarget:
-				//Compute max Q-val of next state
-				double next_q;
-				double qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
-				double qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
-				qval_left > qval_right? next_q = qval_left: next_q = qval_right;
-				
-				QTarget[0] = rt + gamma * next_q;
+				//set reward for augmented states
+				l_reward = 0;
+				//set QTarget for augmented states (max Qval of this augmented state)
+				double qval_left = QNN_left[act]->forwardPropagate(NN_input)[0];
+				double qval_right = QNN_right[act]->forwardPropagate(NN_input)[0];
+				qval_left > qval_right? l_nextQ = qval_left: l_nextQ = qval_right;
 			}
-				/*First: update actual action towards QTarget */
-
-				//reverse last step to get to intermediate state-action value
-				double l_last_step = m_last_sequence[act]->at(m_last_sequence.size()-1);
-				NN_input[stateDimension + act] -= l_last_step; 
-
-				//Do update:
-				//Update the network that did the last step
-				if( l_last_step < 0)
-					QNN_left[act]->backPropagate(NN_input, QTarget, learningRate[0]) ;
-				else if (l_last_step < 0)
-					QNN_right[act]->backPropagate(NN_input, QTarget, learningRate[0]) ;
-				else 
-					cerr << "\n\nBAS: Last step of zero should be impossible. Something is wrong.\n\n";
-
-				/* Then: loop through augmented state-actions and update towards Q-value of previous state-action node */
-				updateAugmentedStates(NN_input, act, learningRate[0]);
 		}
-
-		//LOG CRITIC VALUE
-		//stringstream value;
-		//value	<< "output netwerk: " << Vt
-		//		<< "\tTarget: " << QTarget[ 0 ]
-		//		<< "\tReward: " << rt
-		//		<< "\tGamma: " << gamma
-		//		<< "\tVs_" << Vs_
-		//		<< "\tVt_after " << Vt_after
-		//		<< "\t learningRate[0] " << learningRate[0]
-		//		<< "\t learningRate[1] " << learningRate[1];
-
-		//mp_critic_log->write(value.str());
-		delete[] QTarget;
 		delete[] NN_input;
 		delete[] NN_input_prime;
-	} else
-		cerr << "Do not use discrete states!\n";
-
-	return td_error;
-}
-
-//Description:
-void BinaryActionSearch::updateAugmentedStates(double* NN_input, int act, double learningRate)
-{
-	double l_action = NN_input[stateDimension + act];
-	double l_last_step;
-	//loop backwards through sequence of augmented space
-	for(int depth = m_last_sequence.size()-2;  depth >= 0; --depth) 
-	{
-
-		l_last_step = m_last_sequence[act]->at(depth); //has a signed delta inside
-
-		//Get the value of the max action (i.e. val of nodes on the lower layer)
-		double* l_qtarget = NULL;
-		double qval_left = QNN_left[act]->forwardPropagate(NN_input)[0];
-		double qval_right = QNN_right[act]->forwardPropagate(NN_input)[0];
-
-		if( qval_left > qval_right)
-			l_qtarget = QNN_left[act]->forwardPropagate(NN_input);
-		else
-			l_qtarget = QNN_right[act]->forwardPropagate(NN_input);
-
-		//change NN_input to be at the right node in the tree.
-		NN_input[stateDimension + act] -= l_last_step; 
-					
-		//Update the Qval of the action in this layer (i.e. relevant neural network for left or right action)
-		// target = r+ gmma* max(Q(next state action pair,max network)
-		// where rt = 0 and gamma = 1, so just the Qval of the next network with given state-action pair.
-		if(m_last_sequence[act]->at(depth) < 0)
-		{
-			QNN_left[act]->backPropagate(NN_input, l_qtarget, learningRate) ;
-		} else
-		{
-			QNN_right[act]->backPropagate(NN_input, l_qtarget, learningRate) ;
-		}
+	} else {
+		cerr << "Only discrete states are implemented. Not updating.\n";
 	}
-	//end of augmented-loop stuff:
-	//Reset action input to original value
-	NN_input[stateDimension + act] = l_action;
 }
+
+void BinaryActionSearch::updateState(double* state, char left_right, int action, double reward,
+									 double* Qtarget, double* learningRate)
+{
+	//Update the network that did the last step
+	if( left_right == 'L')
+		QNN_left[action]->backPropagate(state, Qtarget, learningRate[0]) ;
+	else if (left_right == 'R')
+		QNN_right[action]->backPropagate(state, Qtarget, learningRate[0]) ;
+	else 
+		cerr << "\n\nBAS: Trying to update non-existing Q network. Not updating.\n\n";
+
+}
+
+void BinaryActionSearch::invertedLoopsUpdate( State * state, Action * action, double rt, State * state_,
+										 bool endOfEpisode, double * learningRate, double gamma)
+{
+	double * l_action = action->continuousAction ;
+	if(state->continuous)
+	{
+		double l_nextQ; //Hard coded that the output of the network is size 1
+
+		//set NN representation of this state and next state
+		int input_size = stateDimension + actionDimension;
+		double* NN_input = new double[input_size];
+		double* NN_input_prime = new double[input_size];
+		for(int idx = 0; idx < stateDimension; idx++)
+		{
+			NN_input[idx] = state->continuousState[idx]; //values of current state
+			NN_input_prime[idx] = state_->continuousState[idx]; //values of next state
+		}
+		for(int idx = 0; idx < actionDimension; idx++)
+		{
+			NN_input[stateDimension+idx] = l_action[idx];
+			//hard coded, we know this is the middle of the range of all action dimensions:
+			NN_input_prime[stateDimension+idx] = 0; 
+		}
+
+		//Set reward of last state-action pair
+		double l_reward = rt;
+
+		//Do the updates
+		for(int depth=m_last_sequence.size()-1; depth >= 0; --depth) //loop through resolution
+		{
+			for (int act=actionDimension-1; act >= 0; --act) //loop through actions
+			{
+				//If the last action is updated, use the next state as Qtarget.
+				if(depth == m_last_sequence.size()-1)
+				{
+					if ( endOfEpisode )
+					{
+						l_nextQ = 0;
+					} else {
+						//Compute QTarget:
+						//Compute max Q-val of next state
+						double qval_left = QNN_left[act]->forwardPropagate(NN_input_prime)[0];
+						double qval_right = QNN_right[act]->forwardPropagate(NN_input_prime)[0];
+				
+						qval_left > qval_right? l_nextQ = gamma * qval_left: l_nextQ = gamma * qval_right;
+					}
+				}
+
+				//Set state
+				//Reverse last step to get to intermediate state-action value
+				double l_last_step = m_last_sequence[act]->at(depth);
+				NN_input[stateDimension + act] -= l_last_step; 
+
+				//set augmented action
+				char left_right;
+				if(l_last_step < 0)
+					left_right = 'L';
+				else
+					left_right = 'R';
+
+				//Do the update
+				updateState(NN_input, left_right, act, l_reward, &l_nextQ, learningRate);
+
+				//set reward for augmented states
+				l_reward = 0;
+				//set QTarget for augmented states (max Qval of this augmented state)
+				double qval_left = QNN_left[act]->forwardPropagate(NN_input)[0];
+				double qval_right = QNN_right[act]->forwardPropagate(NN_input)[0];
+				qval_left > qval_right? l_nextQ = qval_left: l_nextQ = qval_right;
+			}
+		}
+		delete[] NN_input;
+		delete[] NN_input_prime;
+	} else {
+		cerr << "Only discrete states are implemented. Not updating.\n";
+	}
+}
+
 
 //Neural Network functions
 void BinaryActionSearch::readQNN(std::string QNN_file)
@@ -631,7 +619,7 @@ void BinaryActionSearch::readQNN(std::string QNN_file)
 
 void BinaryActionSearch::writeQNN(std::string QNN_file)
 {
-	for(int action = 0; action < QNN_left.size(); action++){
+	for(unsigned int action = 0; action < QNN_left.size(); action++){
 		stringstream nn_file_name;
 		nn_file_name << QNN_file << "_actionDim_"  << action;
 		QNN_left.at(action)->writeNetwork(nn_file_name.str() + "_left.txt");

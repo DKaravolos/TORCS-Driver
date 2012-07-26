@@ -1,4 +1,5 @@
 #include "RecitingDriver.h"
+#include <Windows.h>
 
 RecitingDriver::RecitingDriver()
 {
@@ -12,8 +13,8 @@ RecitingDriver::RecitingDriver()
 
 	g_steps_per_action = 10;
 	g_print_mod = g_steps_per_action;
-	g_learn_steps_per_tick = 2;
-	g_reupdate_steps_per_tick = 2;
+	g_learn_steps_per_tick = 1;
+	g_reupdate_steps_per_tick = 0;
 
 	g_stuck_penalty = 0;
 	
@@ -169,7 +170,7 @@ void RecitingDriver::init(float *angles)
 	g_first_time = true;
 
 	//Set Daniels datamembers
-	mp_features = NULL;
+	mp_features = new vector<double>;
 	if (mp_Qinterface == NULL) {
 		cout << "Creating LearningInterface...\n";
 		try
@@ -221,6 +222,9 @@ void RecitingDriver::initInterface(bool load_network)
 
 CarControl RecitingDriver::wDrive(CarState cs)
 {
+	timeBeginPeriod(1);
+	DWORD start = timeGetTime();
+
 	//keep track of time
 	g_count++;
 
@@ -331,6 +335,16 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
+	DWORD end = timeGetTime();
+	timeEndPeriod(1);
+	DWORD  diff = end - start;
+	//if(g_count % g_steps_per_action == 0) 
+	//	cout << "time taken: " << diff << endl;
+	if(diff >= 10){
+		stringstream debug_msg;
+		debug_msg << g_count << ": time out";
+		mp_log->write(debug_msg.str());
+	}
 	return rlControl(cs);
 }
 
@@ -341,13 +355,13 @@ double RecitingDriver::computeReward(CarState &state, double* action, CarState &
 		
 	/////////DISTANCE
 	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
-	cout << "Distance reward: "<< dist_reward <<endl;
+	//cout << "Distance reward: "<< dist_reward <<endl;
 	reward+= dist_reward;
 
 	///////////POSITION
 	double pos_reward = -abs(next_state.getTrackPos());
 	reward += pos_reward;
-	cout << "Position reward: "<< pos_reward << endl;
+	//cout << "Position reward: "<< pos_reward << endl;
 
 	///////////DAMAGE
 	//double damage_reward = -(next_state.getDamage() - state.getDamage());
@@ -359,13 +373,15 @@ double RecitingDriver::computeReward(CarState &state, double* action, CarState &
 	//	reward += action[1];
 
 	/////////OUTPUT
-	stringstream log;
-	log << "time: " << g_count <<"\treward: " << reward << ". ";
-	mp_log->write(log.str());
-	stringstream rew_log;
-	rew_log << reward;
-	mp_reward_writer->write(rew_log.str());
-	cout << endl << log.str() << endl;
+	//stringstream log;
+	//log << "time: " << g_count <<"\treward: " << reward << ". ";
+	//mp_log->write(log.str());
+	//stringstream rew_log;
+	//rew_log << reward;
+	//mp_reward_writer->write(rew_log.str());
+	//cout << endl << log.str() << endl;
+
+	//cout << "time: " << g_count <<"\treward: " << reward << ". ";
 
 	return reward;
 }
@@ -377,9 +393,10 @@ void RecitingDriver::doLearning(CarState &cs)
 		cout << "\tLearn steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
-	delete mp_features;
-	mp_features = createFeatureVectorPointer(cs);
-	//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
+	//if (mp_features != NULL)
+	//	delete mp_features;
+	//mp_features = createFeatureVectorPointer(cs);
+	createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
 	
 	//Create a state
 	mp_Qinterface->setState(mp_features);
@@ -389,7 +406,8 @@ void RecitingDriver::doLearning(CarState &cs)
 	while(	l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
-			g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::TD);
+			//g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::TD); 
+			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::TD); // We do not store tuples at the moment
 		else
 			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::TD);
 		l_learn_step_count++;
@@ -399,7 +417,7 @@ void RecitingDriver::doLearning(CarState &cs)
 	//write state to log
 	//mp_Qinterface->logState(g_count);
 	//log original action for debug purposes
-	mp_Qinterface->logAction(g_count);
+	//mp_Qinterface->logAction(g_count);
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
@@ -518,13 +536,13 @@ void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cc.setMeta(cc.META_RESTART);
 
 	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count + g_reupdate_step_count >= 10000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	if(g_learn_step_count + g_reupdate_step_count >= 1000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
 		cout << "Learning steps during this run: " << g_learn_step_count << endl;
-		cout << "RL Control steps during this run: " << debug_rlcontrol_count << endl;
-		cout << "Stuck steps during this run: " << debug_stuck_count << endl;
+		//cout << "RL Control steps during this run: " << debug_rlcontrol_count << endl;
+		//cout << "Stuck steps during this run: " << debug_stuck_count << endl;
 		debug_stuck_count = 0;
 		debug_rlcontrol_count = 0;
 		g_learn_step_count = -1;
@@ -575,31 +593,31 @@ void RecitingDriver::onShutdown()
 {
 	cout << "Bye bye!" << endl;
 	delete mp_features;
+	mp_features = NULL;
 	delete mp_log;
 	delete mp_reward_writer;
-	delete mp_action_set;
 	delete mp_Qinterface; 
 	delete gp_prev_state;
 }
 
 void RecitingDriver::onRestart()
 {
-	//delete mp_features;
-	//delete mp_action_set;
-	delete mp_Qinterface;
+	delete mp_features;
+	mp_features = NULL;
+	//delete mp_Qinterface;
     cout << "Restarting the race!" << endl;
 	g_learn_step_count = -1;
-	delete mp_reward_writer;
+	//delete mp_reward_writer;
 
-	stringstream newfile;
-	newfile << "log_files/Reciting_driver_rewards_" << g_experiment_count << ".txt";
-	mp_reward_writer = new Writer(newfile.str());
+	//stringstream newfile;
+	//newfile << "log_files/Reciting_driver_rewards_" << g_experiment_count << ".txt";
+	//mp_reward_writer = new Writer(newfile.str());
 
-	try{
-		initInterface(true);
-	} catch(exception& e) {
-		cout << e.what() << endl;
-	}
+	//try{
+	//	initInterface(true);
+	//} catch(exception& e) {
+	//	cout << e.what() << endl;
+	//}
 }
 
 void RecitingDriver::clutching(CarState &cs, float &clutch)

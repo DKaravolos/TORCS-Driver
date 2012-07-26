@@ -85,6 +85,7 @@ void BASLearningInterface::init(const char* nn_filename)
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_algorithm = new BinaryActionSearch("TorcsWorldCfg2", mp_world, nn_filename) ;
+	//mp_algorithm = new BASWithRoots("TorcsWorldCfg2", mp_world, nn_filename);
 	mp_experiment = new Experiment(Experiment::BAS);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
@@ -282,11 +283,12 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 			if ( mp_experiment->algorithmName.compare("BinaryActionSearch") == 0 )
 			{
 				if(option == BASLearningInterface::TD)
-					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+					/*l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);*/
+					cerr << "TD reupdates is not implemented.\n";
 				else {
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma, BinaryActionSearch::ORIGINAL);
 					l_td_error = 0;
 				}
 			} else {
@@ -376,24 +378,24 @@ void BASLearningInterface::updateWithOldTuple(UpdateOption option)
 		cout << "Something went wrong during update from memory." << endl;
 		throw "Noo! I can't update my network with NULL pointers!";
 	} else {
-		switch(option)
-		{
-			case RANDOM:
-				mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
-									l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
-				break;
+		//switch(option)
+		//{
+		//	case RANDOM:
+		//		mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
+		//							l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
+		//		break;
 
-			case TD:
-				//Update network with this tuple
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-						mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-							
-				//since the TD error has changed, it should be removed and inserted again with the new TD error
-				mp_memory->popBack();
-				mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
-							mp_parameters->endOfEpisode, l_td_error, option);
-				break;
-		}
+		//	case TD:
+		//		//Update network with this tuple
+		//		l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+		//				mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+		//					
+		//		//since the TD error has changed, it should be removed and inserted again with the new TD error
+		//		mp_memory->popBack();
+		//		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
+		//					mp_parameters->endOfEpisode, l_td_error, option);
+		//		break;
+		//}
 	}
 	mp_log->write("Done reupdating. LI");
 	//Debug log

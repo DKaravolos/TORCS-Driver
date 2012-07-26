@@ -15,8 +15,9 @@
 
 class BinaryActionSearch: public Algorithm
 {
-	enum GetMaxOption {ORIGINAL, INVERTED_LOOPS};
 	public:
+		enum GetMaxOption {ORIGINAL, INVERTED_LOOPS};
+
 		//Initialisation, etc.
 		BinaryActionSearch	(const char * parameterFile, World * w);
 		BinaryActionSearch	(const char * parameterFile, World * w, string QNN_file);
@@ -26,16 +27,15 @@ class BinaryActionSearch: public Algorithm
 		//Algorithm functions:
 		void getRandomAction		(State * state, Action * action);
 		virtual void getMaxAction	(State * state, Action * action);
-		void getMaxAction			(State * state, Action * action, GetMaxOption option);
+		virtual void getMaxAction	(State * state, Action * action, GetMaxOption option);
 
 		void explore (State * state, Action * action, double explorationRate,
 					  std::string explorationType, bool endOfEpisode);
 
-		virtual void update (State * st, Action * action, double rt, State * st_,
+		virtual void update( State * st, Action * action, double rt, State * st_,
 							 bool endOfEpisode, double * learningRate, double gamma);
-		virtual void update( State * state, Action * action, double rt, State * state_, bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option);
-		virtual double updateAndReturnTDError  (State * st, Action * action, double rt, State * st_,
-												bool endOfEpisode, double * learningRate, double gamma);
+		virtual void update( State * state, Action * action, double rt, State * state_,
+							 bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option);
 
 		//IO functions
 		virtual void writeQNN(std::string QNN_file);
@@ -62,18 +62,21 @@ class BinaryActionSearch: public Algorithm
 
 		//GetMax functions
 		void originalGetMax			(State * state, Action * action);
-		//void withRootsGetMax		(State * state, Action * action);
 		void invertedLoopsGetMax	(State * state, Action * action);
 
 		//Update functions
-		virtual void updateAugmentedStates(double* NN_input, int action, double learningRate);
+		void originalUpdate (State * st, Action * action, double rt, State * st_,
+							 bool endOfEpisode, double * learningRate, double gamma);
+		void invertedLoopsUpdate (State * st, Action * action, double rt, State * st_,
+							 bool endOfEpisode, double * learningRate, double gamma);
 
+		virtual void updateState(double* state, char left_right, int action, double reward,
+								 double* Qtarget, double* learningRate);
+		
 		//General variables
         double g1, g2 ;
         bool storedGauss ;
 		double epsilon, sigma ;
-		//double * QTarget ;
-		//double * Qs ;
 		
 		//BAS variables
 		int m_nr_actions;
@@ -86,7 +89,6 @@ class BinaryActionSearch: public Algorithm
 
 		//neural network:
 		int nHiddenQ;
-		//vector<cNeuralNetwork*> QNN;
 		vector<cNeuralNetwork*> QNN_left ;
 		vector<cNeuralNetwork*> QNN_right ;
 
