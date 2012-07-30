@@ -169,24 +169,24 @@ void RLDriver::init(float *angles)
 
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
-//	if (mp_RLinterface == NULL) {
-//		cout << "Creating LearningInterface...\n";
-//		try
-//		{
-//			initInterface(true);
-//			cout << "Done.\n";
-//		} catch (exception& e)
-//		{
-//			cerr << e.what() << endl;
-//			#ifdef WIN32
-//				char end;
-//				cin >> end;
-//			#endif
-//			exit(-3);
-//		}
-//	} else {
-//		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
-//	}
+	if (mp_RLinterface == NULL) {
+		cout << "Creating LearningInterface...\n";
+		try
+		{
+			initInterface(true);
+			cout << "Done.\n";
+		} catch (exception& e)
+		{
+			cerr << e.what() << endl;
+			#ifdef WIN32
+				char end;
+				cin >> end;
+			#endif
+			exit(-3);
+		}
+	} else {
+		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
+	}
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 
@@ -318,11 +318,11 @@ CarControl RLDriver::wDrive(CarState cs)
 	//END LEARNING CODE
 	//if(g_count % g_steps_per_action == 0) 
 	//	cout << "time taken: " << diff << endl;
-	if(diff >= 10){
-		stringstream debug_msg;
-		debug_msg << g_count << ": time out";
-		mp_log->write(debug_msg.str());
-	}
+	//if(diff >= 10){
+	//	stringstream debug_msg;
+	//	debug_msg << g_count << ": time out";
+	//	mp_log->write(debug_msg.str());
+	//}
 	return rlControl(cs);
 }
 

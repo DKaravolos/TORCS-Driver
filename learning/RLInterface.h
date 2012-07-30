@@ -11,8 +11,6 @@
 
 #include "..\rlcpp\Action.h"
 #include "..\rlcpp\World.h"
-#include "..\rlcpp\StateActionAlgorithm.h"
-#include "..\rlcpp\Qlearning.h"
 #include "..\rlcpp\State.h"
 #include "..\rlcpp\Experiment.h"
 #include "..\rlcpp\StateActionUtils.h"
@@ -30,8 +28,8 @@ class RLInterface
 
 		RLInterface(void);
 		~RLInterface(void);
-		void init();
-		void init(const char* nn_filename);
+		virtual void init() = 0;
+		virtual void init(const char* nn_filename) = 0;
 		//Loop of a time step:
 		/*
 		- setRewardPrevAction()
@@ -54,14 +52,14 @@ class RLInterface
 		inline bool getEOE(){ return mp_world->endOfEpisode();}
 
 		//other
-		bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
-		bool learningUpdateStep(bool store_tuples, UpdateOption option);
-		void updateWithOldTuple(UpdateOption option);
+		virtual bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
+		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option) = 0;
+		virtual void updateWithOldTuple(UpdateOption option) =0;
 
 	protected:
 		//datamembers
 		TorcsWorld* mp_world;
-		Qlearning* mp_algorithm;
+		//Qlearning* mp_algorithm;
 		Experiment* mp_experiment;
 		State* mp_prev_state;
 		State* mp_current_state;
@@ -78,8 +76,8 @@ class RLInterface
 
 		//functions:
 			//init
-		void initState();
-		void initActions();
+		virtual void initState() =0;
+		virtual void initActions() =0;
 		void initExperimentParam();
 
 			//other

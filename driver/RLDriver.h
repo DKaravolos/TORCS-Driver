@@ -134,11 +134,11 @@ protected:
 	virtual void initInterface(bool load_network)=0;
 	virtual double computeReward(CarState &state, double* action, CarState &next_state);
 	virtual void doLearning(CarState &cs);
-	virtual CarControl carStuckControl(CarState &cs);
-	virtual CarControl simpleBotControl(CarState &cs);
+	CarControl carStuckControl(CarState &cs);
+	CarControl simpleBotControl(CarState &cs);
 	virtual CarControl rlControl(CarState &cs);
 	virtual void endOfRunCheck(CarState &cs, CarControl &cc);
-	virtual char getKeyboardInput();
+	char getKeyboardInput();
 
 
 	///////Datamembers added by Daniel:

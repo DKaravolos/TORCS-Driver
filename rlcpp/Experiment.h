@@ -26,6 +26,7 @@ class Experiment {
 			BAS
 		};
 
+		friend class RLInterface;
 		friend class LearningInterface;
 		friend class QOSLearningInterface;
 		friend class BASLearningInterface;

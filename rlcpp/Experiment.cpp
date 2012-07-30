@@ -109,6 +109,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			tau = 0.01;
 			epsilon = 0.1;
 			sigma = 0.2;
+			//sigma = 0;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);

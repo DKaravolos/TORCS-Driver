@@ -12,7 +12,7 @@ BASLearningInterface::BASLearningInterface(void)
 	mp_world = new TorcsWorld(TorcsWorld::BAS);
 	mp_log = new Writer("log_files/BASinterface_output.txt");
 	mp_log->write("Interface created.");
-	mp_memory = new StateActionMemory(5000);
+	//mp_memory = new StateActionMemory(5000);
 	m_reward = 0;
 	
 	//Create adaptive cumulative reward file
@@ -41,27 +41,7 @@ BASLearningInterface::~BASLearningInterface(void)
 	cout << "Destroying BASLearningInterface... Goodbye cruel world!" << endl;
 	delete mp_log;
 	//delete mp_reward_log;
-	delete mp_memory;
-
-	delete mp_world;
 	delete mp_algorithm;
-	delete mp_experiment;
-	delete mp_parameters;
-
-	delete mp_current_state;
-	delete mp_prev_state;
-
-	delete[] mp_current_action->continuousAction;
-	delete[] mp_current_action->max_val;
-	delete[] mp_current_action->min_val;
-
-	delete[] mp_prev_action->continuousAction;
-	delete[] mp_prev_action->max_val;
-	delete[] mp_prev_action->min_val;
-	delete mp_current_action; //bij continue acties: apart het double array deleten
-	delete mp_prev_action;
-
-	//delete[] mp_torcs_action; //deze moet wel uitgevoerd worden, maar geeft af en toe zonder reden een foutmelding
 }
 
 void BASLearningInterface::init()
@@ -109,142 +89,16 @@ void BASLearningInterface::initState(){
 void BASLearningInterface::initActions(){
 	mp_current_action = new Action();
 	mp_experiment->initializeAction(mp_current_action, mp_algorithm, mp_world);
-
+	
 	mp_prev_action = new Action();
 	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
-
-	mp_current_action->max_val = new double[mp_current_action->actionDimension];
-	mp_current_action->min_val = new double[mp_current_action->actionDimension];
-	mp_prev_action->max_val = new double[mp_current_action->actionDimension];
-	mp_prev_action->min_val = new double[mp_current_action->actionDimension];
-
-	for(int idx = 0; idx < mp_current_action->actionDimension;idx++)
-	{
-		mp_current_action->max_val[idx] = 1;
-		mp_current_action->min_val[idx] = -1;
-		mp_prev_action->max_val[idx] = 1;
-		mp_prev_action->min_val[idx] = -1;
-	}
-
-	mp_torcs_action = new double[mp_current_action->actionDimension];
+	
+	mp_torcs_action = new double[2];
 	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geüpdate dienen te worden.
 	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
 
-void BASLearningInterface::initExperimentParam()
-{
-	mp_parameters = new ExperimentParameters();
-	mp_parameters->episode = 0 ;
-    mp_parameters->step = 0 ;
-    mp_parameters->result = 0 ;
-    mp_parameters->rewardSum = 0.0 ;
-	mp_parameters->endOfEpisode = true;
-	mp_parameters->train = true;
-	mp_parameters->first_time_step = true;
-
-    if ( mp_parameters->train ) {
-        mp_parameters->storePer = mp_experiment->trainStorePer ;
-    } else {
-        mp_parameters->storePer = mp_experiment->testStorePer ;
-    }
-}
-
-///////////////Driver functions///////////////////
-double* BASLearningInterface::getAction()
-{
-	//double* torcs_action = mp_world->convertAction(mp_current_action);
-	if(mp_current_action->discrete) 
-		mp_world->convertDiscreteAction(mp_current_action, mp_torcs_action);
-	else if(mp_current_action->continuous)
-		mp_world->convertContinuousAction(mp_current_action, mp_torcs_action);
-	else {
-		cerr << "Action must be discrete or continuous!\n";
-		return NULL;
-	}
-
-	if (mp_torcs_action == NULL)
-	{
-		cout << "ERROR: request for action, while action is empty!\n";
-		return NULL;
-	}
-	else	
-		return mp_torcs_action;
-}
-
-void BASLearningInterface::setRewardPrevAction(double reward)
-{
-	m_reward = reward;
-}
-
-////////////////// STATE FUNCTIONS ///////////////////////
-
-void BASLearningInterface::setState(vector<double>* features)
-{
-	for(size_t idx = 0; idx < features->size(); idx++){
-		if (abs(features->at(idx)) < 0.001)
-			mp_current_state->continuousState[idx] = 0;
-		else
-			mp_current_state->continuousState[idx] = features->at(idx);
-	}
-	mp_world->setState(mp_current_state);
-}
-
-void BASLearningInterface::printState()
-{
-	cout << "Printing dimensions of State through BASLearningInterface.\n";
-
-	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
-		cout << "Dimension " << idx << " : " << mp_current_state->continuousState[idx] << endl;
-	}
-}
-
-void BASLearningInterface::logState(int timestamp)
-{
-	stringstream state_log;
-	state_log << timestamp << ": Printing dimensions of State through BASLearningInterface.\n";
-	mp_log->write(state_log.str());
-
-	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
-		stringstream state_log2;
-		state_log2 << "Dimension " << idx << " : " << mp_current_state->continuousState[idx];
-		mp_log->write(state_log2.str());
-	}
-}
-
-void BASLearningInterface::logAction(int timestamp)
-{
-	if(mp_current_action->continuous)
-	{
-		stringstream action;
-		action	<< timestamp << ": "
-				<< "Actor output:\n\t steer: " << mp_current_action->continuousAction[0] 
-				<< "\n\t accel: " << mp_current_action->continuousAction[1];
-		mp_log->write(action.str());
-	} else {
-		stringstream action;
-		double* lp_converted_action = new double[2];
-		mp_world->convertDiscreteAction(mp_current_action, lp_converted_action);
-		action	<< timestamp << ": "
-			<< "Actor output: "
-				<< "Q-action: " <<  mp_current_action->discreteAction
-				<< "\n\t steer: " << lp_converted_action[0]
-				<< "\n\t accel: " << lp_converted_action[1];
-		mp_log->write(action.str());
-		delete lp_converted_action;
-	}
-}
-
-void BASLearningInterface::setEOE(){
-	//If an episode has ended, keep track of this and make sure that the next state-action pair
-	//is not updated with info from previous episode
-	mp_parameters->endOfEpisode = true;
-}
-
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
-bool BASLearningInterface::learningUpdateStep()
-{
-	return learningUpdateStep(false, BASLearningInterface::RANDOM);
-}
 
 bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
