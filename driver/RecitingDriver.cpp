@@ -536,7 +536,7 @@ void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cc.setMeta(cc.META_RESTART);
 
 	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count + g_reupdate_step_count >= 1000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	if(g_learn_step_count + g_reupdate_step_count >= 2000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
@@ -602,16 +602,17 @@ void RecitingDriver::onShutdown()
 
 void RecitingDriver::onRestart()
 {
-	delete mp_features;
+	//delete mp_features;
 	mp_features = NULL;
-	//delete mp_Qinterface;
+	//delete mp_Qinterface; // We are not reinitializing the interface between runs.
+	//This may have negative side-effects, I have not completely thought this through.
     cout << "Restarting the race!" << endl;
 	g_learn_step_count = -1;
-	//delete mp_reward_writer;
+	delete mp_reward_writer;
 
-	//stringstream newfile;
-	//newfile << "log_files/Reciting_driver_rewards_" << g_experiment_count << ".txt";
-	//mp_reward_writer = new Writer(newfile.str());
+	stringstream newfile;
+	newfile << "log_files/Reciting_driver_rewards_" << g_experiment_count << ".txt";
+	mp_reward_writer = new Writer(newfile.str());
 
 	//try{
 	//	initInterface(true);

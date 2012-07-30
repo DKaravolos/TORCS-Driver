@@ -27,6 +27,7 @@ class Experiment {
 		};
 
 		friend class LearningInterface;
+		friend class QOSLearningInterface;
 		friend class BASLearningInterface;
 		friend class CaclaLearningI;
 		Experiment(){}

@@ -1,6 +1,7 @@
-#include "BASDriver.h"
+#include "QOnlySpeedDriver.h"
+//#include <Windows.h>
 
-BASDriver::BASDriver()
+QOnlySpeedDriver::QOnlySpeedDriver()
 {
 	debug_stuck_count = 0;
 	debug_rlcontrol_count = 0;
@@ -12,70 +13,70 @@ BASDriver::BASDriver()
 
 	g_steps_per_action = 10;
 	g_print_mod = g_steps_per_action;
-	g_learn_steps_per_tick = 2;
-	g_reupdate_steps_per_tick = 2;
+	g_learn_steps_per_tick = 1;
+	g_reupdate_steps_per_tick = 0;
 
 	g_stuck_penalty = 0;
 	
 	g_experiment_count = 0;
 
-	mp_log = new Writer("log_files/BAS_driver_log.txt");
-	mp_reward_writer = new Writer("log_files/BAS_driver_rewards_0.txt");
+	mp_log = new Writer("log_files/QOnlySpeedDriver_log.txt");
+	mp_reward_writer = new Writer("log_files/QOnlySpeedDriver_rewards_0.txt");
 }
 
 /* Gear Changing Constants*/
-const int BASDriver::gearUp[6]=
+const int QOnlySpeedDriver::gearUp[6]=
     {
         8000,9500,9500,9500,9500,0
     };
-const int BASDriver::gearDown[6]=
+const int QOnlySpeedDriver::gearDown[6]=
     {
         0,4000,6300,7000,7300,7300
     };
 
 /*
-const int BASDriver::gearUp[6]=
+const int QOnlySpeedDriver::gearUp[6]=
     {
         5000,6000,6000,6500,7000,0
     };
-const int BASDriver::gearDown[6]=
+const int QOnlySpeedDriver::gearDown[6]=
     {
         0,2500,3000,3000,3500,3500
     };
 //*/
 
 /* Stuck constants*/
-const int BASDriver::stuckTime = 25;
-const float BASDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
+const int QOnlySpeedDriver::stuckTime = 25;
+const float QOnlySpeedDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
 
 /* Accel and Brake Constants*/
-const float BASDriver::maxSpeedDist=70;
-const float BASDriver::maxSpeed=150;
-const float BASDriver::sin5 = 0.08716f;
-const float BASDriver::cos5 = 0.99619f;
+const float QOnlySpeedDriver::maxSpeedDist=70;
+const float QOnlySpeedDriver::maxSpeed=150;
+const float QOnlySpeedDriver::sin5 = 0.08716f;
+const float QOnlySpeedDriver::cos5 = 0.99619f;
 
 /* Steering constants*/
-const float BASDriver::steerLock=0.785398f;
-const float BASDriver::steerSensitivityOffset=80.0f;
-const float BASDriver::wheelSensitivityCoeff=1;
+const float QOnlySpeedDriver::steerLock=0.785398f;
+const float QOnlySpeedDriver::steerSensitivityOffset=80.0f;
+const float QOnlySpeedDriver::wheelSensitivityCoeff=1;
 
 /* ABS Filter Constants */
-const float BASDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
-const float BASDriver::absSlip=2.0f;
-const float BASDriver::absRange=3.0f;
-const float BASDriver::absMinSpeed=3.0f;
+const float QOnlySpeedDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
+const float QOnlySpeedDriver::absSlip=2.0f;
+const float QOnlySpeedDriver::absRange=3.0f;
+const float QOnlySpeedDriver::absMinSpeed=3.0f;
 
 /* Clutch constants */
-const float BASDriver::clutchMax=0.5f;
-const float BASDriver::clutchDelta=0.05f;
-const float BASDriver::clutchRange=0.82f;
-const float BASDriver::clutchDeltaTime=0.02f;
-const float BASDriver::clutchDeltaRaced=10;
-const float BASDriver::clutchDec=0.01f;
-const float BASDriver::clutchMaxModifier=1.3f;
-const float BASDriver::clutchMaxTime=1.5f;
+const float QOnlySpeedDriver::clutchMax=0.5f;
+const float QOnlySpeedDriver::clutchDelta=0.05f;
+const float QOnlySpeedDriver::clutchRange=0.82f;
+const float QOnlySpeedDriver::clutchDeltaTime=0.02f;
+const float QOnlySpeedDriver::clutchDeltaRaced=10;
+const float QOnlySpeedDriver::clutchDec=0.01f;
+const float QOnlySpeedDriver::clutchMaxModifier=1.3f;
+const float QOnlySpeedDriver::clutchMaxTime=1.5f;
 
-int BASDriver::getGear(CarState &cs)
+int QOnlySpeedDriver::getGear(CarState &cs)
 {
 
     int gear = cs.getGear();
@@ -98,7 +99,7 @@ int BASDriver::getGear(CarState &cs)
         else // otherwhise keep current gear
             return gear;
 }
-float BASDriver::getSteer(CarState &cs)
+float QOnlySpeedDriver::getSteer(CarState &cs)
 {
 	// steering angle is compute by correcting the actual car angle w.r.t. to track 
 	// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
@@ -110,7 +111,7 @@ float BASDriver::getSteer(CarState &cs)
         return (targetAngle)/steerLock;
 
 }
-float BASDriver::getAccel(CarState &cs)
+float QOnlySpeedDriver::getAccel(CarState &cs)
 {
     // checks if car is out of track
     if (cs.getTrackPos() < 1 && cs.getTrackPos() > -1)
@@ -160,7 +161,7 @@ float BASDriver::getAccel(CarState &cs)
 
 }
 
-void BASDriver::init(float *angles)
+void QOnlySpeedDriver::init(float *angles)
 {
 	g_learn_step_count = -1;
 	g_reupdate_step_count = 0; //unnecessary, but good practice
@@ -171,7 +172,7 @@ void BASDriver::init(float *angles)
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
 	if (mp_Qinterface == NULL) {
-		cout << "Creating BASLearningInterface...\n";
+		cout << "Creating QOSLearningInterface...\n";
 		try
 		{
 			initInterface(true);
@@ -186,7 +187,7 @@ void BASDriver::init(float *angles)
 			exit(-3);
 		}
 	} else {
-		cout << "\nAlready created a BASLearningInterface. Skipping constructor and init.\n";
+		cout << "\nAlready created a QOSLearningInterface. Skipping constructor and init.\n";
 	}
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
@@ -205,22 +206,25 @@ void BASDriver::init(float *angles)
 	angles[9]=0;
 }
 
-void BASDriver::initInterface(bool load_network)
+void QOnlySpeedDriver::initInterface(bool load_network)
 {
-	mp_Qinterface = new BASLearningInterface();
+	mp_Qinterface = new QOSLearningInterface();
 	ifstream is;
-	is.open("log_files/BASDriver_QNN_step_9000_actionDim_0_left.txt"); // CHECK NOG EVEN DEZE BESTANDSNAAM!
+	is.open("log_files/QLearning_QNN_step_9000_action_1");
 	if(load_network && is.is_open()) {
 		is.close();
-		cout << "Loading NN from file.\n\n";
-		mp_Qinterface->init("log_files/BASDriver_QNN_step_9000");
+		cout << "Loading NN from file.";
+		mp_Qinterface->init("log_files/QLearning_QNN_step_9000");
 	}
 	else
 		mp_Qinterface->init();
 }
 
-CarControl BASDriver::wDrive(CarState cs)
+CarControl QOnlySpeedDriver::wDrive(CarState cs)
 {
+	//timeBeginPeriod(1);
+	//DWORD start = timeGetTime();
+
 	//keep track of time
 	g_count++;
 
@@ -277,8 +281,6 @@ CarControl BASDriver::wDrive(CarState cs)
 
 		//do the actual learning step
 		try{
-			mp_log->write("Do learning.");
-
 			doLearning(cs);
 		}catch (exception& e){
 			cout << e.what() << endl;
@@ -316,19 +318,12 @@ CarControl BASDriver::wDrive(CarState cs)
 			try{
 				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
 				g_reupdate_step_count = 0;
-				stringstream log;
-				
 				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
-					log << "Reupdating...\n";
 					//Currently, these steps do not count for the max_steps of g_learning_done
-					log << "reupdate count: " << g_reupdate_step_count << "   reupdate steps per tick: "
-						<< g_reupdate_steps_per_tick << endl;
-					mp_Qinterface->updateWithOldTuple(BASLearningInterface::RANDOM);
+					mp_Qinterface->updateWithOldTuple(QOSLearningInterface::RANDOM);
 					g_reupdate_step_count++;
 				}
-				if(g_reupdate_step_count > 0)
-					log << "\nDone reupdating.\n";
-				mp_log->write(log.str());
+				
 			}catch (exception& e){
 				cout << e.what() << endl;
 				char end;
@@ -340,10 +335,20 @@ CarControl BASDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
+	//DWORD end = timeGetTime();
+	//timeEndPeriod(1);
+	//DWORD  diff = end - start;
+	////if(g_count % g_steps_per_action == 0) 
+	////	cout << "time taken: " << diff << endl;
+	//if(diff >= 10){
+	//	stringstream debug_msg;
+	//	debug_msg << g_count << ": time out";
+	//	mp_log->write(debug_msg.str());
+	//}
 	return rlControl(cs);
 }
 
-double BASDriver::computeReward(CarState &state, double* action, CarState &next_state)
+double QOnlySpeedDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
 	//double[2] action is not used for computing the reward
 	double reward = 0;
@@ -368,25 +373,28 @@ double BASDriver::computeReward(CarState &state, double* action, CarState &next_
 	//	reward += action[1];
 
 	/////////OUTPUT
-	stringstream log;
-	log << "time: " << g_count <<"\treward: " << reward << ". ";
-	mp_log->write(log.str());
-	stringstream rew_log;
-	rew_log << reward;
-	mp_reward_writer->write(rew_log.str());
+	//stringstream log;
+	//log << "time: " << g_count <<"\treward: " << reward << ". ";
+	//mp_log->write(log.str());
+	//stringstream rew_log;
+	//rew_log << reward;
+	//mp_reward_writer->write(rew_log.str());
 	//cout << endl << log.str() << endl;
+
+	//cout << "time: " << g_count <<"\treward: " << reward << ". ";
 
 	return reward;
 }
 
-void BASDriver::doLearning(CarState &cs) 
+void QOnlySpeedDriver::doLearning(CarState &cs) 
 {
 	if (g_count % (g_print_mod) == 0){
 		//cout << "Time: " << g_count << ". ";
 		cout << "\tLearn steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
-	//delete mp_features;
+	//if (mp_features != NULL)
+	//	delete mp_features;
 	//mp_features = createFeatureVectorPointer(cs);
 	createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
 	
@@ -398,9 +406,10 @@ void BASDriver::doLearning(CarState &cs)
 	while(	l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
-			g_learning_done = mp_Qinterface->learningUpdateStep(true, BASLearningInterface::RANDOM);
+			//g_learning_done = mp_Qinterface->learningUpdateStep(true, QOSLearningInterface::TD); 
+			g_learning_done = mp_Qinterface->learningUpdateStep(false, QOSLearningInterface::RANDOM); // We do not store tuples at the moment
 		else
-			g_learning_done = mp_Qinterface->learningUpdateStep(false, BASLearningInterface::RANDOM);
+			g_learning_done = mp_Qinterface->learningUpdateStep(false, QOSLearningInterface::RANDOM);
 		l_learn_step_count++;
 		g_learn_step_count++;
 	}
@@ -408,7 +417,7 @@ void BASDriver::doLearning(CarState &cs)
 	//write state to log
 	//mp_Qinterface->logState(g_count);
 	//log original action for debug purposes
-	mp_Qinterface->logAction(g_count);
+	//mp_Qinterface->logAction(g_count);
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
@@ -420,7 +429,7 @@ void BASDriver::doLearning(CarState &cs)
 	}
 }
 
-CarControl BASDriver::carStuckControl(CarState & cs)
+CarControl QOnlySpeedDriver::carStuckControl(CarState & cs)
 {
 	debug_stuck_count++;
 	float acc = 0.8f;
@@ -450,7 +459,7 @@ CarControl BASDriver::carStuckControl(CarState & cs)
     return cc;
 }
 
-CarControl BASDriver::simpleBotControl(CarState &cs)
+CarControl QOnlySpeedDriver::simpleBotControl(CarState &cs)
 {
 	// compute gear 
     int gear = getGear(cs);
@@ -488,7 +497,7 @@ CarControl BASDriver::simpleBotControl(CarState &cs)
 	return cc;
 }
 
-CarControl BASDriver::rlControl(CarState &cs)
+CarControl QOnlySpeedDriver::rlControl(CarState &cs)
 {
 	//cout << "Time: " << cs.getCurLapTime() << endl;
 	debug_rlcontrol_count++;
@@ -520,20 +529,20 @@ CarControl BASDriver::rlControl(CarState &cs)
     return cc;
 }
 
-void BASDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+void QOnlySpeedDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 {
 	//Check if user wants to restart
 	if (getKeyboardInput() == 'r')
 		cc.setMeta(cc.META_RESTART);
 
 	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count + g_reupdate_step_count >= 5000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	if(g_learn_step_count + g_reupdate_step_count >= 2000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
 		cout << "Learning steps during this run: " << g_learn_step_count << endl;
-		cout << "RL Control steps during this run: " << debug_rlcontrol_count << endl;
-		cout << "Stuck steps during this run: " << debug_stuck_count << endl;
+		//cout << "RL Control steps during this run: " << debug_rlcontrol_count << endl;
+		//cout << "Stuck steps during this run: " << debug_stuck_count << endl;
 		debug_stuck_count = 0;
 		debug_rlcontrol_count = 0;
 		g_learn_step_count = -1;
@@ -541,7 +550,7 @@ void BASDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cout << "Experiment nr: " << g_experiment_count;
 	}
 
-	if(g_experiment_count == 5) {
+	if(g_experiment_count == 15) {
 		cout << "\nExperiments done.\n";
 		#ifdef WIN32
 				char end;
@@ -551,7 +560,7 @@ void BASDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	}
 }
 
-float BASDriver::filterABS(CarState &cs,float brake)
+float QOnlySpeedDriver::filterABS(CarState &cs,float brake)
 {
 	// convert speed to m/s
 	float speed = float(cs.getSpeedX() / 3.6);
@@ -580,19 +589,21 @@ float BASDriver::filterABS(CarState &cs,float brake)
     	return brake;
 }
 
-void BASDriver::onShutdown()
+void QOnlySpeedDriver::onShutdown()
 {
 	cout << "Bye bye!" << endl;
 	delete mp_features;
+	mp_features = NULL;
 	delete mp_log;
 	delete mp_reward_writer;
 	delete mp_Qinterface; 
 	delete gp_prev_state;
 }
 
-void BASDriver::onRestart()
+void QOnlySpeedDriver::onRestart()
 {
-	//delete mp_features; //should probably not be deleted when restarting.
+	//delete mp_features;
+	mp_features = NULL;
 	//delete mp_Qinterface; // We are not reinitializing the interface between runs.
 	//This may have negative side-effects, I have not completely thought this through.
     cout << "Restarting the race!" << endl;
@@ -600,7 +611,7 @@ void BASDriver::onRestart()
 	delete mp_reward_writer;
 
 	stringstream newfile;
-	newfile << "log_files/BAS_driver_rewards_" << g_experiment_count << ".txt";
+	newfile << "log_files/QOnlySpeedDriver_rewards_" << g_experiment_count << ".txt";
 	mp_reward_writer = new Writer(newfile.str());
 
 	//try{
@@ -610,7 +621,7 @@ void BASDriver::onRestart()
 	//}
 }
 
-void BASDriver::clutching(CarState &cs, float &clutch)
+void QOnlySpeedDriver::clutching(CarState &cs, float &clutch)
 {
   double maxClutch = clutchMax;
 
@@ -646,7 +657,7 @@ void BASDriver::clutching(CarState &cs, float &clutch)
   }
 }
 
-char BASDriver::getKeyboardInput()
+char QOnlySpeedDriver::getKeyboardInput()
 {
     if (_kbhit())
     {

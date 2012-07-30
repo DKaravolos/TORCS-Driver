@@ -1,5 +1,5 @@
 #include "LearningInterface.h"
-#include <Windows.h>
+//#include <Windows.h>
 using namespace std;
 
 ///////////////Initialization functions///////////////////
@@ -213,7 +213,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	//Check for stop conditions
 	if( (mp_parameters->step >= mp_experiment->nSteps) ){
 		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
-		mp_algorithm->writeQNN("log_files/QLearning"); //write NN to file if done with learning
+		mp_algorithm->writeQNN("log_files/QLearning_end_"); //write NN to file if done with learning
 		mp_log->write("Writing QNN after stop condition\n");
 		return true;
 	}
