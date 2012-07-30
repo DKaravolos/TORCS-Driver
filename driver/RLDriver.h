@@ -1,6 +1,9 @@
-#ifndef RecitingDriver_H_
-#define RecitingDriver_H_
+#ifndef RLDriver_H_
+#define RLDriver_H_
 
+#ifdef WIN32
+	#include <conio.h>
+#endif
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,23 +15,31 @@
 #include "WrapperBaseDriver.h"
 //
 #include <vector>
+
 //Functions/classes by Daniel:
+#ifdef WIN32
+#include "..\learning\RLInterface.h"
 #include "..\utilities\createFeatureVector.h"
 #include "..\utilities\printFeatureVector.h"
-#include "..\learning\LearningInterface.h"
 #include "..\utilities\Writer.h"
+#else
+#include "../learning/RLInterface.h"
+#include "../utilities/createFeatureVector.h"
+#include "../utilities/printFeatureVector.h"
+#include "../utilities/Writer.h"
+#endif
 
 
 #define PI 3.14159265
 
 using namespace std;
 
-class RecitingDriver : public RLDriver
+class RLDriver : public WrapperBaseDriver
 {
 public:
 	
 	// Constructor
-	RecitingDriver();
+	RLDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);
@@ -37,12 +48,12 @@ public:
 	virtual void onShutdown();
 	
 	// Print a restart message 
-	virtual void onRestart();
+	virtual void onRestart()=0;
 
 	// Initialization of the desired angles for the rangefinders
 	virtual void init(float *angles);
 
-private:
+protected:
 	
 	/* Gear Changing Constants*/
 	
@@ -120,19 +131,19 @@ private:
 	void clutching(CarState &cs, float &clutch);
 
 	////////Functions added by Daniel:
-	void initInterface(bool load_network);
-	double computeReward(CarState &state, double* action, CarState &next_state);
-	void doLearning(CarState &cs);
-	CarControl carStuckControl(CarState &cs);
-	CarControl simpleBotControl(CarState &cs);
-	CarControl rlControl(CarState &cs);
-	void endOfRunCheck(CarState &cs, CarControl &cc);
-	char getKeyboardInput();
+	virtual void initInterface(bool load_network)=0;
+	virtual double computeReward(CarState &state, double* action, CarState &next_state);
+	virtual void doLearning(CarState &cs);
+	virtual CarControl carStuckControl(CarState &cs);
+	virtual CarControl simpleBotControl(CarState &cs);
+	virtual CarControl rlControl(CarState &cs);
+	virtual void endOfRunCheck(CarState &cs, CarControl &cc);
+	virtual char getKeyboardInput();
 
 
 	///////Datamembers added by Daniel:
 	vector<double>* mp_features;
-	LearningInterface* mp_Qinterface;
+	RLInterface* mp_RLinterface;
 	double* mp_action_set;
 	Writer* mp_log;
 	Writer* mp_reward_writer;
@@ -163,4 +174,4 @@ private:
 	int debug_rlcontrol_count;
 };
 
-#endif /*RecitingDriver_H_*/
+#endif /*RLDriver_H_*/

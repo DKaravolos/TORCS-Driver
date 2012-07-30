@@ -1,15 +1,16 @@
-#include "RecitingDriver.h"
+#include "RLDriver.h"
 #ifdef WIN32
     #include <Windows.h>
 #endif
-RecitingDriver::RecitingDriver()
+
+RLDriver::RLDriver()
 {
 	debug_stuck_count = 0;
 	debug_rlcontrol_count = 0;
 
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
-	mp_Qinterface = NULL;
+	mp_RLinterface = NULL;
 	gp_prev_state = NULL;
 
 	g_steps_per_action = 10;
@@ -18,66 +19,62 @@ RecitingDriver::RecitingDriver()
 	g_reupdate_steps_per_tick = 0;
 
 	g_stuck_penalty = 0;
-	
 	g_experiment_count = 0;
-
-	mp_log = new Writer("log_files/Reciting_driver_log.txt");
-	mp_reward_writer = new Writer("log_files/Reciting_driver_rewards_0.txt");
 }
 
 /* Gear Changing Constants*/
-const int RecitingDriver::gearUp[6]=
+const int RLDriver::gearUp[6]=
     {
         8000,9500,9500,9500,9500,0
     };
-const int RecitingDriver::gearDown[6]=
+const int RLDriver::gearDown[6]=
     {
         0,4000,6300,7000,7300,7300
     };
 
 /*
-const int RecitingDriver::gearUp[6]=
+const int RLDriver::gearUp[6]=
     {
         5000,6000,6000,6500,7000,0
     };
-const int RecitingDriver::gearDown[6]=
+const int RLDriver::gearDown[6]=
     {
         0,2500,3000,3000,3500,3500
     };
 //*/
 
 /* Stuck constants*/
-const int RecitingDriver::stuckTime = 25;
-const float RecitingDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
+const int RLDriver::stuckTime = 25;
+const float RLDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
 
 /* Accel and Brake Constants*/
-const float RecitingDriver::maxSpeedDist=70;
-const float RecitingDriver::maxSpeed=150;
-const float RecitingDriver::sin5 = 0.08716f;
-const float RecitingDriver::cos5 = 0.99619f;
+const float RLDriver::maxSpeedDist=70;
+const float RLDriver::maxSpeed=150;
+const float RLDriver::sin5 = 0.08716f;
+const float RLDriver::cos5 = 0.99619f;
 
 /* Steering constants*/
-const float RecitingDriver::steerLock=0.785398f;
-const float RecitingDriver::steerSensitivityOffset=80.0f;
-const float RecitingDriver::wheelSensitivityCoeff=1;
+const float RLDriver::steerLock=0.785398f;
+const float RLDriver::steerSensitivityOffset=80.0f;
+const float RLDriver::wheelSensitivityCoeff=1;
 
 /* ABS Filter Constants */
-const float RecitingDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
-const float RecitingDriver::absSlip=2.0f;
-const float RecitingDriver::absRange=3.0f;
-const float RecitingDriver::absMinSpeed=3.0f;
+const float RLDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
+const float RLDriver::absSlip=2.0f;
+const float RLDriver::absRange=3.0f;
+const float RLDriver::absMinSpeed=3.0f;
 
 /* Clutch constants */
-const float RecitingDriver::clutchMax=0.5f;
-const float RecitingDriver::clutchDelta=0.05f;
-const float RecitingDriver::clutchRange=0.82f;
-const float RecitingDriver::clutchDeltaTime=0.02f;
-const float RecitingDriver::clutchDeltaRaced=10;
-const float RecitingDriver::clutchDec=0.01f;
-const float RecitingDriver::clutchMaxModifier=1.3f;
-const float RecitingDriver::clutchMaxTime=1.5f;
+const float RLDriver::clutchMax=0.5f;
+const float RLDriver::clutchDelta=0.05f;
+const float RLDriver::clutchRange=0.82f;
+const float RLDriver::clutchDeltaTime=0.02f;
+const float RLDriver::clutchDeltaRaced=10;
+const float RLDriver::clutchDec=0.01f;
+const float RLDriver::clutchMaxModifier=1.3f;
+const float RLDriver::clutchMaxTime=1.5f;
 
-int RecitingDriver::getGear(CarState &cs)
+int RLDriver::getGear(CarState &cs)
 {
 
     int gear = cs.getGear();
@@ -100,7 +97,7 @@ int RecitingDriver::getGear(CarState &cs)
         else // otherwhise keep current gear
             return gear;
 }
-float RecitingDriver::getSteer(CarState &cs)
+float RLDriver::getSteer(CarState &cs)
 {
 	// steering angle is compute by correcting the actual car angle w.r.t. to track 
 	// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
@@ -112,7 +109,7 @@ float RecitingDriver::getSteer(CarState &cs)
         return (targetAngle)/steerLock;
 
 }
-float RecitingDriver::getAccel(CarState &cs)
+float RLDriver::getAccel(CarState &cs)
 {
     // checks if car is out of track
     if (cs.getTrackPos() < 1 && cs.getTrackPos() > -1)
@@ -162,7 +159,7 @@ float RecitingDriver::getAccel(CarState &cs)
 
 }
 
-void RecitingDriver::init(float *angles)
+void RLDriver::init(float *angles)
 {
 	g_learn_step_count = -1;
 	g_reupdate_step_count = 0; //unnecessary, but good practice
@@ -172,24 +169,24 @@ void RecitingDriver::init(float *angles)
 
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
-	if (mp_Qinterface == NULL) {
-		cout << "Creating LearningInterface...\n";
-		try
-		{
-			initInterface(true);
-			cout << "Done.\n";
-		} catch (exception& e)
-		{
-			cerr << e.what() << endl;
-			#ifdef WIN32
-				char end;
-				cin >> end;
-			#endif
-			exit(-3);
-		}
-	} else {
-		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
-	}
+//	if (mp_RLinterface == NULL) {
+//		cout << "Creating LearningInterface...\n";
+//		try
+//		{
+//			initInterface(true);
+//			cout << "Done.\n";
+//		} catch (exception& e)
+//		{
+//			cerr << e.what() << endl;
+//			#ifdef WIN32
+//				char end;
+//				cin >> end;
+//			#endif
+//			exit(-3);
+//		}
+//	} else {
+//		cout << "\nAlready created a LearningInterface. Skipping constructor and init.\n";
+//	}
 
 	// set angles as {-90,-75,-60,-45,-30,20,15,10,5,0,5,10,15,20,30,45,60,75,90}
 
@@ -207,25 +204,8 @@ void RecitingDriver::init(float *angles)
 	angles[9]=0;
 }
 
-void RecitingDriver::initInterface(bool load_network)
+CarControl RLDriver::wDrive(CarState cs)
 {
-	mp_Qinterface = new LearningInterface();
-	ifstream is;
-	is.open("log_files/QLearning_QNN_step_9000_action_1");
-	if(load_network && is.is_open()) {
-		is.close();
-		cout << "Loading NN from file.";
-		mp_Qinterface->init("log_files/QLearning_QNN_step_9000");
-	}
-	else
-		mp_Qinterface->init();
-}
-
-CarControl RecitingDriver::wDrive(CarState cs)
-{
-	timeBeginPeriod(1);
-	DWORD start = timeGetTime();
-
 	//keep track of time
 	g_count++;
 
@@ -242,7 +222,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
     if (stuck > stuckTime) {
     	/* set control, assuming car is pointing in a direction out of track */
 		g_stuck_step_count++;
-		mp_Qinterface->setEOE();
+		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
 		//cc.setMeta(cc.META_RESTART); //NEW: Stuck means restart of race without penalty
 		return cc;
@@ -278,7 +258,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		
 		//if( g_count % g_print_mod == 0)
 		//	cout << "\tFinal Reward: " << l_c_reward <<endl;
-		mp_Qinterface->setRewardPrevAction(l_reward);
+		mp_RLinterface->setRewardPrevAction(l_reward);
 
 		//do the actual learning step
 		try{
@@ -291,7 +271,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		}
 
 		//get the driver's action
-		mp_action_set = mp_Qinterface->getAction(); //update after computing reward, so it can be used as "last action" for computeReward
+		mp_action_set = mp_RLinterface->getAction(); //update after computing reward, so it can be used as "last action" for computeReward
 		if (mp_action_set == NULL) {
 			cout << "Action is a NULL POINTER. Something went wrong.\n";
 			char end;
@@ -311,7 +291,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 
 	} else {
-		mp_action_set = mp_Qinterface->getAction();
+		mp_action_set = mp_RLinterface->getAction();
 		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
 			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
 		{
@@ -321,7 +301,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 				g_reupdate_step_count = 0;
 				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
 					//Currently, these steps do not count for the max_steps of g_learning_done
-					mp_Qinterface->updateWithOldTuple(LearningInterface::TD);
+					mp_RLinterface->updateWithOldTuple(RLInterface::TD);
 					g_reupdate_step_count++;
 				}
 				
@@ -336,9 +316,6 @@ CarControl RecitingDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
-	DWORD end = timeGetTime();
-	timeEndPeriod(1);
-	DWORD  diff = end - start;
 	//if(g_count % g_steps_per_action == 0) 
 	//	cout << "time taken: " << diff << endl;
 	if(diff >= 10){
@@ -349,7 +326,7 @@ CarControl RecitingDriver::wDrive(CarState cs)
 	return rlControl(cs);
 }
 
-double RecitingDriver::computeReward(CarState &state, double* action, CarState &next_state)
+double RLDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
 	//double[2] action is not used for computing the reward
 	double reward = 0;
@@ -387,7 +364,7 @@ double RecitingDriver::computeReward(CarState &state, double* action, CarState &
 	return reward;
 }
 
-void RecitingDriver::doLearning(CarState &cs) 
+void RLDriver::doLearning(CarState &cs) 
 {
 	if (g_count % (g_print_mod) == 0){
 		//cout << "Time: " << g_count << ". ";
@@ -400,25 +377,25 @@ void RecitingDriver::doLearning(CarState &cs)
 	createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
 	
 	//Create a state
-	mp_Qinterface->setState(mp_features);
+	mp_RLinterface->setState(mp_features);
 	
 	//Do some learning
 	int l_learn_step_count = 0;
 	while(	l_learn_step_count < g_learn_steps_per_tick
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
-			//g_learning_done = mp_Qinterface->learningUpdateStep(true, LearningInterface::TD); 
-			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::TD); // We do not store tuples at the moment
+			//g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::TD); 
+			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::TD); // We do not store tuples at the moment
 		else
-			g_learning_done = mp_Qinterface->learningUpdateStep(false, LearningInterface::TD);
+			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::TD);
 		l_learn_step_count++;
 		g_learn_step_count++;
 	}
 
 	//write state to log
-	//mp_Qinterface->logState(g_count);
+	//mp_RLinterface->logState(g_count);
 	//log original action for debug purposes
-	//mp_Qinterface->logAction(g_count);
+	//mp_RLinterface->logAction(g_count);
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
@@ -430,7 +407,7 @@ void RecitingDriver::doLearning(CarState &cs)
 	}
 }
 
-CarControl RecitingDriver::carStuckControl(CarState & cs)
+CarControl RLDriver::carStuckControl(CarState & cs)
 {
 	debug_stuck_count++;
 	float acc = 0.8f;
@@ -460,7 +437,7 @@ CarControl RecitingDriver::carStuckControl(CarState & cs)
     return cc;
 }
 
-CarControl RecitingDriver::simpleBotControl(CarState &cs)
+CarControl RLDriver::simpleBotControl(CarState &cs)
 {
 	// compute gear 
     int gear = getGear(cs);
@@ -498,7 +475,7 @@ CarControl RecitingDriver::simpleBotControl(CarState &cs)
 	return cc;
 }
 
-CarControl RecitingDriver::rlControl(CarState &cs)
+CarControl RLDriver::rlControl(CarState &cs)
 {
 	//cout << "Time: " << cs.getCurLapTime() << endl;
 	debug_rlcontrol_count++;
@@ -530,7 +507,7 @@ CarControl RecitingDriver::rlControl(CarState &cs)
     return cc;
 }
 
-void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 {
 	//Check if user wants to restart
 	if (getKeyboardInput() == 'r')
@@ -561,7 +538,7 @@ void RecitingDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	}
 }
 
-float RecitingDriver::filterABS(CarState &cs,float brake)
+float RLDriver::filterABS(CarState &cs,float brake)
 {
 	// convert speed to m/s
 	float speed = float(cs.getSpeedX() / 3.6);
@@ -590,39 +567,18 @@ float RecitingDriver::filterABS(CarState &cs,float brake)
     	return brake;
 }
 
-void RecitingDriver::onShutdown()
+void RLDriver::onShutdown()
 {
 	cout << "Bye bye!" << endl;
 	delete mp_features;
 	mp_features = NULL;
 	delete mp_log;
 	delete mp_reward_writer;
-	delete mp_Qinterface; 
+	delete mp_RLinterface; 
 	delete gp_prev_state;
 }
 
-void RecitingDriver::onRestart()
-{
-	//delete mp_features;
-	mp_features = NULL;
-	//delete mp_Qinterface; // We are not reinitializing the interface between runs.
-	//This may have negative side-effects, I have not completely thought this through.
-    cout << "Restarting the race!" << endl;
-	g_learn_step_count = -1;
-	delete mp_reward_writer;
-
-	stringstream newfile;
-	newfile << "log_files/Reciting_driver_rewards_" << g_experiment_count << ".txt";
-	mp_reward_writer = new Writer(newfile.str());
-
-	//try{
-	//	initInterface(true);
-	//} catch(exception& e) {
-	//	cout << e.what() << endl;
-	//}
-}
-
-void RecitingDriver::clutching(CarState &cs, float &clutch)
+void RLDriver::clutching(CarState &cs, float &clutch)
 {
   double maxClutch = clutchMax;
 
@@ -658,12 +614,15 @@ void RecitingDriver::clutching(CarState &cs, float &clutch)
   }
 }
 
-char RecitingDriver::getKeyboardInput()
+char RLDriver::getKeyboardInput()
 {
+#ifdef WIN32 //sorry, function is not implemented for linux
     if (_kbhit())
     {
         //_getch(); // edit : if you want to check the arrow-keys you must call getch twice because special-keys have two values
         return _getch();
     }
     return 0; // if no key is pressed
+#endif
+
 }
