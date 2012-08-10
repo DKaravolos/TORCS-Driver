@@ -8,6 +8,7 @@ class BASLearningInterface: public RLInterface
 {
 	public:
 
+		//initialisation
 		BASLearningInterface(void);
 		~BASLearningInterface(void);
 		void init();
@@ -16,6 +17,9 @@ class BASLearningInterface: public RLInterface
 		//learning functions
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
+
+		//other
+		void writeNetwork(int identifier);
 
 	protected:
 		//datamembers

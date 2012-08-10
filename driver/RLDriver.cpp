@@ -1,13 +1,10 @@
 #include "RLDriver.h"
-#ifdef WIN32
-    #include <Windows.h>
-#endif
+//#ifdef WIN32
+//    #include <Windows.h>
+//#endif
 
 RLDriver::RLDriver()
 {
-	debug_stuck_count = 0;
-	debug_rlcontrol_count = 0;
-
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
 	mp_RLinterface = NULL;
@@ -16,10 +13,24 @@ RLDriver::RLDriver()
 	g_steps_per_action = 10;
 	g_print_mod = g_steps_per_action;
 	g_learn_steps_per_tick = 1;
-	g_reupdate_steps_per_tick = 0;
+	g_reupdate_steps_per_tick = 1;
 
 	g_stuck_penalty = 0;
 	g_experiment_count = 0;
+
+	debug_rlcontrol_count = 0;
+
+	cout << "Do you want to save the neural network? (y/n)\n";
+	char answer = 'n';
+	cin >> answer;
+	if(answer == 'y')
+	{
+		cout << "Saving nn.\n";
+		m_save_nn = true;
+	} else {
+		cout << "Not saving nn.\n";
+		m_save_nn = false;
+	}
 }
 
 /* Gear Changing Constants*/
@@ -55,8 +66,10 @@ const float RLDriver::cos5 = 0.99619f;
 
 /* Steering constants*/
 const float RLDriver::steerLock=0.785398f;
-const float RLDriver::steerSensitivityOffset=80.0f;
-const float RLDriver::wheelSensitivityCoeff=1;
+//const float RLDriver::steerSensitivityOffset=80.0f;
+//const float RLDriver::wheelSensitivityCoeff=1;
+const float RLDriver::steerSensitivityOffset=100.0f;
+const float RLDriver::wheelSensitivityCoeff=0.5;
 
 /* ABS Filter Constants */
 const float RLDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
@@ -107,8 +120,8 @@ float RLDriver::getSteer(CarState &cs)
         return targetAngle/(steerLock*(cs.getSpeedX()-steerSensitivityOffset)*wheelSensitivityCoeff);
     else
         return (targetAngle)/steerLock;
-
 }
+
 float RLDriver::getAccel(CarState &cs)
 {
     // checks if car is out of track
@@ -161,11 +174,12 @@ float RLDriver::getAccel(CarState &cs)
 
 void RLDriver::init(float *angles)
 {
-	g_learn_step_count = -1;
-	g_reupdate_step_count = 0; //unnecessary, but good practice
-	g_count = -1;
+	g_learn_step_count = -1; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+	g_reupdate_step_count = 0;
+	g_count = 0;
 	g_learning_done = false;
 	g_first_time = true;
+	g_reupdates_left = 0;
 
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
@@ -219,12 +233,11 @@ CarControl RLDriver::wDrive(CarState cs)
     }
 
 	// after car is stuck for a while apply recovering policy
-    if (stuck > stuckTime) {
+	if ((stuck > stuckTime) && (cs.getSpeedX() <= 5)) {
     	/* set control, assuming car is pointing in a direction out of track */
 		g_stuck_step_count++;
 		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
-		//cc.setMeta(cc.META_RESTART); //NEW: Stuck means restart of race without penalty
 		return cc;
     }
 
@@ -247,11 +260,20 @@ CarControl RLDriver::wDrive(CarState cs)
 	
 	if(g_count % g_steps_per_action == 0) 
 	{
+		//cout << "Time: "<< g_count << ". Learn step.\n";
+		
+		//Guard the update:reupdate ratio
+		g_reupdates_left += 9; //I suppose you could let the user choose this number or at least see it as a parameter
+
 		//Compute reward of last action
 		double l_reward;
 		if(gp_prev_state != NULL)
+		{
 			l_reward = computeReward(*gp_prev_state, mp_action_set, cs);
-		else{
+			stringstream ss;
+			ss << l_reward;
+			mp_reward_writer->write(ss.str());
+		}else{
 			l_reward = 0;
 			cout << "gp_prev_state is NULL. l_reward is zero.\n";
 		}
@@ -290,19 +312,38 @@ CarControl RLDriver::wDrive(CarState cs)
 		//mp_log->write(log.str());
 		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 
+	} else if (g_reupdates_left == 0) {
+		//It seems that stuckControl has ended before a g_count % 10 == 0.
+		//We do not want to perform updates until a learn step has been done (i.e. g_count % 10 == 0 again),
+		//because then we will lose our fixed update:reupdate ratio.
+		//But our current time tracking does not allow us to perform a learn step,
+		//so instead of making time tracking more adaptive, we do script controlled steps
+		g_stuck_step_count++;
+    	CarControl cc =  simpleBotControl(cs);
+		return cc;
 	} else {
+		--g_reupdates_left;
+		//cout << "Time: "<< g_count << ". Reupdate step. Reupdates left: " << g_reupdates_left << endl;
+
 		mp_action_set = mp_RLinterface->getAction();
 		if (cs.getCurLapTime() > 0 && g_count > g_steps_per_action) 
-			//DE EERSTE g_steps_per_action STAPPEN VAN -->ELKE RONDE<-- UPDATE HIJ DUS NIET!!
+			//De eerste g_steps_per_action stappen van elke ronde reupdate hij niet, omdat de eerste actie een random actie was.
+			//De state na eerste actie wordt gebruikt als beginstate, omdat er dan pas een vorige state + actie is.
+			//Daarom staat de learning_count ook eerst op -1. Na de eerste function call wordt deze op 0 gezet,
+			//waardoor hij na de eerste update pas op 1 staat.
+			//Het is dus ook niet logisch om in de tussentijd al wel te reupdaten.
+			//Als gevolg hiervan staan er dus 1+g_steps_per_action (10) rlcontrol acties die niet
+			//in de learning_count of reupdate_count terug komen. Dat is dus verklaarbaar, logisch en gewenst.
 		{
 			//cout << "Driver: updating random old tuple\n";
 			try{
 				//cout << "g_count: " << g_count << "\t steps per action: " << g_steps_per_action << endl;
-				g_reupdate_step_count = 0;
-				while(g_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
+				int l_reupdate_step_count = 0;
+				while(l_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
 					//Currently, these steps do not count for the max_steps of g_learning_done
 					mp_RLinterface->updateWithOldTuple(RLInterface::TD);
 					g_reupdate_step_count++;
+					l_reupdate_step_count++;
 				}
 				
 			}catch (exception& e){
@@ -316,13 +357,6 @@ CarControl RLDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
-	//if(g_count % g_steps_per_action == 0) 
-	//	cout << "time taken: " << diff << endl;
-	//if(diff >= 10){
-	//	stringstream debug_msg;
-	//	debug_msg << g_count << ": time out";
-	//	mp_log->write(debug_msg.str());
-	//}
 	return rlControl(cs);
 }
 
@@ -336,8 +370,16 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//cout << "Distance reward: "<< dist_reward <<endl;
 	reward+= dist_reward;
 
+	if(next_state.getSpeedX() <= 10) //Drive, damn you!!
+		reward -= 2;
+	if(next_state.getSpeedX() <= 5)
+		reward -= 2;
+	if(next_state.getSpeedX() >= 10)
+		reward += 2;
 	///////////POSITION
-	double pos_reward = -abs(next_state.getTrackPos());
+	double pos_reward = 0;
+	if(abs(next_state.getTrackPos() > 0.5))
+		pos_reward = -2* abs(next_state.getTrackPos());
 	reward += pos_reward;
 	//cout << "Position reward: "<< pos_reward << endl;
 
@@ -359,7 +401,7 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//mp_reward_writer->write(rew_log.str());
 	//cout << endl << log.str() << endl;
 
-	//cout << "time: " << g_count <<"\treward: " << reward << ". ";
+	cout << "time: " << g_count <<"\treward: " << reward << ". ";
 
 	return reward;
 }
@@ -374,8 +416,8 @@ void RLDriver::doLearning(CarState &cs)
 	//if (mp_features != NULL)
 	//	delete mp_features;
 	//mp_features = createFeatureVectorPointer(cs);
-	createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-	
+	//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
+	createSmallFeatureVectorPointer(cs, mp_features);
 	//Create a state
 	mp_RLinterface->setState(mp_features);
 	
@@ -385,7 +427,7 @@ void RLDriver::doLearning(CarState &cs)
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
 			//g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::TD); 
-			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::TD); // We do not store tuples at the moment
+			g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::TD); // We do store tuples at the moment
 		else
 			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::TD);
 		l_learn_step_count++;
@@ -409,7 +451,6 @@ void RLDriver::doLearning(CarState &cs)
 
 CarControl RLDriver::carStuckControl(CarState & cs)
 {
-	debug_stuck_count++;
 	float acc = 0.8f;
 	// to bring car parallel to track axis
     float steer =  - cs.getAngle() / steerLock; 
@@ -441,7 +482,7 @@ CarControl RLDriver::simpleBotControl(CarState &cs)
 {
 	// compute gear 
     int gear = getGear(cs);
-	cout << "Using script to steer.\n";
+	cout << "Time: "<< g_count << ". Using script to steer.\n";
     // compute accel/brake command
 	float accel_and_brake = getAccel(cs);
 	// compute steering
@@ -477,8 +518,8 @@ CarControl RLDriver::simpleBotControl(CarState &cs)
 
 CarControl RLDriver::rlControl(CarState &cs)
 {
-	//cout << "Time: " << cs.getCurLapTime() << endl;
 	debug_rlcontrol_count++;
+	//cout << "Time: " << cs.getCurLapTime() << endl;
 	// compute gear 
     int gear = getGear(cs);
 	float steer = float(mp_action_set[0]);
@@ -513,22 +554,42 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	if (getKeyboardInput() == 'r')
 		cc.setMeta(cc.META_RESTART);
 
-	//if(g_count >= 20000 || cs.getCurLapTime() > 390.00) //20.000 ticks of 6.5 minuut game tijd
-	if(g_learn_step_count + g_reupdate_step_count >= 2000) //(g_learn_step_count >= 400) //or (g_count >= 4000) //(g_learn_step_count + g_reupdate_step_count >= 5000)
+	stringstream debug_msg;
+	if(g_learn_step_count + g_reupdate_step_count >= 10000) // or (g_count >= 4000) ?
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
-		cout << "Learning steps during this run: " << g_learn_step_count << endl;
-		//cout << "RL Control steps during this run: " << debug_rlcontrol_count << endl;
-		//cout << "Stuck steps during this run: " << debug_stuck_count << endl;
-		debug_stuck_count = 0;
-		debug_rlcontrol_count = 0;
-		g_learn_step_count = -1;
-		g_experiment_count++;
+		//cout << "Learning steps during this run: " << g_learn_step_count << endl;
+		
+		debug_msg << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl;
+		debug_msg << "rl_control: " << debug_rlcontrol_count << endl;
+		mp_log->write(debug_msg.str());
+		
+		g_experiment_count++;		
 		cout << "Experiment nr: " << g_experiment_count;
+
+		//When should the network be saved?
+		if(g_experiment_count == 1 || g_experiment_count % 2 == 0)
+		{
+			int l_id = m_step_id + g_experiment_count * (g_learn_step_count + g_reupdate_step_count);
+			if(m_save_nn) //Only save NN if the user wants to.
+			{
+				cout << "Saving Network\n";
+				mp_RLinterface->writeNetwork(l_id, m_step_id);
+			} else {
+				cout << "NOT SAVING NETWORK!\n";
+			}
+		}
 	}
 
-	if(g_experiment_count == 15) {
+		//Ik dacht dat onderstaande 2 regels niet nodig waren, want dit gebeurt ook in init(),
+		//maar met de boltzmann experimenten komt hij achter elkaar binnen deze if-statement.
+		//Deze 2 regels moeten ervoor zorgen dat hij niet zomaar achter elkaar hierin komt.
+		//g_learn_step_count = -1;
+		//g_reupdate_step_count = 0;
+
+	//Experiments are done when the # of experiments is equal to m_exp_count (that was defined by the user).
+	if(g_experiment_count == m_exp_count) {
 		cout << "\nExperiments done.\n";
 		#ifdef WIN32
 				char end;

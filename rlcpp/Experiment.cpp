@@ -5,31 +5,31 @@ using namespace std;
 Experiment::Experiment(Experiment::Configuration config) {
 	cout << "\nIn Experiment constructor:\n";
 
+	nExperiments = 1;
+	nAlgorithms = 1;
+	//THESE VALUES ARE QUITE RANDOM!
+	nSteps = 150000;
+	nEpisodes = 10;
+	nMaxStepsPerEpisode = 50000;
+	nResults =100; //?????
+	nTrainSteps = 500000;
+	nTrainEpisodes = 10;
+	nMaxStepsPerTrainEpisode = 50000;  
+	nTrainResults = 100;
+	trainStorePer = 100;
+	nTestSteps = 0;
+	nTestEpisodes = 0;
+	nMaxStepsPerTestEpisode = 0;
+	nTestResults = 0;
+	testStorePer = 0;
+	//END OF RANDOM
+
 	switch(config) {
 		case QLEARNING:
-			nExperiments = 1;
-			nAlgorithms = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-			nSteps = 150000;
-			nEpisodes = 10;
-			nMaxStepsPerEpisode = 50000;
-			nResults =100; //?????
-			nTrainSteps = 500000;
-			nTrainEpisodes = 10;
-			nMaxStepsPerTrainEpisode = 50000;  
-			nTrainResults = 100;
-			trainStorePer = 100;
-			nTestSteps = 0;
-			nTestEpisodes = 0;
-			nMaxStepsPerTestEpisode = 0;
-			nTestResults = 0;
-			testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13;
-			actionDimension = int(-1);
-			discreteStates = int(-1);
-			discreteActions = 15;
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 15;
 
 			endOfEpisode  = false;
 
@@ -64,28 +64,10 @@ Experiment::Experiment(Experiment::Configuration config) {
 			break;
 
 		case CACLA:
-			nExperiments = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-				nSteps = 100000;
-				nEpisodes = 10;
-				nMaxStepsPerEpisode = 50000;
-				nResults =100; //?????
-				nTrainSteps = 100000;
-				nTrainEpisodes = 10;
-				nMaxStepsPerTrainEpisode = 50000;  
-				nTrainResults = 100;
-				trainStorePer = 100;
-				nTestSteps = 0;
-				nTestEpisodes = 0;
-				nMaxStepsPerTestEpisode = 0;
-				nTestResults = 0;
-				testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
-			actionDimension = 2;
-			discreteStates = 0;
-			discreteActions = 0;
+			//stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
+			//actionDimension = 2;
+			//discreteStates = 0;
+			//discreteActions = 0;
 
 			endOfEpisode  = false;
 
@@ -123,28 +105,10 @@ Experiment::Experiment(Experiment::Configuration config) {
 			break;
 
 		case BAS:
-			nExperiments = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-				nSteps = 200000;
-				nEpisodes = 10;
-				nMaxStepsPerEpisode = 50000;
-				nResults =100; //?????
-				nTrainSteps = 200000;
-				nTrainEpisodes = 10;
-				nMaxStepsPerTrainEpisode = 50000;  
-				nTrainResults = 100;
-				trainStorePer = 100;
-				nTestSteps = 0;
-				nTestEpisodes = 0;
-				nMaxStepsPerTestEpisode = 0;
-				nTestResults = 0;
-				testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
-			actionDimension = 2;
-			discreteStates = 0;
-			discreteActions = 0;
+			//stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
+			//actionDimension = 2;
+			//discreteStates = 0;
+			//discreteActions = 0;
 
 			endOfEpisode  = false;
 
@@ -177,6 +141,49 @@ Experiment::Experiment(Experiment::Configuration config) {
 			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
 			cout << "\tGaussian : " << gaussian << endl;
 			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
+
+	case QOS:
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 5;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
+			gaussian = false;
+			if(boltzmann)
+				cout << "Using Boltzmann exploration.\n";
+			else if(egreedy)
+				cout << "Using epsilon greedy exploration.\n";
+
+			algorithmName = "Qlearning";
+			algorithms.push_back(algorithmName);
+
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.02; ////IMPORTANT
+
+			tau = 0.02;
+			epsilon = 0.001; //previously epsilon was 0.01
+			sigma = 0.01;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
+			gamma = 0.99;
+        
+			train = true;
+			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
+			//cout << "\tGaussian : " << gaussian << endl;
+			//cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		default:

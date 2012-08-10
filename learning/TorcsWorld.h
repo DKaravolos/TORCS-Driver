@@ -13,7 +13,7 @@
 class TorcsWorld : public World
 {
 public:
-	enum Configuration { QLEARNING, CACLA, BAS};
+	enum Configuration { QLEARNING, CACLA, BAS, QOS, QOS2};
 	TorcsWorld();
 	TorcsWorld(Configuration);
 	~TorcsWorld(void);
@@ -28,6 +28,7 @@ private:
 	Action* mp_action; //learning interface maakt dit aan en gooit dit weg (check dit)
 	double m_reward;
 	bool m_end_of_ep;
+	Configuration m_config;
 	
 	//functions:
 	//void initState();

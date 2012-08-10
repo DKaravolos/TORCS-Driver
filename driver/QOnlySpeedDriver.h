@@ -25,13 +25,15 @@ public:
 	// Initialization of the desired angles for the rangefinders
 	//virtual void init(float *angles);
 
-private:
+protected:
 	
 	////////Functions added by Daniel:
 	virtual void initInterface(bool load_network);
 	//void doLearning(CarState &cs);
 	virtual CarControl rlControl(CarState &cs);
 
+	// Solves the steering subproblems
+	float getSteer(CarState &cs);
 
 	///////Datamembers added by Daniel:
 	//vector<double>* mp_features;

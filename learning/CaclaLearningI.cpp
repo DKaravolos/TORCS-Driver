@@ -106,14 +106,8 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 	}
 
 	////Store NN every X steps
-	//if(mp_parameters->step % 4500 == 0) { //% 100 == 0 //< 5
-	//	//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
-	//	stringstream ANN_file;
-	//	stringstream VNN_file;
-	//	ANN_file << "log_files/Cacla_ANN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step << ".txt";
-	//	VNN_file << "log_files/Cacla_VNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step << ".txt";
-	//	mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
-	//	mp_log->write("Writing ANN and VNN\n");
+	//if(mp_parameters->step % 4500 == 0) {
+		//writeNetwork(mp_parameters->step);
 	//}
 
 	//Compute new action based on current state
@@ -130,10 +124,6 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				/*l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				cout << "I am using the following algorithm: " << typeid(*mp_algorithm).name() << endl;
-				*/
 				cerr << "This is the CaclaDriver, not the QDriver.Quitting.\n";
 				return true;
 			} else if ( mp_experiment->algorithmName.compare("Cacla") == 0 ) {
@@ -250,4 +240,14 @@ void CaclaLearningI::updateWithOldTuple(UpdateOption option)
 	//	mp_log->write("After reupdate:");
 	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
 	//}
+}
+
+void CaclaLearningI::writeNetwork(int identifier)
+{
+		stringstream ANN_file;
+		stringstream VNN_file;
+		ANN_file << "log_files/Cacla_ANN_step_" << identifier << ".txt";
+		VNN_file << "log_files/Cacla_VNN_step_" << identifier << ".txt";
+		mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
+		mp_log->write("Writing ANN and VNN\n");
 }

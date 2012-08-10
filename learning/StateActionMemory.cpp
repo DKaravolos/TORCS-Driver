@@ -46,7 +46,7 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 	else
 	{
 		//Check if maximum size is reached. If so, delete most unimportant tuple (the first).
-		if(mp_states->size() > m_max_size)
+		if(mp_states->size() >= m_max_size)
 		{
 			mp_states->pop_front();
 			mp_actions->pop_front();

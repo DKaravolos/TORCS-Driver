@@ -17,14 +17,20 @@ class QOSLearningInterface: public RLInterface
 		//other
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
+		void writeNetwork(int identifier, int steps);
 
 	protected:
 		//datamembers
 		Qlearning* mp_algorithm;
 
+	private:
 		//functions:
+		void _init();
 		void initState();
 		void initActions();
+
+		//parameter:
+		bool explore;
 };
 
 #endif /*QOS_LEARNING_INTERFACE_H*/

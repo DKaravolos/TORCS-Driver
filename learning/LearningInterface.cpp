@@ -89,26 +89,11 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 		return true;
 	}
 
-	//timeBeginPeriod(1);
-	//DWORD start = timeGetTime();
-
 	////Store NN every X steps
-	//if(mp_parameters->step % 75 == 0) { //% 100 == 0 //< 5
-	//	//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
-	//	stringstream QNN_file;
-	//	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-	//	QNN_file << "log_files/QLearning_QNN_step_" << mp_parameters->step;
-	//	mp_algorithm->writeQNN(QNN_file.str());
-	//	stringstream msg;
-	//	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
-	//	mp_log->write(msg.str());
-	//	//mp_log->write("Writing QNN\n");
+	//if(mp_parameters->step % 75 == 0) { //write NN every 10.000 steps
+		//writeNetwork(mp_parameters->step);
 	//}
-	//
-	//DWORD end = timeGetTime();
-	//timeEndPeriod(1);
-	//DWORD  diff = end - start;
-	//cout << "storing QNN. time taken: " << diff << endl;
+
 
 	//Compute new action based on current state
 	mp_experiment->explore( mp_current_state, mp_current_action); 
@@ -236,4 +221,15 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 		mp_log->write("After reupdate:");
 		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
 	}
+}
+
+void LearningInterface::writeNetwork(int identifier)
+{
+	stringstream QNN_file;
+	QNN_file << "log_files/QLearning_QNN_step_" << identifier;
+	mp_algorithm->writeQNN(QNN_file.str());
+	stringstream msg;
+	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
+	mp_log->write(msg.str());
+	//mp_log->write("Writing QNN\n");
 }

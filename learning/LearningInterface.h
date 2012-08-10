@@ -8,7 +8,7 @@
 class LearningInterface: public RLInterface
 {
 	public:
-
+		//initialisation
 		LearningInterface(void);
 		~LearningInterface(void);
 		virtual void init();
@@ -17,6 +17,9 @@ class LearningInterface: public RLInterface
 		//learning functions
 		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
+
+		//other
+		void writeNetwork(int identifier);
 
 	protected:
 		//datamembers

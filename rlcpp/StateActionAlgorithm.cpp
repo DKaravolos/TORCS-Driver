@@ -63,9 +63,9 @@ void StateActionAlgorithm::getMaxAction( State * state, Action * action ) {
 void StateActionAlgorithm::getRandomAction( State * state, Action * action ) {
 
 	#ifdef WIN32
-		action->discreteAction = (int) ( numberOfActions*double(rand())/RAND_MAX ) ;
+		action->discreteAction = (int) ( ((numberOfActions - 1)*double(rand())/RAND_MAX) + 0.5f) ; //+0.5f is for rounding behaviour of the int cast
 	#else
-		action->discreteAction = (int) ( numberOfActions*drand48() ) ;
+		action->discreteAction = (int) ( (numberOfActions - 1)*drand48() +0.5f) ;
 	#endif
 }
 

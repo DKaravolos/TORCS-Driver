@@ -119,7 +119,7 @@ protected:
 	int getGear(CarState &cs);
 
 	// Solves the steering subproblems
-	float getSteer(CarState &cs);
+	virtual float getSteer(CarState &cs);
 	
 	// Solves the gear changing subproblems
 	float getAccel(CarState &cs);
@@ -167,11 +167,18 @@ protected:
 	int g_steps_per_action;
 	int g_learn_steps_per_tick;
 	int g_reupdate_steps_per_tick;
+	int g_reupdates_left;
 
 	//debug parameters
 	int g_print_mod;
-	int debug_stuck_count;
+	//int debug_stuck_count;
 	int debug_rlcontrol_count;
+
+	//user preferences
+	bool m_save_nn;
+	int m_network_id;
+	int m_step_id;
+	int m_exp_count;
 };
 
 #endif /*RLDriver_H_*/

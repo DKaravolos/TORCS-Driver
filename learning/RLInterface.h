@@ -50,6 +50,8 @@ class RLInterface
 		inline double getReward()	{ return m_reward;}
 		void setEOE();
 		inline bool getEOE(){ return mp_world->endOfEpisode();}
+		virtual void writeNetwork(int identifier, int steps) = 0;
+		void setFirstTime(bool);
 
 		//other
 		virtual bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.

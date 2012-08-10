@@ -8,7 +8,7 @@
 class CaclaLearningI: public RLInterface
 {
 	public:
-
+		//initialisation
 		CaclaLearningI(void);
 		~CaclaLearningI(void);
 		virtual void init();
@@ -18,6 +18,9 @@ class CaclaLearningI: public RLInterface
 		//learning functions
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
+
+		//other
+		void writeNetwork(int identifier);
 
 	protected:
 		//datamembers

@@ -1,25 +1,8 @@
 #include "CaclaDriver.h"
 #include <windows.h>
 
-CaclaDriver::CaclaDriver()
+CaclaDriver::CaclaDriver(): RLDriver()
 {
-	debug_stuck_count = 0;
-	debug_rlcontrol_count = 0;
-
-	stuck=0;clutch=0.0;
-	mp_features = NULL;
-	mp_RLinterface = NULL;
-	gp_prev_state = NULL;
-
-	g_steps_per_action = 10;
-	g_print_mod = g_steps_per_action;
-	g_learn_steps_per_tick = 1;
-	g_reupdate_steps_per_tick = 1; // update verhouding = learn_steps : 9*reupdate_steps
-
-	g_stuck_penalty = 0;
-	
-	g_experiment_count = 0;
-
 	mp_log = new Writer("log_files/Cacla_driver_log.txt");
 	mp_reward_writer = new Writer("log_files/Cacla_driver_rewards_0.txt");
 }

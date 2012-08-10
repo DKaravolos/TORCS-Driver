@@ -23,7 +23,8 @@ class Experiment {
 		{
 			QLEARNING,
 			CACLA,
-			BAS
+			BAS,
+			QOS
 		};
 
 		friend class RLInterface;

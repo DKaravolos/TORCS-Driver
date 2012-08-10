@@ -47,8 +47,8 @@ BASLearningInterface::~BASLearningInterface(void)
 void BASLearningInterface::init()
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new BinaryActionSearch("TorcsWorldCfg2", mp_world) ;
-	//mp_algorithm = new BASWithRoots("TorcsWorldCfg2", mp_world);
+	mp_algorithm = new BinaryActionSearch("TorcsWorldCaclaCfg", mp_world) ;
+	//mp_algorithm = new BASWithRoots("TorcsWorldCaclaCfg", mp_world);
 	mp_experiment = new Experiment(Experiment::BAS);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
@@ -113,11 +113,7 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 	////CHECK NOG OF HET SCHRIJVEN NAAR BESTANDEN GOED GAAT!!!
 	////Store NN every X steps
 	//if(mp_parameters->step % 4500 == 0) { //% 100 == 0
-	//	stringstream QNN_file;
-	//	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-	//	QNN_file << "log_files/BASDriver_QNN_step_" << mp_parameters->step;
-	//	mp_algorithm->writeQNN(QNN_file.str());
-	//	mp_log->write("Writing QNN\n");
+	//	writeNetwork(mp_parameters->step);
 	//}
 
 	//Compute new action based on current state
@@ -257,4 +253,13 @@ void BASLearningInterface::updateWithOldTuple(UpdateOption option)
 	//	mp_log->write("After reupdate:");
 	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
 	//}
+}
+
+void BASLearningInterface::writeNetwork(int identifier)
+{
+	stringstream QNN_file;
+	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
+	QNN_file << "log_files/BASDriver_QNN_step_" << identifier;
+	mp_algorithm->writeQNN(QNN_file.str());
+	mp_log->write("Writing QNN\n");
 }

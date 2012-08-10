@@ -125,6 +125,11 @@ void RLInterface::setEOE(){
 	mp_parameters->endOfEpisode = true;
 }
 
+void RLInterface::setFirstTime(bool val){
+	//Dirty hack to avoid having to delete and reconstruct the interface in the onRestart() of driver
+	mp_parameters->first_time_step = val;
+}
+
 void RLInterface::logAction(int timestamp)
 {
 	if(mp_current_action->continuous)
