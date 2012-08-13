@@ -57,6 +57,22 @@ void RLInterface::initExperimentParam()
     }
 }
 
+void RLInterface::askExplore()
+{
+	cout << "Do you want to explore? (y/n)\n";
+	char answer;
+	cin >> answer;
+	if(answer == 'y')
+	{
+		cout << "Exploring.\n";
+		m_explore = true;
+	} else {
+		cout << "Not exploring.\n";
+		m_explore = false;
+	}
+	cout << "Done.\n";
+}
+
 ///////////////Driver functions///////////////////
 double* RLInterface::getAction()
 {

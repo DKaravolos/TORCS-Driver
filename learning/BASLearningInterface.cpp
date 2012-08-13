@@ -58,7 +58,7 @@ void BASLearningInterface::init()
 	initState();
 	initActions();
 	mp_algorithm->init(mp_current_action);
-	cout << "Done.\n";
+	askExplore();
 }
 
 void BASLearningInterface::init(const char* nn_filename)
@@ -103,21 +103,17 @@ void BASLearningInterface::initActions(){
 bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
 	//Check for stop conditions
-	if( (mp_parameters->step >= mp_experiment->nSteps) ){
-		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
-		mp_algorithm->writeQNN("log_files/BASDriver_QNN_end"); //write NN to file if done with learning
-		mp_log->write("Writing QNN after stop condition\n", true);
-		return true;
-	}
-
 	////CHECK NOG OF HET SCHRIJVEN NAAR BESTANDEN GOED GAAT!!!
-	////Store NN every X steps
-	//if(mp_parameters->step % 4500 == 0) { //% 100 == 0
-	//	writeNetwork(mp_parameters->step);
-	//}
-
+	
 	//Compute new action based on current state
-	mp_experiment->explore( mp_current_state, mp_current_action); 
+	//Whether or not exploration is taken into account depends on the user input
+	if(m_explore)
+		mp_experiment->explore( mp_current_state, mp_current_action);
+	else
+	{
+		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
+		cout << "NOT EXPLORING!!\n";
+	}
 	//Current_action now has a value
 	
 	double l_td_error;
@@ -255,11 +251,11 @@ void BASLearningInterface::updateWithOldTuple(UpdateOption option)
 	//}
 }
 
-void BASLearningInterface::writeNetwork(int identifier)
+void BASLearningInterface::writeNetwork(int identifier, int step)
 {
 	stringstream QNN_file;
 	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-	QNN_file << "log_files/BASDriver_QNN_step_" << identifier;
+	QNN_file << "log_files/BASDriver_QNN_id_" << identifier << "_step_" << step << ".txt";
 	mp_algorithm->writeQNN(QNN_file.str());
 	mp_log->write("Writing QNN\n");
 }

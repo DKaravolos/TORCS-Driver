@@ -10,9 +10,27 @@ QOnlySpeedDriver::QOnlySpeedDriver(): RLDriver()
 
 void QOnlySpeedDriver::initInterface(bool load_network)
 {
+	cout << "init interface\n";
 	mp_RLinterface = new QOSLearningInterface();
+	
+	//Sometimes you already know that you don't want to load a network
+	//However, m_network_id and m_step_id will not be set if you skip askLoadNetwork()
+	if(load_network)
+		askLoadNetwork();
+	else
+	{
+		m_network_id = 0;
+		m_step_id = 0;
+		mp_RLinterface->init();
+	}
+	//How many runs does the user want?
+	cout << "How many runs of 10.000? \n";
+	cin >> m_exp_count;
+}
+
+void QOnlySpeedDriver::askLoadNetwork()
+{
 	ifstream is;
-	cout << "initInterface\n";
 	m_network_id = 0;
 	m_step_id = 0;
 	//Does the user want to load a network?
@@ -31,7 +49,7 @@ void QOnlySpeedDriver::initInterface(bool load_network)
 		string base_file = file_name.str();
 		file_name << "_action_1";
 		is.open(file_name.str());
-		if(load_network && is.is_open()) {
+		if(is.is_open()) {
 			is.close();
 			cout << "\nLoading NN from file.\n";
 			const char* char_base_file = base_file.c_str();
@@ -44,11 +62,6 @@ void QOnlySpeedDriver::initInterface(bool load_network)
 		cout << "Not loading NN.\n";
 		mp_RLinterface->init();
 	}
-
-	//How many runs does the user want?
-	cout << "How many runs of 10.000? \n";
-	cin >> m_exp_count;
-
 }
 
 float QOnlySpeedDriver::getSteer(CarState &cs)

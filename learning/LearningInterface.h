@@ -19,13 +19,14 @@ class LearningInterface: public RLInterface
 		void updateWithOldTuple(UpdateOption option);
 
 		//other
-		void writeNetwork(int identifier);
+		void writeNetwork(int identifier, int step);
 
 	protected:
 		//datamembers
 		Qlearning* mp_algorithm;
 
 		//functions:
+		void _init();
 		virtual void initState();
 		virtual void initActions();
 };

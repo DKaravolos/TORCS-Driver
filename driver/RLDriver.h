@@ -140,7 +140,6 @@ protected:
 	virtual void endOfRunCheck(CarState &cs, CarControl &cc);
 	char getKeyboardInput();
 
-
 	///////Datamembers added by Daniel:
 	vector<double>* mp_features;
 	RLInterface* mp_RLinterface;

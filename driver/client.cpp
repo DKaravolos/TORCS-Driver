@@ -14,14 +14,14 @@
  *                                                                         *
  ***************************************************************************/
 /* Uncomment the following lines under windows */
-#define __DRIVER_CLASS__ QOnlySpeedDriver
-#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
+//#define __DRIVER_CLASS__ QOnlySpeedDriver
+//#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
 //#define __DRIVER_CLASS__ BASDriver
 //#define __DRIVER_INCLUDE__ "BASDriver.h"
 //#define __DRIVER_CLASS__ CaclaDriver
 //#define __DRIVER_INCLUDE__ "CaclaDriver.h"
-//#define __DRIVER_CLASS__ RecitingDriver
-//#define __DRIVER_INCLUDE__ "RecitingDriver.h"
+#define __DRIVER_CLASS__ QDriver
+#define __DRIVER_INCLUDE__ "QDriver.h"
 
 //#define __DRIVER_CLASS__ MyFirstDriver
 //#define __DRIVER_INCLUDE__ "MyFirstDriver.h"

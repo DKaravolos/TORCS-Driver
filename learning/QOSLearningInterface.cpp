@@ -51,18 +51,7 @@ void QOSLearningInterface::_init()
 	initExperimentParam();
 	initState();
 	initActions();
-	cout << "Do you want to explore? (y/n)\n";
-	char answer;
-	cin >> answer;
-	if(answer == 'y')
-	{
-		cout << "Exploring.\n";
-		explore = true;
-	} else {
-		cout << "Not exploring.\n";
-		explore = false;
-	}
-	cout << "Done.\n";
+	askExplore();
 }
 
 void QOSLearningInterface::initState(){
@@ -89,22 +78,13 @@ void QOSLearningInterface::initActions(){
 
 bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
-	////Check for stop conditions
+	////Check for stop condition
 	//if( (mp_parameters->step >= mp_experiment->nSteps) ){
-	//	cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
-	//	mp_algorithm->writeQNN("log_files/QLearning_end_"); //write NN to file if done with learning
-	//	mp_log->write("Writing QNN after stop condition\n");
-	//	return true;
-	//}
-
-	////Store NN every X steps
-	//if(mp_parameters->step % 10000 == 0) { //write NN every 10.000 steps
-	//	writeNetwork(mp_parameters->step);
 	//}
 
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
-	if(explore)
+	if(m_explore)
 		mp_experiment->explore( mp_current_state, mp_current_action);
 	else
 	{

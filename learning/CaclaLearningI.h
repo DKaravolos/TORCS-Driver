@@ -20,7 +20,7 @@ class CaclaLearningI: public RLInterface
 		void updateWithOldTuple(UpdateOption option);
 
 		//other
-		void writeNetwork(int identifier);
+		void writeNetwork(int identifier, int step);
 
 	protected:
 		//datamembers

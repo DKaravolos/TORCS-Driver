@@ -28,9 +28,6 @@ class QOSLearningInterface: public RLInterface
 		void _init();
 		void initState();
 		void initActions();
-
-		//parameter:
-		bool explore;
 };
 
 #endif /*QOS_LEARNING_INTERFACE_H*/

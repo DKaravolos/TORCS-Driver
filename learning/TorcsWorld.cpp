@@ -34,10 +34,10 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			continuousActions	= false ;
 			discreteActions		= true ;
-			stateDimension		= 13;
+			stateDimension		= 7;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 15;
+			numberOfActions		= 9;
 			break;
 
 		case CACLA:
@@ -187,49 +187,49 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 			switch(action->discreteAction)
 			{
 				case 0:
-					torcs_action[0] = -1;
-					torcs_action[1] = -1;
+					torcs_action[0] = 0;
+					torcs_action[1] = 1;
 					break;
 
 				case 1:
 					torcs_action[0] = 0;
-					torcs_action[1] = -1;
+					torcs_action[1] = 0;
 					break;
 
 				case 2:
-					torcs_action[0] = 1;
+					torcs_action[0] = 0;
 					torcs_action[1] = -1;
 					break;
 
 				case 3:
 					torcs_action[0] = -1;
-					torcs_action[1] = 0;
+					torcs_action[1] = 1;
 					break;
 
 				case 4:
-					torcs_action[0] = 0;
+					torcs_action[0] = -1;
 					torcs_action[1] = 0;
 					break;
 
 				case 5:
+					torcs_action[0] = -1;
+					torcs_action[1] = -1;
+					break;
+
+				case 6:
+					torcs_action[0] = 1;
+					torcs_action[1] = 1;
+					break;
+				case 7:
 					torcs_action[0] = 1;
 					torcs_action[1] = 0;
 					break;
 
-				case 6:
-					torcs_action[0] = -1;
-					torcs_action[1] = 1;
-					break;
-				case 7:
-					torcs_action[0] = 0;
-					torcs_action[1] = 1;
-					break;
-
 				case 8:
 					torcs_action[0] = 1;
-					torcs_action[1] = 1;
+					torcs_action[1] = -1;
 					break;
-				//steer half right
+				//steer half left
 				case 9:
 					torcs_action[0] = -0.5;
 					torcs_action[1] = -1;
@@ -244,7 +244,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = -0.5;
 					torcs_action[1] = 1;
 					break;
-				//steer half
+				//steer half right
 				case 12:
 					torcs_action[0] = 0.5;
 					torcs_action[1] = -1;

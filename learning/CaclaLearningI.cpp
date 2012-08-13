@@ -38,7 +38,7 @@ void CaclaLearningI::init()
 	initExperimentParam();
 	initState();
 	initActions();
-	cout << "Done.\n";
+	askExplore();
 }
 
 void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
@@ -97,21 +97,17 @@ void CaclaLearningI::initActions(){
 bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
 	//Check for stop conditions
-	if( (mp_parameters->step >= mp_experiment->nSteps) ){
-		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
-		//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN to file if done with learning
-		mp_algorithm->writeNN("log_files/Cacla_ANN_final.txt","log_files/Cacla_VNN_final.txt");
-		mp_log->write("Writing ANN and VNN after stop condition\n");
-		return true;
-	}
-
-	////Store NN every X steps
-	//if(mp_parameters->step % 4500 == 0) {
-		//writeNetwork(mp_parameters->step);
-	//}
+	//is done in Driver now.
 
 	//Compute new action based on current state
-	mp_experiment->explore( mp_current_state, mp_current_action); 
+	//Whether or not exploration is taken into account depends on the user input
+	if(m_explore)
+		mp_experiment->explore( mp_current_state, mp_current_action);
+	else
+	{
+		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
+		cout << "NOT EXPLORING!!\n";
+	}
 	//Current_action now has a value
 	double l_td_error; //declare td_error, which might be used for sorting tuples later
 
@@ -242,12 +238,12 @@ void CaclaLearningI::updateWithOldTuple(UpdateOption option)
 	//}
 }
 
-void CaclaLearningI::writeNetwork(int identifier)
+void CaclaLearningI::writeNetwork(int identifier, int step)
 {
 		stringstream ANN_file;
 		stringstream VNN_file;
-		ANN_file << "log_files/Cacla_ANN_step_" << identifier << ".txt";
-		VNN_file << "log_files/Cacla_VNN_step_" << identifier << ".txt";
+		ANN_file << "log_files/Cacla_ANN_id_" << identifier << "_step_"<< step << ".txt";
+		VNN_file << "log_files/Cacla_VNN_id_" << identifier << "_step_" << step << ".txt";
 		mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
 		mp_log->write("Writing ANN and VNN\n");
 }

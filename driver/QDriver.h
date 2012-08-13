@@ -1,5 +1,5 @@
-#ifndef RecitingDriver_H_
-#define RecitingDriver_H_
+#ifndef QDriver_H_
+#define QDriver_H_
 
 #include <iostream>
 #include <fstream>
@@ -13,12 +13,12 @@
 
 using namespace std;
 
-class RecitingDriver : public RLDriver
+class QDriver : public RLDriver
 {
 public:
 	
 	// Constructor
-	RecitingDriver();
+	QDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	//virtual CarControl wDrive(CarState cs);
@@ -36,6 +36,7 @@ private:
 	
 	////////Functions added by Daniel:
 	virtual void initInterface(bool load_network);
+	void askLoadNetwork();
 	//void doLearning(CarState &cs);
 	//CarControl rlControl(CarState &cs);
 	//virtual void endOfRunCheck(CarState &cs, CarControl &cc);
@@ -46,4 +47,4 @@ private:
 	
 };
 
-#endif /*RecitingDriver_H_*/
+#endif /*QDriver_H_*/

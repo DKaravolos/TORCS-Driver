@@ -1,15 +1,15 @@
-#include "RecitingDriver.h"
+#include "QDriver.h"
 #ifdef WIN32
     #include <Windows.h>
 #endif
-RecitingDriver::RecitingDriver(): RLDriver()
+QDriver::QDriver(): RLDriver()
 {
-	mp_log = new Writer("log_files/Reciting_driver_log.txt");
-	mp_reward_writer = new Writer("log_files/Reciting_driver_rewards_0.txt");
+	mp_log = new Writer("log_files/Q_driver_log.txt");
+	mp_reward_writer = new Writer("log_files/Q_driver_rewards_0.txt");
 }
 
 /*
-void RecitingDriver::init(float *angles)
+void QDriver::init(float *angles)
 {
 	g_learn_step_count = -1;
 	g_reupdate_step_count = 0; //unnecessary, but good practice
@@ -54,32 +54,61 @@ void RecitingDriver::init(float *angles)
 	angles[9]=0;
 }
 */
-void RecitingDriver::initInterface(bool load_network)
+void QDriver::initInterface(bool load_network)
 {
 	mp_RLinterface = new LearningInterface();
-	ifstream is;
-	is.open("log_files/QLearning_QNN_step_9000_action_1");
-	if(load_network && is.is_open()) {
-		is.close();
-		cout << "Loading NN from file.";
-		mp_RLinterface->init("log_files/QLearning_QNN_step_9000");
-	}
-	else
+
+	//Sometimes you already know that you don't want to load a network
+	if(load_network)
+		askLoadNetwork();
+	else{
+		m_network_id = 0;
+		m_step_id = 0;
 		mp_RLinterface->init();
+	}
+	//How many runs does the user want?
+	cout << "How many runs of 10.000? \n";
+	cin >> m_exp_count;
 }
 
-//void RecitingDriver::onShutdown()
-//{
-//	cout << "Bye bye!" << endl;
-//	delete mp_features;
-//	mp_features = NULL;
-//	delete mp_log;
-//	delete mp_reward_writer;
-//	delete mp_RLinterface; 
-//	delete gp_prev_state;
-//}
 
-void RecitingDriver::onRestart()
+void QDriver::askLoadNetwork()
+{
+	ifstream is;
+	m_network_id = 0;
+	m_step_id = 0;
+	//Does the user want to load a network?
+	cout << "Want to load a NN? (y/n)\n";
+	char answer;
+	cin >> answer;
+	if(answer == 'y')
+	{
+		//Ask user which network he wants to load
+		cout << "Which ID (x1.000)?\n";
+		cin >> m_network_id;
+		cout << "Which step ?\n";
+		cin >> m_step_id;
+		stringstream file_name;
+		file_name << "log_files/QLearning_QNN_id_"<< m_network_id << "000_step_" << m_step_id;
+		string base_file = file_name.str();
+		file_name << "_action_1";
+		is.open(file_name.str());
+		if(is.is_open()) {
+			is.close();
+			cout << "\nLoading NN from file.\n";
+			const char* char_base_file = base_file.c_str();
+			mp_RLinterface->init(char_base_file);
+		} else {
+			cout << "Could not load that file. Creating new network.\n";
+			mp_RLinterface->init();
+		}
+	} else {
+		cout << "Not loading NN.\n";
+		mp_RLinterface->init();
+	}
+}
+
+void QDriver::onRestart()
 {
 	//delete mp_features;
 	mp_features = NULL;

@@ -76,11 +76,15 @@ class RLInterface
 		Writer* mp_reward_log;
 		StateActionMemory* mp_memory;
 
+		//user preferences
+		bool m_explore;
+
 		//functions:
 			//init
 		virtual void initState() =0;
 		virtual void initActions() =0;
 		void initExperimentParam();
+		void askExplore();
 
 			//other
 };

@@ -29,6 +29,7 @@ protected:
 	
 	////////Functions added by Daniel:
 	virtual void initInterface(bool load_network);
+	void askLoadNetwork();
 	//void doLearning(CarState &cs);
 	virtual CarControl rlControl(CarState &cs);
 

@@ -318,9 +318,10 @@ CarControl RLDriver::wDrive(CarState cs)
 		//because then we will lose our fixed update:reupdate ratio.
 		//But our current time tracking does not allow us to perform a learn step,
 		//so instead of making time tracking more adaptive, we do script controlled steps
-		g_stuck_step_count++;
-    	CarControl cc =  simpleBotControl(cs);
-		return cc;
+		//g_stuck_step_count++;
+  //  	CarControl cc =  simpleBotControl(cs);
+		//return cc;
+		mp_action_set = mp_RLinterface->getAction(); //Repeat previous action without reupdate
 	} else {
 		--g_reupdates_left;
 		//cout << "Time: "<< g_count << ". Reupdate step. Reupdates left: " << g_reupdates_left << endl;
@@ -416,8 +417,8 @@ void RLDriver::doLearning(CarState &cs)
 	//if (mp_features != NULL)
 	//	delete mp_features;
 	//mp_features = createFeatureVectorPointer(cs);
-	//createFeatureVectorPointer(cs, mp_features); //misschien is het beter om een vector (pointer) mee te geven en deze te vullen?
-	createSmallFeatureVectorPointer(cs, mp_features);
+	//createFeatureVectorPointer(cs, mp_features); //creates 13 features
+	createSmallFeatureVectorPointer(cs, mp_features); //creates 7 features
 	//Create a state
 	mp_RLinterface->setState(mp_features);
 	
@@ -576,6 +577,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 			{
 				cout << "Saving Network\n";
 				mp_RLinterface->writeNetwork(l_id, m_step_id);
+				m_step_id += g_learn_step_count;
 			} else {
 				cout << "NOT SAVING NETWORK!\n";
 			}

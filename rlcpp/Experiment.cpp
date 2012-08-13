@@ -12,7 +12,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 	nEpisodes = 10;
 	nMaxStepsPerEpisode = 50000;
 	nResults =100; //?????
-	nTrainSteps = 500000;
+	nTrainSteps = 100000;
 	nTrainEpisodes = 10;
 	nMaxStepsPerTrainEpisode = 50000;  
 	nTrainResults = 100;
@@ -36,8 +36,8 @@ Experiment::Experiment(Experiment::Configuration config) {
 			storePerStep = true;
 			storePerEpisode = false;
 
-			boltzmann = false;		////IMPORTANT
-			egreedy = true;			////IMPORTANT
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
 			gaussian = false;
 
 			algorithmName = "Qlearning";
@@ -46,9 +46,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.01; ////IMPORTANT
+			learningRate[0] = 0.02; ////IMPORTANT
 
-			tau = 0.01;
+			tau = 0.02;
 			epsilon = 0.01;
 			sigma = 0.01;
 			taus.push_back(tau);
@@ -58,8 +58,8 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
         
 			train = true;
-			cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tBoltzmann exploration: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
@@ -181,9 +181,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
         
 			train = true;
-			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			//cout << "\tGaussian : " << gaussian << endl;
-			//cout << "\tLearningRate: " << learningRate[0] << endl;
+			cout << "\tBoltzmann exploration: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		default:
