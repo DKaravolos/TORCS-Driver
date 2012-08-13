@@ -66,21 +66,21 @@ void QOnlySpeedDriver::askLoadNetwork()
 
 float QOnlySpeedDriver::getSteer(CarState &cs)
 {
-    float targetAngle=float( cs.getAngle());
+    float targetAngle=float(cs.getAngle());
     //// at high speed reduce the steering command to avoid loosing the control
     ////if (cs.getSpeedX() > steerSensitivityOffset)
     ////    return targetAngle/(steerLock*(cs.getSpeedX()-steerSensitivityOffset)*0.25);
     ////else
-        return (targetAngle)/steerLock; //steerLock is important, it prevents a lot of crashes.
+	////	return (targetAngle)/steerLock;
 
-	//// steering angle is compute by correcting the actual car angle w.r.t. to track 
-	//// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
- //   float targetAngle=float(cs.getAngle()-cs.getTrackPos()*0.5);
- //   // at high speed reduce the steering command to avoid loosing the control
- //   if (cs.getSpeedX() > steerSensitivityOffset)
- //       return targetAngle/(steerLock*(cs.getSpeedX()-steerSensitivityOffset)*wheelSensitivityCoeff);
- //   else
- //       return (targetAngle)/steerLock;
+	//Extra heuristic!
+	//Drive more towards the center if trackposition is halfway towards the sides
+	if(cs.getTrackPos() > 0.5)
+		targetAngle -= 0.15;
+	if (cs.getTrackPos() < -0.5)
+		targetAngle += 0.15;
+
+	return (targetAngle)/steerLock; //steerLock is important, it prevents a lot of crashes.
 }
 
 CarControl QOnlySpeedDriver::rlControl(CarState &cs)

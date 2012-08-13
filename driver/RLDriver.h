@@ -178,6 +178,7 @@ protected:
 	int m_network_id;
 	int m_step_id;
 	int m_exp_count;
+	int m_round_size;
 };
 
 #endif /*RLDriver_H_*/

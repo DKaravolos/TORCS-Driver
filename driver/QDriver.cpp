@@ -112,10 +112,11 @@ void QDriver::onRestart()
 {
 	//delete mp_features;
 	mp_features = NULL;
-	//delete mp_RLinterface; // We are not reinitializing the interface between runs.
-	//This may have negative side-effects, I have not completely thought this through.
+	//delete mp_RLinterface; // We are not reinitializing the interface between runs. This mat have negative side-effects
+	mp_RLinterface->setFirstTime(true); // one of the side-effects is having to manually set first time
     cout << "Restarting the race!" << endl;
-	g_learn_step_count = -1;
+	//g_learn_step_count = -1; // I'm trying to keep counting between restarts
+	
 	delete mp_reward_writer;
 
 	stringstream newfile;

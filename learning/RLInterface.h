@@ -58,6 +58,8 @@ class RLInterface
 		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option) = 0;
 		virtual void updateWithOldTuple(UpdateOption option) =0;
 
+		ExperimentParameters* mp_parameters;
+
 	protected:
 		//datamembers
 		TorcsWorld* mp_world;
@@ -67,7 +69,7 @@ class RLInterface
 		State* mp_current_state;
 		Action* mp_prev_action;
 		Action* mp_current_action;
-		ExperimentParameters* mp_parameters;
+		//ExperimentParameters* mp_parameters;
 		double* mp_torcs_action;
 
 		double m_reward;

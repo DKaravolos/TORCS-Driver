@@ -5,6 +5,12 @@
 
 RLDriver::RLDriver()
 {
+	m_round_size = 100;
+	//Keep track of learning process
+	g_learn_step_count = -1; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+	g_reupdate_step_count = 0;
+
+
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
 	mp_RLinterface = NULL;
@@ -33,149 +39,8 @@ RLDriver::RLDriver()
 	}
 }
 
-/* Gear Changing Constants*/
-const int RLDriver::gearUp[6]=
-    {
-        8000,9500,9500,9500,9500,0
-    };
-const int RLDriver::gearDown[6]=
-    {
-        0,4000,6300,7000,7300,7300
-    };
-
-/*
-const int RLDriver::gearUp[6]=
-    {
-        5000,6000,6000,6500,7000,0
-    };
-const int RLDriver::gearDown[6]=
-    {
-        0,2500,3000,3000,3500,3500
-    };
-//*/
-
-/* Stuck constants*/
-const int RLDriver::stuckTime = 25;
-const float RLDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
-
-/* Accel and Brake Constants*/
-const float RLDriver::maxSpeedDist=70;
-const float RLDriver::maxSpeed=150;
-const float RLDriver::sin5 = 0.08716f;
-const float RLDriver::cos5 = 0.99619f;
-
-/* Steering constants*/
-const float RLDriver::steerLock=0.785398f;
-//const float RLDriver::steerSensitivityOffset=80.0f;
-//const float RLDriver::wheelSensitivityCoeff=1;
-const float RLDriver::steerSensitivityOffset=100.0f;
-const float RLDriver::wheelSensitivityCoeff=0.5;
-
-/* ABS Filter Constants */
-const float RLDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
-const float RLDriver::absSlip=2.0f;
-const float RLDriver::absRange=3.0f;
-const float RLDriver::absMinSpeed=3.0f;
-
-/* Clutch constants */
-const float RLDriver::clutchMax=0.5f;
-const float RLDriver::clutchDelta=0.05f;
-const float RLDriver::clutchRange=0.82f;
-const float RLDriver::clutchDeltaTime=0.02f;
-const float RLDriver::clutchDeltaRaced=10;
-const float RLDriver::clutchDec=0.01f;
-const float RLDriver::clutchMaxModifier=1.3f;
-const float RLDriver::clutchMaxTime=1.5f;
-
-int RLDriver::getGear(CarState &cs)
-{
-
-    int gear = cs.getGear();
-    int rpm  = cs.getRpm();
-
-    // if gear is 0 (N) or -1 (R) just return 1 
-    if (gear<1) {
-		//cout << "Setting gear to one";
-        return 1;
-	}
-    // check if the RPM value of car is greater than the one suggested 
-    // to shift up the gear from the current one     
-    if (gear <6 && rpm >= gearUp[gear-1])
-        return gear + 1;
-    else
-    	// check if the RPM value of car is lower than the one suggested 
-    	// to shift down the gear from the current one
-        if (gear > 1 && rpm <= gearDown[gear-1])
-            return gear - 1;
-        else // otherwhise keep current gear
-            return gear;
-}
-float RLDriver::getSteer(CarState &cs)
-{
-	// steering angle is compute by correcting the actual car angle w.r.t. to track 
-	// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
-    float targetAngle=float(cs.getAngle()-cs.getTrackPos()*0.5);
-    // at high speed reduce the steering command to avoid loosing the control
-    if (cs.getSpeedX() > steerSensitivityOffset)
-        return targetAngle/(steerLock*(cs.getSpeedX()-steerSensitivityOffset)*wheelSensitivityCoeff);
-    else
-        return (targetAngle)/steerLock;
-}
-
-float RLDriver::getAccel(CarState &cs)
-{
-    // checks if car is out of track
-    if (cs.getTrackPos() < 1 && cs.getTrackPos() > -1)
-    {
-        // reading of sensor at +5 degree w.r.t. car axis
-        float rxSensor=cs.getTrack(10);
-        // reading of sensor parallel to car axis
-        float cSensor=cs.getTrack(9);
-        // reading of sensor at -5 degree w.r.t. car axis
-        float sxSensor=cs.getTrack(8);
-
-        float targetSpeed;
-
-        // track is straight and enough far from a turn so goes to max speed
-        if (cSensor>maxSpeedDist || (cSensor>=rxSensor && cSensor >= sxSensor))
-            targetSpeed = maxSpeed;
-        else
-        {
-            // approaching a turn on right
-            if(rxSensor>sxSensor)
-            {
-                // computing approximately the "angle" of turn
-                float h = cSensor*sin5;
-                float b = rxSensor - cSensor*cos5;
-                float sinAngle = b*b/(h*h+b*b);
-                // estimate the target speed depending on turn and on how close it is
-                targetSpeed = maxSpeed*(cSensor*sinAngle/maxSpeedDist);
-            }
-            // approaching a turn on left
-            else
-            {
-                // computing approximately the "angle" of turn
-                float h = cSensor*sin5;
-                float b = sxSensor - cSensor*cos5;
-                float sinAngle = b*b/(h*h+b*b);
-                // estimate the target speed depending on turn and on how close it is
-                targetSpeed = maxSpeed*(cSensor*sinAngle/maxSpeedDist);
-            }
-
-        }
-
-        // accel/brake command is expontially scaled w.r.t. the difference between target speed and current one
-        return 2/(1+exp(cs.getSpeedX() - targetSpeed)) - 1;
-    }
-    else
-        return 0.3f; // when out of track returns a moderate acceleration command
-
-}
-
 void RLDriver::init(float *angles)
 {
-	g_learn_step_count = -1; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
-	g_reupdate_step_count = 0;
 	g_count = 0;
 	g_learning_done = false;
 	g_first_time = true;
@@ -216,6 +81,14 @@ void RLDriver::init(float *angles)
 			angles[18-i]=20-(i-5)*5;
 	}
 	angles[9]=0;
+	cout << "reupdate count: " << g_reupdate_step_count << endl;
+	cout << "Before init() learn steps was : " << g_learn_step_count << endl;
+	cout << "step = "<< mp_RLinterface->mp_parameters->step << endl;
+	g_learn_step_count = ((mp_RLinterface->mp_parameters->step)% m_round_size) - 1; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+	cout << "After init() learn steps is : " << g_learn_step_count << endl;
+	char ok;
+	cin >> ok;
+	//g_reupdate_step_count = 0; //deze twee staan niet aan omdat ik wil testen of ik deze getallen tussen resets door kan laten lopen
 }
 
 CarControl RLDriver::wDrive(CarState cs)
@@ -238,6 +111,12 @@ CarControl RLDriver::wDrive(CarState cs)
 		g_stuck_step_count++;
 		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
+
+		if(g_stuck_step_count > 1000 & g_stuck_step_count > 5 * g_learn_step_count)
+		{
+			cerr << "\n\nTHE CAR HAS BEEN STUCK FOR TOO MANY TIME STEPS! RESTART!\n\n";
+			cc.setMeta(cc.META_RESTART);
+		}
 		return cc;
     }
 
@@ -264,7 +143,7 @@ CarControl RLDriver::wDrive(CarState cs)
 		
 		//Guard the update:reupdate ratio
 		g_reupdates_left += 9; //I suppose you could let the user choose this number or at least see it as a parameter
-
+		cout << "reupdates left: " << g_reupdates_left << endl;
 		//Compute reward of last action
 		double l_reward;
 		if(gp_prev_state != NULL)
@@ -377,13 +256,18 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		reward -= 2;
 	if(next_state.getSpeedX() >= 10)
 		reward += 2;
+
 	///////////POSITION
 	double pos_reward = 0;
-	if(abs(next_state.getTrackPos() > 0.5))
+	if(abs(next_state.getTrackPos() > 0.1)) // Dit was 0.5 voor QOS
 		pos_reward = -2* abs(next_state.getTrackPos());
+	
+	if (abs(next_state.getTrackPos() > 0.8))
+		pos_reward = -10;
+	
+	
 	reward += pos_reward;
-	//cout << "Position reward: "<< pos_reward << endl;
-
+	
 	///////////DAMAGE
 	//double damage_reward = -(next_state.getDamage() - state.getDamage());
 	//cout << "Damage reward: " << damage_reward << endl;
@@ -393,16 +277,7 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//if(g_count != 0)
 	//	reward += action[1];
 
-	/////////OUTPUT
-	//stringstream log;
-	//log << "time: " << g_count <<"\treward: " << reward << ". ";
-	//mp_log->write(log.str());
-	//stringstream rew_log;
-	//rew_log << reward;
-	//mp_reward_writer->write(rew_log.str());
-	//cout << endl << log.str() << endl;
-
-	cout << "time: " << g_count <<"\treward: " << reward << ". ";
+	//cout << "time: " << g_count <<"\treward: " << reward << ". ";
 
 	return reward;
 }
@@ -411,7 +286,7 @@ void RLDriver::doLearning(CarState &cs)
 {
 	if (g_count % (g_print_mod) == 0){
 		//cout << "Time: " << g_count << ". ";
-		cout << "\tLearn steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
+		cout << "\tLearn + Reupdate steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
 	//if (mp_features != NULL)
@@ -442,6 +317,63 @@ void RLDriver::doLearning(CarState &cs)
 
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
+		#ifdef WIN32
+				char end;
+				cin>>end;
+		#endif
+		exit(0);
+	}
+}
+
+void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+{
+	//Check if user wants to restart
+	if (getKeyboardInput() == 'r')
+		cc.setMeta(cc.META_RESTART);
+
+	stringstream debug_msg;
+	cout << "sum = "<< g_learn_step_count + g_reupdate_step_count << endl;
+	//int temp = (g_learn_step_count >= 10); 
+	cout << "lc: " << g_learn_step_count << "\t step: " << mp_RLinterface->mp_parameters->step << endl;
+	//bool temp2 = g_learn_step_count == m_round_size;
+	//cout << "condition 1 = " << temp << endl; 
+	//cout << "condition 2 = " << temp2 << endl << endl; 
+	if(g_learn_step_count >= 10 && g_learn_step_count == m_round_size) // or (g_count >= 4000) ?
+//(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count >= 50)
+	{
+		cc.setMeta(cc.META_RESTART);
+		g_count = 0;
+		//cout << "Learning steps during this run: " << g_learn_step_count << endl;
+		
+		cout << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl;
+		debug_msg << "rl_control: " << debug_rlcontrol_count << endl;
+		mp_log->write(debug_msg.str());
+		
+		g_experiment_count++;		
+		cout << "Experiment nr: " << g_experiment_count;
+
+		//When should the network be saved?
+		if(g_experiment_count == 1 || g_experiment_count % 1 == 0)
+		{
+			int l_id = (10 * m_step_id) + g_experiment_count * (g_learn_step_count + g_reupdate_step_count);
+			if(m_save_nn) //Only save NN if the user wants to.
+			{
+				cout << "\nSaving Network\n";
+				mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
+			} else {
+				cout << "NOT SAVING NETWORK!\n";
+			}
+		}
+		//Ik dacht dat onderstaande 2 regels niet nodig waren, want dit gebeurt ook in init(),
+		//maar met de boltzmann experimenten komt hij achter elkaar binnen deze if-statement.
+		//Deze 2 regels moeten ervoor zorgen dat hij niet zomaar achter elkaar hierin komt.
+		//g_learn_step_count = -1;
+		//g_reupdate_step_count = 0;
+	}
+
+	//Experiments are done when the # of experiments is equal to m_exp_count (that was defined by the user).
+	if(g_experiment_count == m_exp_count) {
+		cout << "\nExperiments done.\n";
 		#ifdef WIN32
 				char end;
 				cin>>end;
@@ -549,56 +481,146 @@ CarControl RLDriver::rlControl(CarState &cs)
     return cc;
 }
 
-void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+/* Gear Changing Constants*/
+const int RLDriver::gearUp[6]=
+    {
+        8000,9500,9500,9500,9500,0
+    };
+const int RLDriver::gearDown[6]=
+    {
+        0,4000,6300,7000,7300,7300
+    };
+
+/*
+const int RLDriver::gearUp[6]=
+    {
+        5000,6000,6000,6500,7000,0
+    };
+const int RLDriver::gearDown[6]=
+    {
+        0,2500,3000,3000,3500,3500
+    };
+//*/
+
+/* Stuck constants*/
+const int RLDriver::stuckTime = 25;
+const float RLDriver::stuckAngle = 0.785398163f; //.523598775f; //PI/6
+
+/* Accel and Brake Constants*/
+const float RLDriver::maxSpeedDist=70;
+const float RLDriver::maxSpeed=150;
+const float RLDriver::sin5 = 0.08716f;
+const float RLDriver::cos5 = 0.99619f;
+
+/* Steering constants*/
+const float RLDriver::steerLock=0.785398f;
+//const float RLDriver::steerSensitivityOffset=80.0f;
+//const float RLDriver::wheelSensitivityCoeff=1;
+const float RLDriver::steerSensitivityOffset=100.0f;
+const float RLDriver::wheelSensitivityCoeff=0.5;
+
+/* ABS Filter Constants */
+const float RLDriver::wheelRadius[4]={0.3179f,0.3179f,0.3276f,0.3276f};
+const float RLDriver::absSlip=2.0f;
+const float RLDriver::absRange=3.0f;
+const float RLDriver::absMinSpeed=3.0f;
+
+/* Clutch constants */
+const float RLDriver::clutchMax=0.5f;
+const float RLDriver::clutchDelta=0.05f;
+const float RLDriver::clutchRange=0.82f;
+const float RLDriver::clutchDeltaTime=0.02f;
+const float RLDriver::clutchDeltaRaced=10;
+const float RLDriver::clutchDec=0.01f;
+const float RLDriver::clutchMaxModifier=1.3f;
+const float RLDriver::clutchMaxTime=1.5f;
+
+
+
+int RLDriver::getGear(CarState &cs)
 {
-	//Check if user wants to restart
-	if (getKeyboardInput() == 'r')
-		cc.setMeta(cc.META_RESTART);
 
-	stringstream debug_msg;
-	if(g_learn_step_count + g_reupdate_step_count >= 10000) // or (g_count >= 4000) ?
-	{
-		cc.setMeta(cc.META_RESTART);
-		g_count = 0;
-		//cout << "Learning steps during this run: " << g_learn_step_count << endl;
-		
-		debug_msg << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl;
-		debug_msg << "rl_control: " << debug_rlcontrol_count << endl;
-		mp_log->write(debug_msg.str());
-		
-		g_experiment_count++;		
-		cout << "Experiment nr: " << g_experiment_count;
+    int gear = cs.getGear();
+    int rpm  = cs.getRpm();
 
-		//When should the network be saved?
-		if(g_experiment_count == 1 || g_experiment_count % 2 == 0)
-		{
-			int l_id = m_step_id + g_experiment_count * (g_learn_step_count + g_reupdate_step_count);
-			if(m_save_nn) //Only save NN if the user wants to.
-			{
-				cout << "Saving Network\n";
-				mp_RLinterface->writeNetwork(l_id, m_step_id);
-				m_step_id += g_learn_step_count;
-			} else {
-				cout << "NOT SAVING NETWORK!\n";
-			}
-		}
+    // if gear is 0 (N) or -1 (R) just return 1 
+    if (gear<1) {
+		//cout << "Setting gear to one";
+        return 1;
 	}
+    // check if the RPM value of car is greater than the one suggested 
+    // to shift up the gear from the current one     
+    if (gear <6 && rpm >= gearUp[gear-1])
+        return gear + 1;
+    else
+    	// check if the RPM value of car is lower than the one suggested 
+    	// to shift down the gear from the current one
+        if (gear > 1 && rpm <= gearDown[gear-1])
+            return gear - 1;
+        else // otherwhise keep current gear
+            return gear;
+}
 
-		//Ik dacht dat onderstaande 2 regels niet nodig waren, want dit gebeurt ook in init(),
-		//maar met de boltzmann experimenten komt hij achter elkaar binnen deze if-statement.
-		//Deze 2 regels moeten ervoor zorgen dat hij niet zomaar achter elkaar hierin komt.
-		//g_learn_step_count = -1;
-		//g_reupdate_step_count = 0;
+float RLDriver::getSteer(CarState &cs)
+{
+	// steering angle is compute by correcting the actual car angle w.r.t. to track 
+	// axis [cs.getAngle()] and to adjust car position w.r.t to middle of track [cs.getTrackPos()*0.5]
+    float targetAngle=float(cs.getAngle()-cs.getTrackPos()*0.5);
+    // at high speed reduce the steering command to avoid loosing the control
+    if (cs.getSpeedX() > steerSensitivityOffset)
+        return targetAngle/(steerLock*(cs.getSpeedX()-steerSensitivityOffset)*wheelSensitivityCoeff);
+    else
+        return (targetAngle)/steerLock;
+}
 
-	//Experiments are done when the # of experiments is equal to m_exp_count (that was defined by the user).
-	if(g_experiment_count == m_exp_count) {
-		cout << "\nExperiments done.\n";
-		#ifdef WIN32
-				char end;
-				cin>>end;
-		#endif
-		exit(0);
-	}
+float RLDriver::getAccel(CarState &cs)
+{
+    // checks if car is out of track
+    if (cs.getTrackPos() < 1 && cs.getTrackPos() > -1)
+    {
+        // reading of sensor at +5 degree w.r.t. car axis
+        float rxSensor=cs.getTrack(10);
+        // reading of sensor parallel to car axis
+        float cSensor=cs.getTrack(9);
+        // reading of sensor at -5 degree w.r.t. car axis
+        float sxSensor=cs.getTrack(8);
+
+        float targetSpeed;
+
+        // track is straight and enough far from a turn so goes to max speed
+        if (cSensor>maxSpeedDist || (cSensor>=rxSensor && cSensor >= sxSensor))
+            targetSpeed = maxSpeed;
+        else
+        {
+            // approaching a turn on right
+            if(rxSensor>sxSensor)
+            {
+                // computing approximately the "angle" of turn
+                float h = cSensor*sin5;
+                float b = rxSensor - cSensor*cos5;
+                float sinAngle = b*b/(h*h+b*b);
+                // estimate the target speed depending on turn and on how close it is
+                targetSpeed = maxSpeed*(cSensor*sinAngle/maxSpeedDist);
+            }
+            // approaching a turn on left
+            else
+            {
+                // computing approximately the "angle" of turn
+                float h = cSensor*sin5;
+                float b = sxSensor - cSensor*cos5;
+                float sinAngle = b*b/(h*h+b*b);
+                // estimate the target speed depending on turn and on how close it is
+                targetSpeed = maxSpeed*(cSensor*sinAngle/maxSpeedDist);
+            }
+
+        }
+
+        // accel/brake command is expontially scaled w.r.t. the difference between target speed and current one
+        return 2/(1+exp(cs.getSpeedX() - targetSpeed)) - 1;
+    }
+    else
+        return 0.3f; // when out of track returns a moderate acceleration command
+
 }
 
 float RLDriver::filterABS(CarState &cs,float brake)

@@ -58,7 +58,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
         
 			train = true;
-			cout << "\tBoltzmann exploration: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
 			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
@@ -181,7 +181,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
         
 			train = true;
-			cout << "\tBoltzmann exploration: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
 			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
