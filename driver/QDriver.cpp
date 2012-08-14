@@ -66,9 +66,6 @@ void QDriver::initInterface(bool load_network)
 		m_step_id = 0;
 		mp_RLinterface->init();
 	}
-	//How many runs does the user want?
-	cout << "How many runs of 10.000? \n";
-	cin >> m_exp_count;
 }
 
 

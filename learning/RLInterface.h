@@ -43,22 +43,22 @@ class RLInterface
 		void setRewardPrevAction(double reward); //called from TORCS before mainloop to get reward of previous action
 
 		//state of the world functions
-		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
-		void printState();
+		inline bool getEOE(){ return mp_world->endOfEpisode();}
+		inline double getReward()	{ return m_reward;}
+		inline int getSteps() { return mp_parameters->step;}
 		void logState(int timestamp);
 		void logAction(int timestamp);
-		inline double getReward()	{ return m_reward;}
+		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
 		void setEOE();
-		inline bool getEOE(){ return mp_world->endOfEpisode();}
-		virtual void writeNetwork(int identifier, int steps) = 0;
 		void setFirstTime(bool);
+		void printState();
+		virtual void writeNetwork(int identifier, int steps) = 0;
 
 		//other
 		virtual bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
 		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option) = 0;
 		virtual void updateWithOldTuple(UpdateOption option) =0;
 
-		ExperimentParameters* mp_parameters;
 
 	protected:
 		//datamembers
@@ -69,7 +69,7 @@ class RLInterface
 		State* mp_current_state;
 		Action* mp_prev_action;
 		Action* mp_current_action;
-		//ExperimentParameters* mp_parameters;
+		ExperimentParameters* mp_parameters;
 		double* mp_torcs_action;
 
 		double m_reward;

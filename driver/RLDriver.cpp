@@ -5,12 +5,12 @@
 
 RLDriver::RLDriver()
 {
-	m_round_size = 100;
+	
 	//Keep track of learning process
 	g_learn_step_count = -1; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
 	g_reupdate_step_count = 0;
 
-
+	//Initialise counters and pointers to standard values
 	stuck=0;clutch=0.0;
 	mp_features = NULL;
 	mp_RLinterface = NULL;
@@ -25,6 +25,13 @@ RLDriver::RLDriver()
 	g_experiment_count = 0;
 
 	debug_rlcontrol_count = 0;
+
+	//Set user preferences
+	cout << "How many updates should be in one round?\n";
+	cin >> m_round_size;
+
+	cout << "How many runs of "<< m_round_size << "? \n";
+	cin >> m_exp_count;
 
 	cout << "Do you want to save the neural network? (y/n)\n";
 	char answer = 'n';
@@ -81,14 +88,7 @@ void RLDriver::init(float *angles)
 			angles[18-i]=20-(i-5)*5;
 	}
 	angles[9]=0;
-	cout << "reupdate count: " << g_reupdate_step_count << endl;
-	cout << "Before init() learn steps was : " << g_learn_step_count << endl;
-	cout << "step = "<< mp_RLinterface->mp_parameters->step << endl;
-	g_learn_step_count = ((mp_RLinterface->mp_parameters->step)% m_round_size) - 1; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
-	cout << "After init() learn steps is : " << g_learn_step_count << endl;
-	char ok;
-	cin >> ok;
-	//g_reupdate_step_count = 0; //deze twee staan niet aan omdat ik wil testen of ik deze getallen tussen resets door kan laten lopen
+	cout << "LI steps = "<< mp_RLinterface->getSteps() << endl;
 }
 
 CarControl RLDriver::wDrive(CarState cs)
@@ -112,10 +112,20 @@ CarControl RLDriver::wDrive(CarState cs)
 		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
 
-		if(g_stuck_step_count > 1000 & g_stuck_step_count > 5 * g_learn_step_count)
+		if(g_stuck_step_count > 1000 & g_stuck_step_count > 2 * g_learn_step_count)
 		{
 			cerr << "\n\nTHE CAR HAS BEEN STUCK FOR TOO MANY TIME STEPS! RESTART!\n\n";
 			cc.setMeta(cc.META_RESTART);
+			stringstream msg;
+			msg << "Time: "<< g_count << ". Agent has been stuck for too long."
+				<< "Stuck count: " <<  g_stuck_step_count
+				<< "\tLearn step count (this run): " <<  g_learn_step_count;
+			mp_log->write(msg.str());
+		} else {
+			stringstream msg;
+			msg << "Time: "<< g_count << ". Stuck count: " <<  g_stuck_step_count
+				<< "\tLearn step count (this run): " <<  g_learn_step_count;
+			mp_log->write(msg.str());
 		}
 		return cc;
     }
@@ -143,7 +153,7 @@ CarControl RLDriver::wDrive(CarState cs)
 		
 		//Guard the update:reupdate ratio
 		g_reupdates_left += 9; //I suppose you could let the user choose this number or at least see it as a parameter
-		cout << "reupdates left: " << g_reupdates_left << endl;
+
 		//Compute reward of last action
 		double l_reward;
 		if(gp_prev_state != NULL)
@@ -154,7 +164,7 @@ CarControl RLDriver::wDrive(CarState cs)
 			mp_reward_writer->write(ss.str());
 		}else{
 			l_reward = 0;
-			cout << "gp_prev_state is NULL. l_reward is zero.\n";
+			cerr << "gp_prev_state is NULL. l_reward is zero.\n";
 		}
 		
 		//if( g_count % g_print_mod == 0)
@@ -174,7 +184,7 @@ CarControl RLDriver::wDrive(CarState cs)
 		//get the driver's action
 		mp_action_set = mp_RLinterface->getAction(); //update after computing reward, so it can be used as "last action" for computeReward
 		if (mp_action_set == NULL) {
-			cout << "Action is a NULL POINTER. Something went wrong.\n";
+			cerr << "Action is a NULL POINTER. Something went wrong.\n";
 			char end;
 			cin >> end;
 			exit(-3);
@@ -222,8 +232,8 @@ CarControl RLDriver::wDrive(CarState cs)
 				while(l_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
 					//Currently, these steps do not count for the max_steps of g_learning_done
 					mp_RLinterface->updateWithOldTuple(RLInterface::TD);
-					g_reupdate_step_count++;
-					l_reupdate_step_count++;
+					++g_reupdate_step_count;
+					++l_reupdate_step_count;
 				}
 				
 			}catch (exception& e){
@@ -285,13 +295,10 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 void RLDriver::doLearning(CarState &cs) 
 {
 	if (g_count % (g_print_mod) == 0){
-		//cout << "Time: " << g_count << ". ";
+		cout << "Time: " << g_count << ". ";
 		cout << "\tLearn + Reupdate steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
-	//if (mp_features != NULL)
-	//	delete mp_features;
-	//mp_features = createFeatureVectorPointer(cs);
 	//createFeatureVectorPointer(cs, mp_features); //creates 13 features
 	createSmallFeatureVectorPointer(cs, mp_features); //creates 7 features
 	//Create a state
@@ -332,20 +339,14 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cc.setMeta(cc.META_RESTART);
 
 	stringstream debug_msg;
-	cout << "sum = "<< g_learn_step_count + g_reupdate_step_count << endl;
-	//int temp = (g_learn_step_count >= 10); 
-	cout << "lc: " << g_learn_step_count << "\t step: " << mp_RLinterface->mp_parameters->step << endl;
-	//bool temp2 = g_learn_step_count == m_round_size;
-	//cout << "condition 1 = " << temp << endl; 
-	//cout << "condition 2 = " << temp2 << endl << endl; 
-	if(g_learn_step_count >= 10 && g_learn_step_count == m_round_size) // or (g_count >= 4000) ?
-//(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count >= 50)
+	if(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count == m_round_size) // or (g_count >= 4000) ?
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
 		//cout << "Learning steps during this run: " << g_learn_step_count << endl;
 		
-		cout << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl;
+		debug_msg << "steps in LI: " << mp_RLinterface->getSteps() << endl;
+		debug_msg << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl; //was debug_msg
 		debug_msg << "rl_control: " << debug_rlcontrol_count << endl;
 		mp_log->write(debug_msg.str());
 		
@@ -353,22 +354,23 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cout << "Experiment nr: " << g_experiment_count;
 
 		//When should the network be saved?
-		if(g_experiment_count == 1 || g_experiment_count % 1 == 0)
+		//Save first, last and every couple of runs
+		if(g_experiment_count == 1 || g_experiment_count % 5 == 0 || g_experiment_count == m_exp_count)
 		{
-			int l_id = (10 * m_step_id) + g_experiment_count * (g_learn_step_count + g_reupdate_step_count);
+			int l_id = m_network_id*1000 + g_experiment_count * (m_round_size);
 			if(m_save_nn) //Only save NN if the user wants to.
 			{
 				cout << "\nSaving Network\n";
-				mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
+				mp_RLinterface->writeNetwork(l_id, g_experiment_count *(g_learn_step_count + g_reupdate_step_count));
 			} else {
 				cout << "NOT SAVING NETWORK!\n";
 			}
 		}
-		//Ik dacht dat onderstaande 2 regels niet nodig waren, want dit gebeurt ook in init(),
-		//maar met de boltzmann experimenten komt hij achter elkaar binnen deze if-statement.
-		//Deze 2 regels moeten ervoor zorgen dat hij niet zomaar achter elkaar hierin komt.
-		//g_learn_step_count = -1;
-		//g_reupdate_step_count = 0;
+
+		//Het is handig om door te tellen bij restarts entoch een simpele endOfRunCheck te kunnen doen.
+		//Nu weten we zeker dat de ronde afgelopen is, dus nu moeten de tellertjes pas weer op 0 gezet worden.
+		g_learn_step_count = -1; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+		g_reupdate_step_count = 0;
 	}
 
 	//Experiments are done when the # of experiments is equal to m_exp_count (that was defined by the user).
