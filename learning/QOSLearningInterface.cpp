@@ -9,7 +9,7 @@ QOSLearningInterface::QOSLearningInterface(void)
 	srand(time(NULL));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
-	mp_world = new TorcsWorld(TorcsWorld::QOS2);
+	mp_world = new TorcsWorld(TorcsWorld::QSTEER);
 	mp_log = new Writer("log_files/qlearning_interface_output.txt");
 	mp_reward_log = new Writer("log_files/qlearning_cumulative_reward.txt");
 	mp_log->write("Interface created.");
@@ -28,15 +28,15 @@ QOSLearningInterface::~QOSLearningInterface(void)
 
 void QOSLearningInterface::init()
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg", mp_world) ; /////Note: NOT CACLA config
-	cout << "NOTE: USING ONLY 20 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world) ; /////Note: NOT CACLA config
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
 void QOSLearningInterface::init(const char* nn_filename)
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg", mp_world, nn_filename) ;
-	cout << "NOTE: USING ONLY 20 HIDDEN NODES!\n";
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world, nn_filename) ;
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n";
 	_init();
 }
 
@@ -52,6 +52,7 @@ void QOSLearningInterface::_init()
 	initState();
 	initActions();
 	askExplore();
+	askUpdate();
 }
 
 void QOSLearningInterface::initState(){
@@ -104,13 +105,9 @@ bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-			} else if ( mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				//l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-				//			mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				cerr << "This is the QDriver, not the CaclaDriver.Quitting.\n";
-				return true;
+				if(m_update)
+					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
 				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
@@ -125,7 +122,7 @@ bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 	}
 
 	//Copy current state and action to history
-	if(store_tuples){	
+	if(store_tuples && m_update){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
@@ -224,9 +221,18 @@ void QOSLearningInterface::updateWithOldTuple(UpdateOption option)
 
 void QOSLearningInterface::writeNetwork(int identifier, int steps)
 {
+	bool steer = true;
+	
 	stringstream QNN_file;
 	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-	QNN_file << "log_files/QOS_QNN_id_" << identifier << "_step_" << (mp_parameters->step + steps);
+	
+	if(steer){
+		cout << "Writing Steer Network.\n";
+		QNN_file << "log_files/QSteer_QNN_id_" << identifier << "_step_" << (mp_parameters->step + steps);
+	}else {
+		cout << "Writing Only Speed Network\n";
+		QNN_file << "log_files/QOS_QNN_id_" << identifier << "_step_" << (mp_parameters->step + steps);
+	}
 	mp_algorithm->writeQNN(QNN_file.str());
 	stringstream msg;
 	msg << "time: " << mp_parameters->step << ". Writing QNN\n";

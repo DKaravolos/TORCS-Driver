@@ -80,6 +80,7 @@ class RLInterface
 
 		//user preferences
 		bool m_explore;
+		bool m_update;
 
 		//functions:
 			//init
@@ -87,6 +88,7 @@ class RLInterface
 		virtual void initActions() =0;
 		void initExperimentParam();
 		void askExplore();
+		void askUpdate();
 
 			//other
 };

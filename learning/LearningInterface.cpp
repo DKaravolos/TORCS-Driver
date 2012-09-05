@@ -28,22 +28,22 @@ LearningInterface::~LearningInterface(void)
 
 void LearningInterface::init()
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg", mp_world) ;
-	cout << "NOTE: USING ONLY 20 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
 void LearningInterface::init(const char* nn_filename)
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg", mp_world, nn_filename) ;
-	cout << "NOTE: USING ONLY 20 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world, nn_filename) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
 void LearningInterface::_init()
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_experiment = new Experiment(Experiment::QLEARNING);
+	mp_experiment = new Experiment(Experiment::QLEARNING); //Het is geen gek idee om de instellingen op te slaan in de log.
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
 	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
@@ -52,6 +52,7 @@ void LearningInterface::_init()
 	initState();
 	initActions();
 	askExplore();
+	askUpdate();
 	cout << "Done.\n";
 }
 
@@ -104,9 +105,10 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 			stringstream rsum;
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
-			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+			if (mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
+				if(m_update)
+					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
 				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
@@ -121,7 +123,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	}
 
 	//Copy current state and action to history
-	if(store_tuples){	
+	if(store_tuples && m_update){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}

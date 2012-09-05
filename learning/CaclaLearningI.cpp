@@ -1,5 +1,5 @@
 #include "CaclaLearningI.h"
-#include <Windows.h>
+//#include <Windows.h>
 using namespace std;
 
 ///////////////Initialization functions///////////////////
@@ -13,7 +13,7 @@ CaclaLearningI::CaclaLearningI(void)
 	mp_log = new Writer("log_files/cacla_interface_output.txt");
 	mp_reward_log = new Writer("log_files/cacla_cumulative_reward.txt");
 	mp_log->write("Interface created.");
-	mp_memory = new StateActionMemory(6000);
+	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
 	cout << "Done.\n";
 }
@@ -28,8 +28,30 @@ CaclaLearningI::~CaclaLearningI(void)
 
 void CaclaLearningI::init()
 {
+	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world) ;
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init();
+}
+
+void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
+{
+	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world, ann_filename, vnn_filename) ;
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init();
+}
+
+//Added for inheritance reasons
+void CaclaLearningI::init(const char* ann_filename)
+{
+	cerr << "Are you sure you want to initialize Cacla with only one network??\n";
+	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world, ann_filename, ann_filename) ;
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init();
+}
+
+void CaclaLearningI::_init()
+{
 	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Cacla("TorcsWorldCaclaCfg", mp_world) ;
 	mp_experiment = new Experiment(Experiment::CACLA);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
@@ -39,36 +61,7 @@ void CaclaLearningI::init()
 	initState();
 	initActions();
 	askExplore();
-}
-
-void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
-{
-	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Cacla("TorcsWorldCaclaCfg", mp_world, ann_filename, vnn_filename) ;
-	mp_experiment = new Experiment(Experiment::CACLA);
-	mp_experiment->algorithm = mp_algorithm;
-	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
-
-	initExperimentParam();
-	initState();
-	initActions();
-	cout << "Done.\n";
-}
-
-void CaclaLearningI::init(const char* ann_filename)
-{
-	cerr << "Are you sure you want to initialize Cacla with only one network??\n";
-	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Cacla("TorcsWorldCaclaCfg", mp_world, ann_filename, ann_filename) ;
-	mp_experiment = new Experiment(Experiment::CACLA);
-	mp_experiment->algorithm = mp_algorithm;
-	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
-
-	initExperimentParam();
-	initState();
-	initActions();
+	askUpdate();
 	cout << "Done.\n";
 }
 
@@ -119,13 +112,10 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 			stringstream rsum;
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
-			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				cerr << "This is the CaclaDriver, not the QDriver.Quitting.\n";
-				return true;
-			} else if ( mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);	
-
+			if (mp_experiment->algorithmName.compare("Cacla") == 0 ) {
+				if(m_update)
+					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
 				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
@@ -133,7 +123,7 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 		} else {
 			cout << "First time step. Not performing learning because of invalid state values "  << endl;
 			mp_current_action->continuousAction[0] = 0;
-			mp_current_action->continuousAction[1] = 1;
+			mp_current_action->continuousAction[1] = 1; //28-08: Er staat geen uitleg bij. Eerste actie is nu gas geven zonder sturen. Is dat niet valsspelen?
 			mp_parameters->first_time_step = false;
 			copyState( mp_current_state, mp_prev_state ) ;
 			copyAction( mp_current_action, mp_prev_action ) ;
@@ -142,7 +132,7 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 	}
 
 	//Copy current state and action to history
-	if(store_tuples){	
+	if(store_tuples && m_update){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
@@ -242,8 +232,8 @@ void CaclaLearningI::writeNetwork(int identifier, int step)
 {
 		stringstream ANN_file;
 		stringstream VNN_file;
-		ANN_file << "log_files/Cacla_ANN_id_" << identifier << "_step_"<< step << ".txt";
-		VNN_file << "log_files/Cacla_VNN_id_" << identifier << "_step_" << step << ".txt";
+		ANN_file << "log_files/Cacla_ANN_id_" << identifier << "_step_"<< step;
+		VNN_file << "log_files/Cacla_VNN_id_" << identifier << "_step_" << step;
 		mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
 		mp_log->write("Writing ANN and VNN\n");
 }

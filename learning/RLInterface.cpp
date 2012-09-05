@@ -8,6 +8,8 @@ using namespace std;
 
 RLInterface::RLInterface(void)
 {
+	m_explore = true;
+	m_update = true;
 	//srand(time(NULL));
 	//cout << "Creating interface...\n";
 	////cout << "\tCreating World ... ";
@@ -70,7 +72,21 @@ void RLInterface::askExplore()
 		cout << "Not exploring.\n";
 		m_explore = false;
 	}
-	cout << "Done.\n";
+}
+
+void RLInterface::askUpdate()
+{
+	cout << "Do you want to update the network? (y/n)\n";
+	char answer;
+	cin >> answer;
+	if(answer == 'y')
+	{
+		cout << "Updating.\n";
+		m_update = true;
+	} else {
+		cout << "Not updating.\n";
+		m_update = false;
+	}
 }
 
 ///////////////Driver functions///////////////////

@@ -59,6 +59,7 @@ void BASLearningInterface::init()
 	initActions();
 	mp_algorithm->init(mp_current_action);
 	askExplore();
+	askUpdate();
 }
 
 void BASLearningInterface::init(const char* nn_filename)
@@ -128,14 +129,17 @@ bool BASLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("BinaryActionSearch") == 0 )
 			{
-				if(option == BASLearningInterface::TD)
-					/*l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);*/
-					cerr << "TD reupdates is not implemented.\n";
-				else {
-					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-								mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma, BinaryActionSearch::ORIGINAL);
-					l_td_error = 0;
+				if(m_update)
+				{
+					if(option == BASLearningInterface::TD)
+						/*l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+									mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);*/
+						cerr << "TD reupdates is not implemented.\n";
+					else {
+						mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+									mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma, BinaryActionSearch::ORIGINAL);
+						l_td_error = 0;
+					}
 				}
 			} else {
 				cerr << "Wrong algorithm selected. Quitting.\n";

@@ -49,6 +49,7 @@ RLDriver::RLDriver()
 void RLDriver::init(float *angles)
 {
 	g_count = 0;
+	g_stuck_step_count = 0;
 	g_learning_done = false;
 	g_first_time = true;
 	g_reupdates_left = 0;
@@ -96,8 +97,10 @@ CarControl RLDriver::wDrive(CarState cs)
 	//keep track of time
 	g_count++;
 
-	// check if car is currently stuck
-	if( (fabs(cs.getTrackPos()) > 0.9) && fabs(cs.getAngle()) >= 0.087266) //5 degrees
+	//// check if car is currently stuck
+	if  ( (cs.getTrackPos() > 0.8)  && (cs.getAngle() >= 2 * 0.087266) || // angle > 10 degrees
+		  (cs.getTrackPos() < -0.8) && (cs.getAngle() <= 2 * -0.087266)
+		) 
 		stuck++; //if agent is driving on side of the track with nose pointed outwards, correct it.
 	else if ( fabs(cs.getAngle()) > stuckAngle ) {
         stuck++; // update stuck counter
@@ -106,13 +109,14 @@ CarControl RLDriver::wDrive(CarState cs)
     }
 
 	// after car is stuck for a while apply recovering policy
-	if ((stuck > stuckTime) && (cs.getSpeedX() <= 5)) {
+	if ((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 30)) { // 29-08: changed from 5 to 30.
     	/* set control, assuming car is pointing in a direction out of track */
 		g_stuck_step_count++;
 		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
+		cc.setMeta(cc.META_RESTART);
 
-		if(g_stuck_step_count > 1000 & g_stuck_step_count > 2 * g_learn_step_count)
+		if((g_stuck_step_count > 2000) & (g_stuck_step_count > (2 * g_learn_step_count)))
 		{
 			cerr << "\n\nTHE CAR HAS BEEN STUCK FOR TOO MANY TIME STEPS! RESTART!\n\n";
 			cc.setMeta(cc.META_RESTART);
@@ -151,9 +155,6 @@ CarControl RLDriver::wDrive(CarState cs)
 	{
 		//cout << "Time: "<< g_count << ". Learn step.\n";
 		
-		//Guard the update:reupdate ratio
-		g_reupdates_left += 9; //I suppose you could let the user choose this number or at least see it as a parameter
-
 		//Compute reward of last action
 		double l_reward;
 		if(gp_prev_state != NULL)
@@ -195,11 +196,13 @@ CarControl RLDriver::wDrive(CarState cs)
 			gp_prev_state = new CarState();
 		*gp_prev_state = cs;
 
+		//Guard the update:reupdate ratio
+		g_reupdates_left += g_steps_per_action-1;
+
 		////write info to log
 		//stringstream log;
 		//log << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 		//mp_log->write(log.str());
-		//cout << "time: " << g_count << "\tsteer: " << mp_action_set[0] << " accel: " << mp_action_set[1];
 
 	} else if (g_reupdates_left == 0) {
 		//It seems that stuckControl has ended before a g_count % 10 == 0.
@@ -231,7 +234,7 @@ CarControl RLDriver::wDrive(CarState cs)
 				int l_reupdate_step_count = 0;
 				while(l_reupdate_step_count < g_reupdate_steps_per_tick && !g_learning_done) {
 					//Currently, these steps do not count for the max_steps of g_learning_done
-					mp_RLinterface->updateWithOldTuple(RLInterface::TD);
+					mp_RLinterface->updateWithOldTuple(RLInterface::RANDOM);
 					++g_reupdate_step_count;
 					++l_reupdate_step_count;
 				}
@@ -252,32 +255,75 @@ CarControl RLDriver::wDrive(CarState cs)
 
 double RLDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
+	cout << "Damage: " << next_state.getDamage() << endl;
+	//if (g_count % 100 == 0)
+		cout << "Time: " << g_count << ". ";
+
+	//cout << "action: "<< action[0]<< ". ";
+
 	//double[2] action is not used for computing the reward
 	double reward = 0;
 		
 	/////////DISTANCE
+	int dist_weight = 1; //Hier stond 0.2 Waarom stond dat hier? het bereik was vet klein?!
 	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
-	//cout << "Distance reward: "<< dist_reward <<endl;
-	reward+= dist_reward;
+	reward+= dist_weight * dist_reward; 
+	cout << "\tDistance reward: "<< dist_reward << ".";
 
-	if(next_state.getSpeedX() <= 10) //Drive, damn you!!
-		reward -= 2;
 	if(next_state.getSpeedX() <= 5)
+	{
+		reward -= 4;
+		cout << "\tSpeed Penalty! (-4) : " << reward << endl;
+	}
+	else if(next_state.getSpeedX() <= 10) //Drive, damn you!!
+	{		
 		reward -= 2;
-	if(next_state.getSpeedX() >= 10)
-		reward += 2;
+		cout << "\tSpeed Penalty! (-2) : " << reward << endl; 
+	} 
+	else if(next_state.getSpeedX() >= 10)
+	{	
+		reward += 4;
+		cout << "\tSpeed bonus! (4) : " << reward << endl; 
+	}
 
 	///////////POSITION
 	double pos_reward = 0;
-	if(abs(next_state.getTrackPos() > 0.1)) // Dit was 0.5 voor QOS
-		pos_reward = -2* abs(next_state.getTrackPos());
+	int pos_weight = -1;
+	//if (fabs(next_state.getTrackPos()) > 0.75)
+	//	pos_reward = - 10 * fabs(next_state.getTrackPos());
+	//else if(fabs(next_state.getTrackPos()) > 0.2) // Dit was 0.5 voor QOS
+	//	pos_reward = -5* fabs(next_state.getTrackPos());
+	//else if(fabs(next_state.getTrackPos()) < 0.05 && fabs(state.getTrackPos()) < 0.05)
+	//	pos_reward = 10;
+	//else
+	//	pos_reward = abs(next_state.getTrackPos());
 	
-	if (abs(next_state.getTrackPos() > 0.8))
-		pos_reward = -10;
+
+	//if (fabs(next_state.getTrackPos()) > 0.75)
+	//	pos_reward = fabs(next_state.getTrackPos());
+	//reward += pos_weight * pos_reward;
+	//cout << "\tpos reward: " << pos_reward << ". ";
+
+	/////////ANGLE 
+	double angle_reward = 0;
+	int angle_weight = -200; //was 20 voor angle zonder acceleratie. 100 is nodig om de angle en distance in hetzelfde bereik te krijgen.
+	double diff_angle = fabs(next_state.getAngle()) - fabs(state.getAngle());
+	angle_reward = angle_weight * diff_angle; //maybe in the future we want to do more than just the angle difference
+	//cout << "\tNew angle: " << next_state.getAngle() * 180 / PI << ". ";
 	
-	
-	reward += pos_reward;
-	
+	reward += angle_reward;
+	cout << "\t\tAngle reward: " << angle_reward << ".";
+
+	if(fabs(next_state.getAngle()) <= 2 * 0.01745) //2 * 1 degree
+	{	
+		reward += 4;
+		cout << "\tTwo degree bonus! (+4) : " << angle_reward + 4 << ".\n";
+	} else if(fabs(next_state.getAngle()) <= 5 * 0.01745) //5 * 1 degree
+	{	
+		reward += 2;
+		cout << "\tFive degree bonus! (+2) : " << reward + 2 << ".\n";
+	}
+
 	///////////DAMAGE
 	//double damage_reward = -(next_state.getDamage() - state.getDamage());
 	//cout << "Damage reward: " << damage_reward << endl;
@@ -287,7 +333,8 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//if(g_count != 0)
 	//	reward += action[1];
 
-	//cout << "time: " << g_count <<"\treward: " << reward << ". ";
+	//if(g_count %100 == 0)
+		cout << "\n\t\tFinal reward: " << reward << ".\n\n";
 
 	return reward;
 }
@@ -295,8 +342,8 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 void RLDriver::doLearning(CarState &cs) 
 {
 	if (g_count % (g_print_mod) == 0){
-		cout << "Time: " << g_count << ". ";
-		cout << "\tLearn + Reupdate steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
+		//cout << "Time: " << g_count << ". ";
+		//cout << "\t total update steps: " << g_learn_step_count  + g_reupdate_step_count << endl;
 	}
 	//Get state features
 	//createFeatureVectorPointer(cs, mp_features); //creates 13 features
@@ -310,9 +357,9 @@ void RLDriver::doLearning(CarState &cs)
 			&& !g_learning_done){
 		if (l_learn_step_count == 0)
 			//g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::TD); 
-			g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::TD); // We do store tuples at the moment
+			g_learning_done = mp_RLinterface->learningUpdateStep(true, RLInterface::RANDOM); // We do store tuples at the moment
 		else
-			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::TD);
+			g_learning_done = mp_RLinterface->learningUpdateStep(false, RLInterface::RANDOM);
 		l_learn_step_count++;
 		g_learn_step_count++;
 	}
@@ -707,6 +754,19 @@ char RLDriver::getKeyboardInput()
     if (_kbhit())
     {
         //_getch(); // edit : if you want to check the arrow-keys you must call getch twice because special-keys have two values
+        return _getch();
+    }
+    return 0; // if no key is pressed
+#endif
+
+}
+
+char RLDriver::getArrowInput()
+{
+#ifdef WIN32 //sorry, function is not implemented for linux
+    if (_kbhit())
+    {
+        _getch(); // edit : if you want to check the arrow-keys you must call getch twice because special-keys have two values
         return _getch();
     }
     return 0; // if no key is pressed

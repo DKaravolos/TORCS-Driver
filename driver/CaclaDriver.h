@@ -30,6 +30,7 @@ private:
 
 	////////Functions added by Daniel:
 	virtual void initInterface(bool load_network);
+	bool askLoadNetwork();
 	//void doLearning(CarState &cs);
 	//CarControl rlControl(CarState &cs);
 

@@ -46,9 +46,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.02; ////IMPORTANT
+			learningRate[0] = 0.02; ////IMPORTANT - was 0.02
 
-			tau = 0.02;
+			tau = 0.8; //was 0.02
 			epsilon = 0.01;
 			sigma = 0.01;
 			taus.push_back(tau);
@@ -85,11 +85,11 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 2;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.001; ////Dit wordt niet goed uit de parameterfile gelezen
-			learningRate[1] = 0.001;
+			learningRate[0] = 0.02; ////Dit wordt niet goed uit de parameterfile gelezen
+			learningRate[1] = 0.02;
 
-			tau = 0.01;
-			epsilon = 0.1;
+			tau = 0.8;
+			epsilon = 0.01;
 			sigma = 0.2;
 			//sigma = 0;
 			taus.push_back(tau);
@@ -99,9 +99,14 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
 			
 			train = true;
-			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			//cout << "\tGaussian : " << gaussian << endl;
-			//cout << "\tLearningRate: " << learningRate[0] << endl;
+			cout << "\tE-Greedy: " << egreedy << "\t(tau: "<< epsilon << ")\n";
+			cout << "\tGaussian : " << gaussian << "\t(sigma: " << sigma << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			//if(gaussian)
+			//{
+			//	cout << "Enter sigma: ";
+			//	cin >> sigma;
+			//}
 			break;
 
 		case BAS:
@@ -119,9 +124,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			egreedy = false;			////IMPORTANT
 			gaussian = true;
 			
-			tau = 0.01;
-			epsilon = 0.1;
-			sigma = 0.2;
+			tau = 0.8;
+			epsilon = 0.01;
+			sigma = 0.25;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);
@@ -138,8 +143,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
 			
 			train = true;
-			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
+			cout << "\tGaussian : " << gaussian << "\t(sigma: " << sigma << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
@@ -171,7 +177,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRate = new double[nLearningRates];
 			learningRate[0] = 0.02; ////IMPORTANT
 
-			tau = 0.02;
+			tau = 0.8; //was 0.02
 			epsilon = 0.001; //previously epsilon was 0.01
 			sigma = 0.01;
 			taus.push_back(tau);

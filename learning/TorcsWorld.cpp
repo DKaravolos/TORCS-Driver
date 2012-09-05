@@ -37,7 +37,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			stateDimension		= 7;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 9;
+			numberOfActions		= 15;
 			break;
 
 		case CACLA:
@@ -47,7 +47,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			discreteActions		= false ;
 
-			stateDimension		= 13;
+			stateDimension		= 7;
 			actionDimension		= 2;
 			numberOfStates		= 0;
 			numberOfActions		= 0;
@@ -60,7 +60,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			discreteActions		= false ;
 
-			stateDimension		= 13;
+			stateDimension		= 7;
 			actionDimension		= 2;
 			numberOfStates		= 0;
 			numberOfActions		= 0;
@@ -86,6 +86,17 @@ TorcsWorld::TorcsWorld(Configuration config)
 			actionDimension		= 0;
 			numberOfStates		= 0;
 			numberOfActions		= 3;
+			break;
+
+		case QSTEER:
+			continuousStates	= true ;
+			discreteStates		= false ;
+			continuousActions	= false ;
+			discreteActions		= true ;
+			stateDimension		= 7;
+			actionDimension		= 0;
+			numberOfStates		= 0;
+			numberOfActions		= 3; // was 3
 			break;
 	}
 }
@@ -176,6 +187,39 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 				case 2:
 					torcs_action[0] = 0;
 					torcs_action[1] = -1;
+					break;
+
+				default:
+					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";
+			}
+			break;
+
+		case QSTEER:
+			switch(action->discreteAction)
+			{
+				case 0:
+					torcs_action[0] = 0;
+					torcs_action[1] = 0;
+					break;
+
+				case 1:
+					torcs_action[0] = 1;
+					torcs_action[1] = 0;
+					break;
+
+				case 2:
+					torcs_action[0] = -1;
+					torcs_action[1] = 0;
+					break;
+
+				case 3:
+					torcs_action[0] = 0.5;
+					torcs_action[1] = 0;
+					break;
+
+				case 4:
+					torcs_action[0] = -0.5;
+					torcs_action[1] = 0;
 					break;
 
 				default:

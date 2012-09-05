@@ -72,8 +72,6 @@ void QDriver::initInterface(bool load_network)
 void QDriver::askLoadNetwork()
 {
 	ifstream is;
-	m_network_id = 0;
-	m_step_id = 0;
 	//Does the user want to load a network?
 	cout << "Want to load a NN? (y/n)\n";
 	char answer;
@@ -97,10 +95,14 @@ void QDriver::askLoadNetwork()
 			mp_RLinterface->init(char_base_file);
 		} else {
 			cout << "Could not load that file. Creating new network.\n";
+			m_network_id = 0;
+			m_step_id = 0;
 			mp_RLinterface->init();
 		}
 	} else {
 		cout << "Not loading NN.\n";
+		m_network_id = 0;
+		m_step_id = 0;
 		mp_RLinterface->init();
 	}
 }

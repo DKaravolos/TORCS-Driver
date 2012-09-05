@@ -28,6 +28,7 @@ class CaclaLearningI: public RLInterface
 
 		//functions:
 			//init
+		void _init();
 		virtual void initState();
 		virtual void initActions();
 };
