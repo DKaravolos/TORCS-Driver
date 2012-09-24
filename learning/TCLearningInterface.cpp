@@ -94,7 +94,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	}
 	//Current_action now has a value
 
-	double l_td_error; //declare td_error, which might be used for sorting tuples later
+	double l_td_error = 100; //declare td_error, which might be used for sorting tuples later. initialisation is for 'storeTuple',this should not be necessary.
 
 	if ( mp_parameters->train)
 	{

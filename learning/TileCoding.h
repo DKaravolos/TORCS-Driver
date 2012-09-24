@@ -53,7 +53,7 @@ class TileCoding : public StateActionAlgorithm {
 		void init(World* world);
 		void setEdges();
 		void getEdgesFromFile(string filename);
-		double maxQOfState(vector<int*> state);
+		double getMaxQOfState(vector<int*> state);
 
 		double myTCMax(vector<double> action_values);
 		int myTCArgMax(vector<double> action_values);
