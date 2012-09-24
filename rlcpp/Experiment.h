@@ -24,14 +24,18 @@ class Experiment {
 			QLEARNING,
 			CACLA,
 			BAS,
-			QOS
+			QOS,
+			TILECODING
 		};
 
-		friend class RLInterface;
-		friend class LearningInterface;
-		friend class QOSLearningInterface;
+		
 		friend class BASLearningInterface;
 		friend class CaclaLearningI;
+		friend class LearningInterface;
+		friend class RLInterface;
+		friend class TCLearningInterface;
+		friend class QOSLearningInterface;
+		
 		Experiment(){}
 		Experiment(Configuration config);
 

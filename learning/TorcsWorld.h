@@ -13,7 +13,7 @@
 class TorcsWorld : public World
 {
 public:
-	enum Configuration { QLEARNING, CACLA, BAS, QOS, QOS2, QSTEER};
+	enum Configuration { QLEARNING, CACLA, BAS, QOS5, QOS3, QSTEER5, QSTEER3};
 	TorcsWorld();
 	TorcsWorld(Configuration);
 	~TorcsWorld(void);

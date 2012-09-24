@@ -84,8 +84,8 @@ class RLInterface
 
 		//functions:
 			//init
-		virtual void initState() =0;
-		virtual void initActions() =0;
+		void initState();
+		void initActions();
 		void initExperimentParam();
 		void askExplore();
 		void askUpdate();

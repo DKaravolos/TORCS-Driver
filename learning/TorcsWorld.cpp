@@ -34,7 +34,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			continuousActions	= false ;
 			discreteActions		= true ;
-			stateDimension		= 7;
+			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
 			numberOfActions		= 15;
@@ -47,7 +47,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			discreteActions		= false ;
 
-			stateDimension		= 7;
+			stateDimension		= 8;
 			actionDimension		= 2;
 			numberOfStates		= 0;
 			numberOfActions		= 0;
@@ -60,43 +60,54 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			discreteActions		= false ;
 
-			stateDimension		= 7;
+			stateDimension		= 8;
 			actionDimension		= 2;
 			numberOfStates		= 0;
 			numberOfActions		= 0;
 			break;
 
-		case QOS:
+		case QOS5:
 			continuousStates	= true ;
 			discreteStates		= false ;
 			continuousActions	= false ;
 			discreteActions		= true ;
-			stateDimension		= 13;
+			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
 			numberOfActions		= 5;
 			break;
 
-		case QOS2:
+		case QOS3:
 			continuousStates	= true ;
 			discreteStates		= false ;
 			continuousActions	= false ;
 			discreteActions		= true ;
-			stateDimension		= 7; //original QOS2 was with 13 statedimensions
+			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
 			numberOfActions		= 3;
 			break;
 
-		case QSTEER:
+		case QSTEER5:
 			continuousStates	= true ;
 			discreteStates		= false ;
 			continuousActions	= false ;
 			discreteActions		= true ;
-			stateDimension		= 7;
+			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 3; // was 3
+			numberOfActions		= 5;
+			break;
+
+		case QSTEER3:
+			continuousStates	= true ;
+			discreteStates		= false ;
+			continuousActions	= false ;
+			discreteActions		= true ;
+			stateDimension		= 8;
+			actionDimension		= 0;
+			numberOfStates		= 0;
+			numberOfActions		= 3;
 			break;
 	}
 }
@@ -139,7 +150,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 	{
 		switch(m_config)
 		{
-		case QOS:
+		case QOS5:
 			switch(action->discreteAction)
 			{
 				case 0:
@@ -171,7 +182,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 			}
 			break;
 
-		case QOS2:
+		case QOS3:
 			switch(action->discreteAction)
 			{
 				case 0:
@@ -194,7 +205,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 			}
 			break;
 
-		case QSTEER:
+		case QSTEER5:
 			switch(action->discreteAction)
 			{
 				case 0:
@@ -227,6 +238,28 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 			}
 			break;
 
+			case QSTEER3:
+			switch(action->discreteAction)
+			{
+				case 0:
+					torcs_action[0] = 0;
+					torcs_action[1] = 0;
+					break;
+
+				case 1:
+					torcs_action[0] = 1;
+					torcs_action[1] = 0;
+					break;
+
+				case 2:
+					torcs_action[0] = -1;
+					torcs_action[1] = 0;
+					break;
+
+				default:
+					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";
+			}
+			break;
 		case QLEARNING:
 			switch(action->discreteAction)
 			{

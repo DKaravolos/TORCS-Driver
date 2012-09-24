@@ -22,11 +22,7 @@ void BASDriver::initInterface(bool load_network)
 
 void BASDriver::onRestart()
 {
-	//delete mp_features; //should probably not be deleted when restarting.
-	//delete mp_Qinterface; // We are not reinitializing the interface between runs.
-	//This may have negative side-effects, I have not completely thought this through.
-    cout << "Restarting the race!" << endl;
-	g_learn_step_count = -1;
+	RLDriver::onRestart();
 	delete mp_reward_writer;
 
 	stringstream newfile;

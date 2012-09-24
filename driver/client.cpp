@@ -14,21 +14,22 @@
  *                                                                         *
  ***************************************************************************/
 /* Uncomment the following lines under windows */
-//#define __DRIVER_CLASS__ QOnlySpeedDriver
-//#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
+
 //#define __DRIVER_CLASS__ BASDriver
 //#define __DRIVER_INCLUDE__ "BASDriver.h"
-#define __DRIVER_CLASS__ CaclaDriver
-#define __DRIVER_INCLUDE__ "CaclaDriver.h"
+//#define __DRIVER_CLASS__ CaclaDriver
+//#define __DRIVER_INCLUDE__ "CaclaDriver.h"
+
+#define __DRIVER_CLASS__ TCDriver
+#define __DRIVER_INCLUDE__ "TCDriver.h"
+
 //#define __DRIVER_CLASS__ QDriver
 //#define __DRIVER_INCLUDE__ "QDriver.h"
+
+//#define __DRIVER_CLASS__ QOnlySpeedDriver
+//#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
 //#define __DRIVER_CLASS__ QSteerDriver
 //#define __DRIVER_INCLUDE__ "QSteerDriver.h"
-
-//#define __DRIVER_CLASS__ MyFirstDriver
-//#define __DRIVER_INCLUDE__ "MyFirstDriver.h"
-//#define __DRIVER_CLASS__ SimpleDriver     // put here the name of your driver class
-//#define __DRIVER_INCLUDE__ "SimpleDriver.h" // put here the filename of your driver header
 
 #ifdef WIN32
 #include <WinSock.h>

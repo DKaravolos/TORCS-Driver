@@ -1,52 +1,51 @@
-#include "LearningInterface.h"
+#include "TCLearningInterface.h"
 //#include <Windows.h>
 using namespace std;
 
 ///////////////Initialization functions///////////////////
 
-LearningInterface::LearningInterface(void)
+TCLearningInterface::TCLearningInterface(void)
 {
 	srand(time(NULL));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
-	mp_log = new Writer("log_files/qlearning_interface_output.txt");
-	mp_reward_log = new Writer("log_files/qlearning_cumulative_reward.txt");
+	mp_log = new Writer("log_files/TC_interface_output.txt");
+	mp_reward_log = new Writer("log_files/TC_cumulative_reward.txt");
 	mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
 	cout << "Done.\n";
 }
 
-LearningInterface::~LearningInterface(void)
+TCLearningInterface::~TCLearningInterface(void)
 {
-	cout << "Destroying LearningInterface... Goodbye cruel world!" << endl;
+	cout << "Destroying TCLearningInterface... Goodbye cruel world!" << endl;
 	delete mp_log;
 	delete mp_reward_log;
 	delete mp_algorithm;
 }
 
-void LearningInterface::init()
+void TCLearningInterface::init()
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world) ;
-	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new TileCoding(mp_world) ;
+	cout << "TileCoding constructed.\n";
 	_init();
 }
 
-void LearningInterface::init(const char* nn_filename)
+void TCLearningInterface::init(const char* qtable_filename)
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world, nn_filename) ;
-	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new TileCoding (mp_world, qtable_filename);
+	//err << "ERROR: No TileCoding object created!\n";
 	_init();
 }
 
-void LearningInterface::_init()
+void TCLearningInterface::_init()
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_experiment = new Experiment(Experiment::QLEARNING); //Het is geen gek idee om de instellingen op te slaan in de log.
+	mp_experiment = new Experiment(Experiment::TILECODING); //Het is geen gek idee om de instellingen op te slaan in de log.
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
 
 	initExperimentParam();
 	initState();
@@ -56,7 +55,7 @@ void LearningInterface::_init()
 	cout << "Done.\n";
 }
 
-void LearningInterface::initState(){
+void TCLearningInterface::initState(){
 	mp_current_state = new State();
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
 	
@@ -64,7 +63,7 @@ void LearningInterface::initState(){
 	mp_experiment->initializeState(mp_prev_state, mp_algorithm, mp_world);
 }
 
-void LearningInterface::initActions(){
+void TCLearningInterface::initActions(){
 	mp_current_action = new Action();
 	mp_experiment->initializeAction(mp_current_action, mp_algorithm, mp_world);
 	
@@ -78,7 +77,7 @@ void LearningInterface::initActions(){
 
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
 
-bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
+bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
 	//Check for stop conditions
 	//if( (mp_parameters->step >= mp_experiment->nSteps) ){
@@ -105,7 +104,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 			stringstream rsum;
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
-			if (mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
+			if (mp_experiment->algorithmName.compare("TileCoding") == 0 ) {
 				if(m_update && option == UpdateOption::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
@@ -150,7 +149,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	return false;
 }
 
-void LearningInterface::updateWithOldTuple(UpdateOption option)
+void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 {
 	if(mp_memory->getSize() == 0) {
 		//cout << "Can't update with old tuple if there is no memory" << endl;
@@ -190,47 +189,57 @@ void LearningInterface::updateWithOldTuple(UpdateOption option)
 			throw std::invalid_argument("Given update option does not exist. Please use RANDOM");
 	}
 
-	if(lp_state == NULL || lp_action == NULL || lp_next_state == NULL) {
+	if(lp_state == NULL || lp_action == NULL || lp_next_state == NULL)
+	{
 		cout << "Something went wrong during update from memory." << endl;
 		throw "Noo! I can't update my network with NULL pointers!";
-	} else {
-			//cout << "Updating old tuple\n";
-			switch(option)
-			{
-				case RANDOM:
-					mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
-										l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
-					break;
+	} else 
+	{
+		//cout << "Updating old tuple\n";
+		switch(option)
+		{
+			case RANDOM:
+				mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
+									l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
+				break;
 
-				case TD:
-					//Update network with this tuple
-					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+			case TD:
+				//Update network with this tuple
+				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+						mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 							
-					//since the TD error has changed, it should be removed and inserted again with the new TD error
+				//since the TD error has changed, it should be removed and inserted again with the new TD error
 
-					mp_memory->popBack();
-					mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
-								mp_parameters->endOfEpisode, l_td_error, option);
-					break;
-			}
+				mp_memory->popBack();
+				mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
+							mp_parameters->endOfEpisode, l_td_error, option);
+				break;
+		}
 	}
-
-	////Debug Log
-	//if(mp_memory->getSize() >= 5) {
-	//	mp_log->write("After reupdate:");
-	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
-	//}
 }
 
-void LearningInterface::writeNetwork(int identifier, int step)
+void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
-	QNN_file << "log_files/QLearning_QNN_id_" << identifier << "_step_" << step;
-	mp_algorithm->writeQNN(QNN_file.str());
-	stringstream msg;
-	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
-	mp_log->write(msg.str());
+	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
+	TileCoding* lp_tilecoding = static_cast<TileCoding*>(mp_algorithm);
+	lp_tilecoding->loadQTable(QNN_file.str());
+}
 
-	//cout << " \n\n\nNOT STORING NETWORK!!!!!!\n\n\n";
+//writeNetwork exists only for inheritance (calls writeQTable)
+void TCLearningInterface::writeNetwork(int identifier, int step)
+{
+	writeQTable(identifier, step);
+}
+
+void TCLearningInterface::writeQTable(int identifier, int step)
+{
+	stringstream QNN_file;
+	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
+	TileCoding* lp_tilecoding = static_cast<TileCoding*>(mp_algorithm);
+	lp_tilecoding->writeQTable(QNN_file.str());
+
+	stringstream msg;
+	msg << "time: " << mp_parameters->step << ". Writing QTable\n";
+	mp_log->write(msg.str());
 }

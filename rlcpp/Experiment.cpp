@@ -85,12 +85,12 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRateDecreaseType = "none";
 			nLearningRates = 2;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.02; ////Dit wordt niet goed uit de parameterfile gelezen
-			learningRate[1] = 0.02;
+			learningRate[0] = 0.001; ////Dit wordt niet goed uit de parameterfile gelezen
+			learningRate[1] = 0.001;
 
 			tau = 0.8;
 			epsilon = 0.01;
-			sigma = 0.2;
+			sigma = 0.8;
 			//sigma = 0;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
@@ -192,9 +192,47 @@ Experiment::Experiment(Experiment::Configuration config) {
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
+		case TILECODING:
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 15;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = false;		////IMPORTANT
+			egreedy = true;			////IMPORTANT
+			gaussian = false;
+
+			algorithmName = "TileCoding";
+			algorithms.push_back(algorithmName);
+
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.1; ////IMPORTANT - was 0.02
+
+			tau = 0.8; //was 0.02
+			epsilon = 0.1; // was 0.01
+			sigma = 0.01;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
+			gamma = 0.99;
+        
+			train = true;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
 		default:
 			cerr << "There is no default configuration for Experiment.";
-			cerr << "Please specify which configuration to use: QLEARNING, CACLA or BAS.\n";
+			cerr << "Please specify which configuration to use, p.e. QLEARNING, CACLA or BAS.\n";
 			#ifdef WIN32
 					char end;
 					cin>>end;

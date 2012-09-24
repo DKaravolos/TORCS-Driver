@@ -121,12 +121,7 @@ CarControl QOnlySpeedDriver::rlControl(CarState &cs)
 
 void QOnlySpeedDriver::onRestart()
 {
-	//delete mp_features;
-	mp_features = NULL;
-	//delete mp_RLinterface; // We are not reinitializing the interface between runs.
-	//This may have negative side-effects, I have not completely thought this through.
-	mp_RLinterface->setFirstTime(true); //this function counters the negative side-effects :)
-    cout << "Restarting the race!" << endl;
+	RLDriver::onRestart();
 	delete mp_reward_writer;
 
 	stringstream newfile;

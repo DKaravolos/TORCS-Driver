@@ -33,7 +33,7 @@ RLDriver::RLDriver()
 	cout << "How many runs of "<< m_round_size << "? \n";
 	cin >> m_exp_count;
 
-	cout << "Do you want to save the neural network? (y/n)\n";
+	cout << "Do you want to save the data structure? (y/n)\n";
 	char answer = 'n';
 	cin >> answer;
 	if(answer == 'y')
@@ -115,7 +115,7 @@ CarControl RLDriver::wDrive(CarState cs)
 		mp_RLinterface->setEOE();
     	CarControl cc =  carStuckControl(cs);
 		cc.setMeta(cc.META_RESTART);
-
+/*
 		if((g_stuck_step_count > 2000) & (g_stuck_step_count > (2 * g_learn_step_count)))
 		{
 			cerr << "\n\nTHE CAR HAS BEEN STUCK FOR TOO MANY TIME STEPS! RESTART!\n\n";
@@ -130,7 +130,7 @@ CarControl RLDriver::wDrive(CarState cs)
 			msg << "Time: "<< g_count << ". Stuck count: " <<  g_stuck_step_count
 				<< "\tLearn step count (this run): " <<  g_learn_step_count;
 			mp_log->write(msg.str());
-		}
+		}*/
 		return cc;
     }
 
@@ -255,7 +255,7 @@ CarControl RLDriver::wDrive(CarState cs)
 
 double RLDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
-	cout << "Damage: " << next_state.getDamage() << endl;
+
 	//if (g_count % 100 == 0)
 		cout << "Time: " << g_count << ". ";
 
@@ -270,25 +270,25 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	reward+= dist_weight * dist_reward; 
 	cout << "\tDistance reward: "<< dist_reward << ".";
 
-	if(next_state.getSpeedX() <= 5)
-	{
-		reward -= 4;
-		cout << "\tSpeed Penalty! (-4) : " << reward << endl;
-	}
-	else if(next_state.getSpeedX() <= 10) //Drive, damn you!!
-	{		
-		reward -= 2;
-		cout << "\tSpeed Penalty! (-2) : " << reward << endl; 
-	} 
-	else if(next_state.getSpeedX() >= 10)
-	{	
-		reward += 4;
-		cout << "\tSpeed bonus! (4) : " << reward << endl; 
-	}
+	//if(next_state.getSpeedX() <= 5)
+	//{
+	//	reward -= 4;
+	//	cout << "\tSpeed Penalty! (-4) : " << reward << endl;
+	//}
+	//else if(next_state.getSpeedX() <= 10) //Drive, damn you!!
+	//{		
+	//	reward -= 2;
+	//	cout << "\tSpeed Penalty! (-2) : " << reward << endl; 
+	//} 
+	//else if(next_state.getSpeedX() >= 10)
+	//{	
+	//	reward += 4;
+	//	cout << "\tSpeed bonus! (4) : " << reward << endl; 
+	//}
 
 	///////////POSITION
-	double pos_reward = 0;
-	int pos_weight = -1;
+	//double pos_reward = 0;
+	//int pos_weight = -1;
 	//if (fabs(next_state.getTrackPos()) > 0.75)
 	//	pos_reward = - 10 * fabs(next_state.getTrackPos());
 	//else if(fabs(next_state.getTrackPos()) > 0.2) // Dit was 0.5 voor QOS
@@ -305,30 +305,35 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//cout << "\tpos reward: " << pos_reward << ". ";
 
 	/////////ANGLE 
-	double angle_reward = 0;
-	int angle_weight = -200; //was 20 voor angle zonder acceleratie. 100 is nodig om de angle en distance in hetzelfde bereik te krijgen.
-	double diff_angle = fabs(next_state.getAngle()) - fabs(state.getAngle());
-	angle_reward = angle_weight * diff_angle; //maybe in the future we want to do more than just the angle difference
-	//cout << "\tNew angle: " << next_state.getAngle() * 180 / PI << ". ";
-	
-	reward += angle_reward;
-	cout << "\t\tAngle reward: " << angle_reward << ".";
+	//double angle_reward = 0;
+	//int angle_weight = -200; //was 20 voor angle zonder acceleratie. 100 is nodig om de angle en distance in hetzelfde bereik te krijgen.
+	//double diff_angle = fabs(next_state.getAngle()) - fabs(state.getAngle());
+	//angle_reward = angle_weight * diff_angle; //maybe in the future we want to do more than just the angle difference
+	////cout << "\tNew angle: " << next_state.getAngle() * 180 / PI << ". ";
+	//
+	//reward += angle_reward;
+	//cout << "\t\tAngle reward: " << angle_reward << ".";
 
-	if(fabs(next_state.getAngle()) <= 2 * 0.01745) //2 * 1 degree
-	{	
-		reward += 4;
-		cout << "\tTwo degree bonus! (+4) : " << angle_reward + 4 << ".\n";
-	} else if(fabs(next_state.getAngle()) <= 5 * 0.01745) //5 * 1 degree
-	{	
-		reward += 2;
-		cout << "\tFive degree bonus! (+2) : " << reward + 2 << ".\n";
-	}
+	//if(fabs(next_state.getAngle()) <= 2 * 0.01745) //2 * 1 degree
+	//{	
+	//	reward += 4;
+	//	cout << "\tTwo degree bonus! (+4) : " << angle_reward + 4 << ".\n";
+	//} else if(fabs(next_state.getAngle()) <= 5 * 0.01745) //5 * 1 degree
+	//{	
+	//	reward += 2;
+	//	cout << "\tFive degree bonus! (+2) : " << reward + 2 << ".\n";
+	//}
 
 	///////////DAMAGE
-	//double damage_reward = -(next_state.getDamage() - state.getDamage());
+	double damage_weight = -1;
+	double damage_reward = 0;
+	//damage_reward = -(next_state.getDamage() - state.getDamage());
 	//cout << "Damage reward: " << damage_reward << endl;
-	//reward += damage_reward;
-
+	if(next_state.getDamage() > 0) {
+		damage_reward = 20;
+		cout << "Damage difference: " << next_state.getDamage() - state.getDamage() << endl;
+		reward += damage_weight * damage_reward;
+	}
 	/////////ACTION
 	//if(g_count != 0)
 	//	reward += action[1];
@@ -712,6 +717,17 @@ void RLDriver::onShutdown()
 	delete gp_prev_state;
 }
 
+void RLDriver::onRestart() 
+{
+	//delete mp_features;
+	mp_features = NULL;
+	//delete mp_RLinterface; // We are not reinitializing the interface between runs. This mat have negative side-effects
+	mp_RLinterface->setFirstTime(true); // one of the side-effects is having to manually set first time
+    cout << "Restarting the race!" << endl;
+	//g_learn_step_count = -1; // I'm trying to keep counting between restarts
+
+	gp_prev_state = NULL;
+}
 void RLDriver::clutching(CarState &cs, float &clutch)
 {
   double maxClutch = clutchMax;

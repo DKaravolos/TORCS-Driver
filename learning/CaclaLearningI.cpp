@@ -28,15 +28,15 @@ CaclaLearningI::~CaclaLearningI(void)
 
 void CaclaLearningI::init()
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world) ;
-	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
 void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world, ann_filename, vnn_filename) ;
-	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, vnn_filename) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
@@ -44,8 +44,8 @@ void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
 void CaclaLearningI::init(const char* ann_filename)
 {
 	cerr << "Are you sure you want to initialize Cacla with only one network??\n";
-	mp_algorithm = new Cacla("TorcsWorldCfg10", mp_world, ann_filename, ann_filename) ;
-	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, ann_filename) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
@@ -113,15 +113,18 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				if(m_update)
+				if(m_update && option == UpdateOption::RANDOM)
+					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+				if(m_update && option == UpdateOption::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
 				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
 			}
 		} else {
-			cout << "First time step. Not performing learning because of invalid state values "  << endl;
+			cout << "li_time: " << mp_parameters->step << ". First time step. Not performing learning because of invalid state values "  << endl;
 			mp_current_action->continuousAction[0] = 0;
 			mp_current_action->continuousAction[1] = 1; //28-08: Er staat geen uitleg bij. Eerste actie is nu gas geven zonder sturen. Is dat niet valsspelen?
 			mp_parameters->first_time_step = false;

@@ -48,7 +48,7 @@ public:
 	virtual void onShutdown();
 	
 	// Print a restart message 
-	virtual void onRestart()=0;
+	virtual void onRestart();
 
 	// Initialization of the desired angles for the rangefinders
 	virtual void init(float *angles);
