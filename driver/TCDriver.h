@@ -24,7 +24,7 @@ public:
 	//virtual CarControl wDrive(CarState cs);
 
 	// Print a shutdown message 
-	//virtual void onShutdown();
+	virtual void onShutdown();
 	
 	// Print a restart message 
 	virtual void onRestart();

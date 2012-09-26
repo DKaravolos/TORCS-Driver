@@ -28,14 +28,14 @@ LearningInterface::~LearningInterface(void)
 
 void LearningInterface::init()
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world) ;
+	mp_algorithm = new Qlearning("TorcsWorldCfg100", mp_world) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
 
 void LearningInterface::init(const char* nn_filename)
 {
-	mp_algorithm = new Qlearning("TorcsWorldCfg20", mp_world, nn_filename) ;
+	mp_algorithm = new Qlearning("TorcsWorldCfg100", mp_world, nn_filename) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init();
 }
@@ -95,7 +95,7 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 	}
 	//Current_action now has a value
 
-	double l_td_error; //declare td_error, which might be used for sorting tuples later
+	double l_td_error = 100; //declare td_error, which might be used for sorting tuples later
 
 	if ( mp_parameters->train)
 	{

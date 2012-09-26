@@ -46,6 +46,14 @@ RLDriver::RLDriver()
 	}
 }
 
+//RLDriver::~RLDriver()
+//{
+//	cout << "RLDriver's destructor is called";
+//	delete mp_features;
+//	delete mp_action_set;
+//	delete gp_prev_state;
+//}
+
 void RLDriver::init(float *angles)
 {
 	g_count = 0;
@@ -377,8 +385,8 @@ void RLDriver::doLearning(CarState &cs)
 	if (g_learning_done){
 		cout << "LEARNING IS DONE!\n";
 		#ifdef WIN32
-				char end;
-				cin>>end;
+			char end;
+			cin>>end;
 		#endif
 		exit(0);
 	}
@@ -391,7 +399,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		cc.setMeta(cc.META_RESTART);
 
 	stringstream debug_msg;
-	if(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count == m_round_size) // or (g_count >= 4000) ?
+	if(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count == m_round_size) //waarom moet learn_step_count groter zijn dan 10?
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
@@ -428,9 +436,11 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	//Experiments are done when the # of experiments is equal to m_exp_count (that was defined by the user).
 	if(g_experiment_count == m_exp_count) {
 		cout << "\nExperiments done.\n";
+		//onShutdown(); //this only calls RLDriver::onShutdown(), the actual driver does not shut down, so this is hardly useful
+
 		#ifdef WIN32
-				char end;
-				cin>>end;
+			char end;
+			cin>>end;
 		#endif
 		exit(0);
 	}
@@ -711,9 +721,7 @@ void RLDriver::onShutdown()
 	cout << "Bye bye!" << endl;
 	delete mp_features;
 	mp_features = NULL;
-	delete mp_log;
-	delete mp_reward_writer;
-	delete mp_RLinterface; 
+	delete mp_action_set;
 	delete gp_prev_state;
 }
 

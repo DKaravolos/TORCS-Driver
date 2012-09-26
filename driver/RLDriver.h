@@ -40,6 +40,7 @@ public:
 	
 	// Constructor
 	RLDriver();
+	//~RLDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);

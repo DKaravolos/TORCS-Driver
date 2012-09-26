@@ -15,6 +15,9 @@ TileCoding::TileCoding(World * w, const char* qtable_file)
 
 TileCoding::~TileCoding()
 {
+	//write information about the visited states
+	//cout << "writing state visits to file\n";
+	//writeStateVisits("loge_files/state_visits.txt");
 }
 
 //initialisation
@@ -56,7 +59,7 @@ void TileCoding::init(World* w)
 	//Set tiles to initial value
 	//Let's try optimistic initialisation to facilitate exploration
 	//maximal reward is 15?
-	mp_tiles = vector<	vector<	vector<	vector<	vector<vector<vector<vector<vector<	vector<double>>>>>>>>>> (m_numTiles,
+	m_tilings = vector<	vector<	vector<	vector<	vector<vector<vector<vector<vector<	vector<double>>>>>>>>>> (m_numTiles,
 						vector<	vector<	vector<	vector<vector<vector<vector<vector<	vector<double>>>>>>>>>	(m_tileNum_speed,
 								vector<	vector<	vector<vector<vector<vector<vector<	vector<double>>>>>>>>	(m_tileNum_pos,
 										vector<	vector<vector<vector<vector<vector<	vector<double>>>>>>>	(m_tileNum_angle,
@@ -65,7 +68,7 @@ void TileCoding::init(World* w)
 																vector<vector<vector<vector<double>>>> (m_tileNum_dist,
 																		vector<vector<vector<double>>> (m_tileNum_dist,
 																				vector<vector<double>> (m_tileNum_dist,
-																						vector<double> (numberOfActions, 50.0))))))))));
+																						vector<double> (numberOfActions, 0.0))))))))));
 	
 	//Set edges of squares in tiles
 	//MAKE SURE THAT ALL POSSIBLE STATE VALUES FIT IN ALL TILES AT THE SAME TIME!
@@ -145,24 +148,36 @@ void TileCoding::getEdgesFromFile(string l_parameterfile)
 	}
 }
 
+//same as updateAndReturnTDError, but does not return TD error
 void TileCoding::update( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
+{
+	updateAndReturnTDError(state,action,rt,nextState,endOfEpisode,learningRate,gamma);
+}
+
+//Performs an update of the Q-table by computing the TD error explicitly and returns the TD error.
+double TileCoding::updateAndReturnTDError( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
 {
 	if (!state->continuous )
 	{
 		cerr << "Tile coding does not support discrete states!! Can't update!\n";
-		return;
+		return 0;
 	}
 
 	int at = action->discreteAction ;
 
 	//For each tile: convert continuous state into discrete states defined by tiles
 	double active_tilings = 0;
-	for(int tile = 0; tile < m_numTiles; tile++)
+	int tiling;
+	for(tiling = 0; tiling < m_numTiles; tiling++)
 	{
-		m_state_bins.push_back(classifyState(state, tile));
-		if(m_state_bins[tile] != NULL)
+		m_state_bins.push_back(classifyState(state, tiling));
+		if(m_state_bins[tiling] != NULL)
 			active_tilings++;
+		storeStateVisit(m_state_bins[tiling]);
 	}
+
+	//Store the visit to this state
+		
 
 	//Define the learning rate of this update. This depends on the number of active tilings.
 	double learning_rate = learningRate[0] / active_tilings;
@@ -173,33 +188,36 @@ void TileCoding::update( State * state, Action * action, double rt, State * next
 		m_next_state_bins.push_back(classifyState(nextState, tile));
 	}
 
+	double q_of_state = getQOfStateActionPair(m_state_bins, at);
+	double td_error;
+
 	if(endOfEpisode)
 	{
+		//Compute TD error (independent of tiling)
+		td_error = rt - q_of_state;
+
 		////Update the Q-values for each active tile (per tiling) depending on the reward
 		//for each theta: theta[i][a] = theta[i][a] + lr * (rt- phi[i][a] * theta[i][a]) * phi[i][a]
 		for(int tiling = 0; tiling < m_numTiles; tiling++)
 		{
 			if(m_state_bins[tiling] != NULL) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
 			{
-				mp_tiles[tiling]  //Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
+				m_tilings[tiling]  //Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
 					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]	
 					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
 					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
 					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
 					[at] 		
-				+= learning_rate *
-					(rt - mp_tiles[tiling]
-							[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-							[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-							[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-							[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-							[at]);
+				+= learning_rate * td_error;
 			}
 		}
 	} else
 	{
 		//Compute max action of next state (independent of tiling)
-		double maxQ = getMaxQOfState(m_next_state_bins);
+		double max_q = getMaxQOfState(m_next_state_bins);
+
+		//Compute TD error (independent of tiling)
+		td_error = (rt + gamma * max_q) - q_of_state;
 
 		////Update the Q-values for each active tile (per tiling) depending on the reward and the next state
 		//for each theta: theta[i][a] = theta[i][a] + lr * (rt + gmma * maxQs - phi[i][a] * theta[i][a]) * phi[i][a]
@@ -208,19 +226,13 @@ void TileCoding::update( State * state, Action * action, double rt, State * next
 		{
 			if(m_state_bins[tiling] != NULL && m_next_state_bins[tiling] != NULL) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
 			{
-				mp_tiles[tiling]	//Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
+				m_tilings[tiling]	//Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
 					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
 					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
 					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
 					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
 					[at] 
-				+= learning_rate * ((rt + gamma * maxQ) - 
-				mp_tiles[tiling]
-					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-					[at]);
+				+= learning_rate * td_error;
 			} else {
 				cerr << "This state is not classified by tiling " << tiling << ", update will be partial (and thus wrong).\n"; 
 			}
@@ -235,119 +247,12 @@ void TileCoding::update( State * state, Action * action, double rt, State * next
 	}
 	m_state_bins.clear();
 	m_next_state_bins.clear();
-}
-
-//same as update, but returns td-error
-double TileCoding::updateAndReturnTDError( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
-{
-	if (!state->continuous )
-	{
-		cerr << "Tile coding does not support discrete states!! Can't update!\n";
-		return 0;
-	}
-
-	int at = action->discreteAction ;
-	double td_error = 0;
-
-	//For each tile: convert continuous state into discrete states defined by tiles
-	double active_tilings = 0;
-	for(int tile = 0; tile < m_numTiles; tile++)
-	{
-		m_state_bins.push_back(classifyState(state, tile));
-		if(m_state_bins[tile] != NULL)
-			active_tilings++;
-	}
-
-	//Define the learning rate of this update. This depends on the number of active tilings.
-	double learning_rate = learningRate[0] / active_tilings;
-
-	//For each tile: convert continuous next_state into discrete next_states defined by tiles
-	for(int tile = 0; tile < m_numTiles; tile++)
-	{
-		m_next_state_bins.push_back(classifyState(nextState, tile));
-	}
-
-	if(endOfEpisode)
-	{
-		////Update the Q-values for each active tile (per tiling) depending on the reward
-		//for each theta: theta[i][a] = theta[i][a] + lr * (rt- phi[i][a] * theta[i][a]) * phi[i][a]
-		//i = tiling, a = at
-		for(int tiling = 0; tiling < m_numTiles; tiling++)
-		{
-			if(m_state_bins[tiling] != NULL) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
-			{
-				td_error +=	(rt - mp_tiles[tiling]
-					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-					[at]);
-
-				mp_tiles[tiling]  //Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
-					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]	
-					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-					[at] 		
-				+= learning_rate * (rt - mp_tiles[tiling]
-					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-					[at]);
-			}
-		}
-	} else
-	{
-		//Compute max action of next state (independent of tiling)
-		double maxQ = getMaxQOfState(m_next_state_bins);
-
-		//Update the Q-values for each active tile depending on the reward and the next state
-		////for each theta: theta[i][a] = theta[i][a] + lr * (rt + gmma * maxQs - phi[i][a] * theta[i][a]) * phi[i][a]
-		//i = tiling, a = at
-		for(int tiling = 0; tiling < m_numTiles; tiling++)
-		{
-			if(m_state_bins[tiling] != NULL && m_next_state_bins[tiling] != NULL) //no update if the tiling has no active feature (this filters the second phi[i][a] for phi[i][a] = 0 )
-			{
-				td_error += (rt + gamma * maxQ) - mp_tiles[tiling]
-									[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-									[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-									[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-									[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-									[at];
-
-				mp_tiles[tiling]	//Only update the active feature in a tiling. (this filters the first phi[i][a] for phi[i][a] = 0)
-					[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-					[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-					[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-					[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-					[at] 
-				+= learning_rate * (rt + gamma * maxQ) - mp_tiles[tiling]
-									[m_state_bins[tiling][0]][m_state_bins[tiling][1]]
-									[m_state_bins[tiling][2]][m_state_bins[tiling][3]]
-									[m_state_bins[tiling][4]][m_state_bins[tiling][5]]
-									[m_state_bins[tiling][6]][m_state_bins[tiling][7]]
-									[at];
-			} else {
-				cerr << "This state is not classified by tiling " << tiling << ", update will be partial (and thus wrong).\n"; 
-			}
-		}		
-	}
-
-	//Clean up allocated memory
-	for(int tile = 0; tile < m_numTiles; tile++)
-	{
-		delete m_state_bins[tile]; 
-		delete m_next_state_bins[tile];
-	}
-	m_state_bins.clear();
-	m_next_state_bins.clear();
 
 	return td_error;
 }
 
 // Find the tile indices for a given state. Returns NULL if the state is not in this tile.
-int* TileCoding::classifyState(State* state, int tiling)
+int* TileCoding::classifyState(const State* state, const int& tiling)
 {
 	int* tile_indices = new int[8]; //NOTE: It should be possible to use a vector<int>* for this
 	//Classify each dimension separately
@@ -371,11 +276,12 @@ int* TileCoding::classifyState(State* state, int tiling)
 			return NULL; //If any index is out of bounds, the state is not in this tiling. 
 		}
 	}
+
 	return tile_indices;
 }
 
 //Classifies a given value into the given tile bins
-int TileCoding::classifyValue(double state_value, vector<double> bin_edges)
+int TileCoding::classifyValue(const double& state_value, const vector<double>& bin_edges)
 {
 	int bin = -1; 
 	for(int idx = 0; idx < bin_edges.size()-1; idx++)
@@ -390,7 +296,7 @@ int TileCoding::classifyValue(double state_value, vector<double> bin_edges)
 }
 
 //Get the max element of a state (vector of int pointers)
-double TileCoding::getMaxQOfState(vector<int*> state_bins)
+double TileCoding::getMaxQOfState(const vector<int*>& state_bins)
 {
 	vector<double> Q_values = vector<double> (numberOfActions, 0.0);
 
@@ -401,7 +307,7 @@ double TileCoding::getMaxQOfState(vector<int*> state_bins)
 		{
 			if(state_bins[tile] != NULL)
 			{
-				Q_values[act] += mp_tiles[tile]
+				Q_values[act] += m_tilings[tile]
 						[state_bins[tile][0]][state_bins[tile][1]]
 						[state_bins[tile][2]][state_bins[tile][3]]
 						[state_bins[tile][4]][state_bins[tile][5]]
@@ -414,8 +320,32 @@ double TileCoding::getMaxQOfState(vector<int*> state_bins)
 	return myTCMax(Q_values);
 }
 
+//Gets the Q-value of a specific tile
+double TileCoding::getQOfStateActionPair(const vector<int*>& state_bins, int action)
+{
+	double Q_value = 0;
+	int tiling;
+	//loop through the tilings
+	for(tiling = 0; tiling < m_numTiles; ++tiling)
+	{
+		//if the tile exists, add the value to the sum
+		if(state_bins[tiling] != NULL)
+		{
+			Q_value += m_tilings[tiling]
+					[state_bins[tiling][0]][state_bins[tiling][1]]
+					[state_bins[tiling][2]][state_bins[tiling][3]]
+					[state_bins[tiling][4]][state_bins[tiling][5]]
+					[state_bins[tiling][6]][state_bins[tiling][7]]
+					[action];
+		} else {
+			cerr << "ERROR: Trying to compute the Q-value of a tile that is not in all tilings!\n";
+		}
+	}
+	return Q_value;
+}
+
 //Get the max element of a vector of doubles
-double TileCoding::myTCMax(vector<double> action_values)
+double TileCoding::myTCMax(const vector<double>& action_values)
 {
 	double max_val = action_values[0];
 	int idx;
@@ -427,7 +357,7 @@ double TileCoding::myTCMax(vector<double> action_values)
 }
 
 //Get the index of the max element of a vector of doubles
-int TileCoding::myTCArgMax(vector<double> action_values)
+int TileCoding::myTCArgMax(const vector<double>& action_values)
 {
 	double max_val = action_values[0];
 	int max_idx = 0;
@@ -463,7 +393,7 @@ void TileCoding::getMaxAction(State* state, Action* action)
 		{
 			if(state_bins[tile] != NULL)
 			{
-				Q_values[act] += mp_tiles[tile]
+				Q_values[act] += m_tilings[tile]
 						[state_bins[tile][0]][state_bins[tile][1]]
 						[state_bins[tile][2]][state_bins[tile][3]]
 						[state_bins[tile][4]][state_bins[tile][5]]
@@ -474,7 +404,7 @@ void TileCoding::getMaxAction(State* state, Action* action)
 	}
 
 	//Get the action with the highest Q-value
-	action->discreteAction = myTCArgMax(Q_values);
+	action->discreteAction = myTCArgMax(Q_values); //This is where the action is stored, so no need to return anything
 
 	//Clean up the mess
 	for(int tile = 0; tile < m_numTiles; ++tile)
@@ -482,7 +412,6 @@ void TileCoding::getMaxAction(State* state, Action* action)
 		if(state_bins[tile] != NULL)
 			delete[] state_bins[tile];
 	}
-
 }
 
 //writeQTable writes only the Q-values to a file, not the edges of the tiles!!
@@ -528,7 +457,7 @@ void TileCoding::writeQTable(string filename)
 										{
 											for(action = 0; action < numberOfActions; action++)
 											{
-												f_out << mp_tiles[l_whole_tile][l_speed_tile][l_pos_tile][l_angle_tile][l_dist_tile1][l_dist_tile2][l_dist_tile3][l_dist_tile4][l_dist_tile5][action];
+												f_out << m_tilings[l_whole_tile][l_speed_tile][l_pos_tile][l_angle_tile][l_dist_tile1][l_dist_tile2][l_dist_tile3][l_dist_tile4][l_dist_tile5][action];
 												f_out << "\t";
 											}
 										}
@@ -585,7 +514,7 @@ void TileCoding::loadQTable(string filename)
 									for(l_dist_tile4 = 0; l_dist_tile4 < m_tileNum_dist; l_dist_tile4++)
 										for(l_dist_tile5 = 0; l_dist_tile5 < m_tileNum_dist; l_dist_tile5++)
 											for(action = 0; action < numberOfActions; action++)
-												f_in >> mp_tiles[l_whole_tile][l_speed_tile][l_pos_tile]
+												f_in >> m_tilings[l_whole_tile][l_speed_tile][l_pos_tile]
 																[l_angle_tile][l_dist_tile1][l_dist_tile2]
 																[l_dist_tile3][l_dist_tile4][l_dist_tile5][action];
 		f_in.close();
@@ -594,5 +523,48 @@ void TileCoding::loadQTable(string filename)
 		cin >> a;
 	} else {
 		cerr << "Could not open file for loading the QTable. Please check filename.\n";
+	}
+}
+
+//Keeps track of how often each state is visited
+void TileCoding::storeStateVisit(const int* tile_indices)
+{
+	//create key for the map (dictionary) from tile indices
+	stringstream sskey;
+	int idx;
+	for(idx = 0; idx <= stateDimension; ++idx)
+	{
+		sskey << tile_indices[idx];
+	}
+	string key = sskey.str();
+
+	//if state_visits contains the key, add 1 to the value
+	if(state_visits.count(key) > 0)
+	{
+		state_visits[key]++;
+		//cout << "Visited state " << key << " =  " << state_visits[key] << endl;
+	} else { //else add this state to state_visits and set value to 1
+		state_visits[key] = 1;
+		//cout << "New state " << key << " =  " << state_visits[key] <<endl;
+	}
+}
+
+//Writes visited states and their visit counts to a file
+void TileCoding::writeStateVisits(const string& filename)
+{
+	ofstream f_out;
+	f_out.open(filename);
+	if(f_out.is_open())
+	{
+		map<string,int>::iterator it;
+		f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
+		for(it = state_visits.begin(); it != state_visits.end(); ++it)
+		{
+			f_out << "state: " << it->first << ". Number of visits: " << it->second << endl;
+		}
+
+		f_out.close();
+	} else {
+		cerr << "ERROR: Could not open '" << filename << "' for writing state visits.\n";
 	}
 }

@@ -8,6 +8,13 @@ QDriver::QDriver(): RLDriver()
 	mp_reward_writer = new Writer("log_files/Q_driver_rewards_0.txt");
 }
 
+void QDriver::onShutdown()
+{
+	RLDriver::onShutdown();
+	delete mp_RLinterface;
+	delete mp_log;
+	delete mp_reward_writer;
+}
 /*
 void QDriver::init(float *angles)
 {

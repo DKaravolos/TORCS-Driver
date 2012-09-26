@@ -28,14 +28,14 @@ TCLearningInterface::~TCLearningInterface(void)
 
 void TCLearningInterface::init()
 {
-	mp_algorithm = new TileCoding(mp_world) ;
+	mp_algorithm = new TileCodingHM(mp_world) ;
 	cout << "TileCoding constructed.\n";
 	_init();
 }
 
 void TCLearningInterface::init(const char* qtable_filename)
 {
-	mp_algorithm = new TileCoding (mp_world, qtable_filename);
+	mp_algorithm = new TileCodingHM (mp_world, qtable_filename);
 	//err << "ERROR: No TileCoding object created!\n";
 	_init();
 }
@@ -222,13 +222,15 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
-	TileCoding* lp_tilecoding = static_cast<TileCoding*>(mp_algorithm);
+	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->loadQTable(QNN_file.str());
 }
 
 //writeNetwork exists only for inheritance (calls writeQTable)
 void TCLearningInterface::writeNetwork(int identifier, int step)
 {
+	mp_algorithm->writeStateVisits("log_files/state_visits.txt");
+	//cout << "NOTE: only writing state visits, not the QTable.\n";
 	writeQTable(identifier, step);
 }
 
@@ -236,7 +238,7 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
-	TileCoding* lp_tilecoding = static_cast<TileCoding*>(mp_algorithm);
+	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
 
 	stringstream msg;

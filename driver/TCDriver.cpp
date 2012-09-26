@@ -8,6 +8,15 @@ TCDriver::TCDriver(): RLDriver()
 	mp_reward_writer = new Writer("log_files/TC_driver_rewards_0.txt");
 }
 
+void TCDriver::onShutdown()
+{
+	cout << "Shutting down\n";
+	RLDriver::onShutdown();
+	delete mp_log;
+	delete mp_reward_writer;
+	delete mp_RLinterface;
+}
+
 void TCDriver::initInterface(bool load_network)
 {
 	mp_RLinterface = new TCLearningInterface();
@@ -26,7 +35,7 @@ void TCDriver::askLoadNetwork()
 {
 	ifstream is;
 	//Does the user want to load a network?
-	cout << "Want to load a Q-table? (y/n)\n";
+	cout << "Want to load a QTable? (y/n)\n";
 	char answer;
 	cin >> answer;
 	if(answer == 'y')
@@ -53,7 +62,7 @@ void TCDriver::askLoadNetwork()
 			mp_RLinterface->init();
 		}
 	} else {
-		cout << "Not loading QTable.\n";
+		cout << "Creating new QTable.\n";
 		m_network_id = 0;
 		m_step_id = 0;
 		mp_RLinterface->init();

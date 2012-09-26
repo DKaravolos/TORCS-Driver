@@ -3,7 +3,8 @@
 
 #include "..\learning\RLInterface.h"
 #include "..\rlcpp\StateActionAlgorithm.h"
-#include "..\learning\TileCoding.h"
+//#include "..\learning\TileCoding.h"
+#include "..\learning\TileCodingHM.h"
 #include <string>
 
 class TCLearningInterface: public RLInterface
@@ -25,7 +26,7 @@ class TCLearningInterface: public RLInterface
 
 	//protected:
 		//datamembers
-		TileCoding* mp_algorithm;
+		TileCodingHM* mp_algorithm;
 
 		//functions:
 		void _init();
