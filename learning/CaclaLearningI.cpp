@@ -30,26 +30,33 @@ void CaclaLearningI::init()
 {
 	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
-	_init();
+	_init(false);
 }
 
-void CaclaLearningI::init(const char* ann_filename, const char* vnn_filename)
+void CaclaLearningI::init(const bool& automatic)
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, vnn_filename) ;
+	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
-	_init();
+	_init(automatic);
 }
 
 //Added for inheritance reasons
-void CaclaLearningI::init(const char* ann_filename)
+void CaclaLearningI::init(const bool& automatic, const char* ann_filename)
 {
 	cerr << "Are you sure you want to initialize Cacla with only one network??\n";
 	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, ann_filename) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
-	_init();
+	_init(automatic);
 }
 
-void CaclaLearningI::_init()
+void CaclaLearningI::init(const bool& automatic, const char* ann_filename, const char* vnn_filename)
+{
+	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, vnn_filename) ;
+	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init(automatic);
+}
+
+void CaclaLearningI::_init(const bool& automatic)
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_experiment = new Experiment(Experiment::CACLA);
@@ -60,8 +67,11 @@ void CaclaLearningI::_init()
 	initExperimentParam();
 	initState();
 	initActions();
-	askExplore();
-	askUpdate();
+	if(!automatic)
+	{
+		askExplore();
+		askUpdate();
+	}
 	cout << "Done.\n";
 }
 

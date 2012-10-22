@@ -29,7 +29,8 @@ class RLInterface
 		RLInterface(void);
 		~RLInterface(void);
 		virtual void init() = 0;
-		virtual void init(const char* nn_filename) = 0;
+		virtual void init(const bool& automatic) = 0;
+		virtual void init(const bool& automatic, const char* nn_filename) = 0;
 		//Loop of a time step:
 		/*
 		- setRewardPrevAction()
@@ -59,6 +60,10 @@ class RLInterface
 		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option) = 0;
 		virtual void updateWithOldTuple(UpdateOption option) =0;
 
+		//Functions for automatic experiments
+		void changeLogWriterTo(std::string& new_file);
+		void changeRewardWriterTo(std::string& new_file);
+		virtual Experiment* getExperiment(){return mp_experiment;}
 
 	protected:
 		//datamembers
@@ -74,6 +79,7 @@ class RLInterface
 
 		double m_reward;
 
+		std::string m_log_dir;
 		Writer* mp_log;
 		Writer* mp_reward_log;
 		StateActionMemory* mp_memory;
@@ -84,8 +90,8 @@ class RLInterface
 
 		//functions:
 			//init
-		void initState();
-		void initActions();
+		//void initState(); //cannot be RLInterface function, because it niets mp_algorithm
+		//void initActions();//cannot be RLInterface function, because it niets mp_algorithm
 		void initExperimentParam();
 		void askExplore();
 		void askUpdate();

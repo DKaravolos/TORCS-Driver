@@ -62,7 +62,28 @@ void BASLearningInterface::init()
 	askUpdate();
 }
 
-void BASLearningInterface::init(const char* nn_filename)
+void BASLearningInterface::init(const bool& automatic)
+{
+	cout << "Initalizing remainder of interface.\n";
+	mp_algorithm = new BinaryActionSearch("TorcsWorldCaclaCfg", mp_world) ;
+	//mp_algorithm = new BASWithRoots("TorcsWorldCaclaCfg", mp_world);
+	mp_experiment = new Experiment(Experiment::BAS);
+	mp_experiment->algorithm = mp_algorithm;
+	mp_experiment->world = mp_world;
+	//mp_experiment->readParameterFile("TorcsWorldCfg2");
+
+	initExperimentParam();
+	initState();
+	initActions();
+	mp_algorithm->init(mp_current_action);
+	if(!automatic)
+	{
+		askExplore();
+		askUpdate();
+	}
+}
+
+void BASLearningInterface::init(const bool& automatic, const char* nn_filename)
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_algorithm = new BinaryActionSearch("TorcsWorldCfg2", mp_world, nn_filename) ;
@@ -76,6 +97,11 @@ void BASLearningInterface::init(const char* nn_filename)
 	initState();
 	initActions();
 	mp_algorithm->init(mp_current_action);
+	if(!automatic)
+	{
+		askExplore();
+		askUpdate();
+	}
 	cout << "Done.\n";
 }
 

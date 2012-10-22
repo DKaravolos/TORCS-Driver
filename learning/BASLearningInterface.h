@@ -12,7 +12,8 @@ class BASLearningInterface: public RLInterface
 		BASLearningInterface(void);
 		~BASLearningInterface(void);
 		void init();
-		void init(const char* nn_filename);
+		void init(const bool& automatic);
+		void init(const bool& automatic, const char* nn_filename);
 
 		//learning functions
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);

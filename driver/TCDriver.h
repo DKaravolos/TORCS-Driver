@@ -19,6 +19,7 @@ public:
 	
 	// Constructor
 	TCDriver();
+	TCDriver(const string& log_dir, const int& steps, const int& runs, const bool& save_data);
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	//virtual CarControl wDrive(CarState cs);
@@ -27,7 +28,7 @@ public:
 	virtual void onShutdown();
 	
 	// Print a restart message 
-	virtual void onRestart();
+	//virtual void onRestart();
 
 	// Initialization of the desired angles for the rangefinders
 	//virtual void init(float *angles);
@@ -35,7 +36,7 @@ public:
 private:
 	
 	////////Functions added by Daniel:
-	virtual void initInterface(bool load_network);
+	virtual void initInterface(const bool& load_network, const bool& m_automatic_experiment);
 	void askLoadNetwork();
 
 };

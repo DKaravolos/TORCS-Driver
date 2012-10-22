@@ -114,19 +114,19 @@ void QDriver::askLoadNetwork()
 	}
 }
 
-void QDriver::onRestart()
-{
-	RLDriver::onRestart();
-	
-	delete mp_reward_writer;
-
-	stringstream newfile;
-	newfile << "log_files/QDriver_rewards_" << g_experiment_count << ".txt";
-	mp_reward_writer = new Writer(newfile.str());
-
-	//try{
-	//	initInterface(true);
-	//} catch(exception& e) {
-	//	cout << e.what() << endl;
-	//}
-}
+//void QDriver::onRestart()
+//{
+//	RLDriver::onRestart();
+//	
+//	delete mp_reward_writer;
+//
+//	stringstream newfile;
+//	newfile << "log_files/QDriver_rewards_" << g_experiment_count << ".txt";
+//	mp_reward_writer = new Writer(newfile.str());
+//
+//	//try{
+//	//	initInterface(true);
+//	//} catch(exception& e) {
+//	//	cout << e.what() << endl;
+//	//}
+//}

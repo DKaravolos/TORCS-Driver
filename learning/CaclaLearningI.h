@@ -12,8 +12,9 @@ class CaclaLearningI: public RLInterface
 		CaclaLearningI(void);
 		~CaclaLearningI(void);
 		virtual void init();
-		virtual void init(const char* ann_filename, const char* vnn_filename);
-		void init(const char* nn_filename); //added only for inheritance purposes; do not use.
+		virtual void init(const bool& automatic);
+		void init(const bool& automatic, const char* nn_filename); //added only for inheritance purposes; do not use.
+		virtual void init(const bool& automatic, const char* ann_filename, const char* vnn_filename);
 
 		//learning functions
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
@@ -28,7 +29,7 @@ class CaclaLearningI: public RLInterface
 
 		//functions:
 			//init
-		void _init();
+		void _init(const bool& automatic);
 		virtual void initState();
 		virtual void initActions();
 };

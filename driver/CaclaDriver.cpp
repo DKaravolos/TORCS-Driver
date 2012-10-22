@@ -55,7 +55,7 @@ bool CaclaDriver::askLoadNetwork()
 			CaclaLearningI* l_CaclaLI = static_cast<CaclaLearningI*>(mp_RLinterface); 
 			//However, we know it is a CaclaLearningI, because it is created a few lines above this function call
 			//Please check the type of mp_RLinterface when called outside initInterface
-			l_CaclaLI->init(char_ANN_file, char_VNN_file);
+			l_CaclaLI->init(false, char_ANN_file, char_VNN_file);
 			return false;
 		} else {
 			cout << "Could not load that file. Creating new network.\n";

@@ -40,7 +40,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			egreedy = false;			////IMPORTANT
 			gaussian = false;
 
-			algorithmName = "Qlearning";
+			algorithmName = "Q";
 			algorithms.push_back(algorithmName);
 
 			learningRateDecreaseType = "none";
@@ -215,8 +215,8 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRate = new double[nLearningRates];
 			learningRate[0] = 0.1; ////IMPORTANT - was 0.02
 
-			tau = 0.8; //was 0.02
-			epsilon = 0.1; // was 0.01
+			tau = 0.2;
+			epsilon = 0.15; // was 0.01
 			sigma = 0.01;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
@@ -240,7 +240,6 @@ Experiment::Experiment(Experiment::Configuration config) {
 			exit(-1);
 	}
 }
-
 
 bool Experiment::initializeState( State * state, Algorithm * algorithm, World * world ) {
 
@@ -718,23 +717,18 @@ double * Experiment::runExperiment( World * world ) {
 void Experiment::explore( State * state, Action * action ) {
 
     if ( !train ) {
-
         algorithm->getMaxAction( state, action ) ;
 
     } else if ( boltzmann ) {
-
         algorithm->explore( state, action, tau, "boltzmann", endOfEpisode ) ;
 
     } else if ( egreedy ) {
-
         algorithm->explore( state, action, epsilon, "egreedy", endOfEpisode ) ;
 
     } else if ( gaussian ) {
-
         algorithm->explore( state, action, sigma, "gaussian", endOfEpisode ) ;
 
     } else {
-
         algorithm->getMaxAction( state, action ) ;
 
     }

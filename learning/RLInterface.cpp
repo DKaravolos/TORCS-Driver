@@ -191,3 +191,17 @@ bool RLInterface::learningUpdateStep()
 {
 	return learningUpdateStep(false,RLInterface::RANDOM);
 }
+
+void RLInterface::changeLogWriterTo(string& new_file)
+{
+	if(mp_log != NULL)
+		delete mp_log;
+	mp_log = new Writer(new_file);
+}
+
+void RLInterface::changeRewardWriterTo(string& new_file)
+{
+	if(mp_reward_log != NULL)
+		delete mp_reward_log;
+	mp_reward_log = new Writer(new_file);
+}

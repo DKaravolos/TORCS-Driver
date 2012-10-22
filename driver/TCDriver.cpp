@@ -4,8 +4,17 @@
 #endif
 TCDriver::TCDriver(): RLDriver()
 {
-	mp_log = new Writer("log_files/TC_driver_log.txt");
-	mp_reward_writer = new Writer("log_files/TC_driver_rewards_0.txt");
+	m_log_dir = "log_files/";
+	mp_log = new Writer("log_files/TCDriver_log.txt");
+	mp_reward_writer = new Writer("log_files/TCDriver_rewards.txt");
+}
+
+TCDriver::TCDriver(const string& log_dir, const int& steps, const int& runs, const bool& save_data):
+RLDriver(steps, runs, save_data)
+{
+	m_log_dir = log_dir;
+	mp_log = new Writer(log_dir + "TCDriver_log.txt");
+	mp_reward_writer = new Writer(log_dir + "TCDriver_rewards.txt");
 }
 
 void TCDriver::onShutdown()
@@ -17,17 +26,17 @@ void TCDriver::onShutdown()
 	delete mp_RLinterface;
 }
 
-void TCDriver::initInterface(bool load_network)
+void TCDriver::initInterface(const bool& load_network, const bool& m_automatic_experiment)
 {
-	mp_RLinterface = new TCLearningInterface();
+	mp_RLinterface = new TCLearningInterface(m_log_dir);
 
 	//Sometimes you already know that you don't want to load a network
-	if(load_network)
+	if(load_network && !m_automatic_experiment)
 		askLoadNetwork();
 	else{
 		m_network_id = 0;
 		m_step_id = 0;
-		mp_RLinterface->init();
+		mp_RLinterface->init(true);
 	}
 }
 
@@ -40,13 +49,18 @@ void TCDriver::askLoadNetwork()
 	cin >> answer;
 	if(answer == 'y')
 	{
+		cout << "Which directory? (without / at the end)\n";
+		string l_log_dir;
+		cin >> l_log_dir;
+
 		//Ask user which network he wants to load
 		cout << "Which ID (x1.000)?\n";
 		cin >> m_network_id;
-		cout << "Which step ?\n";
+		cout << "Which step (x1.000)?\n";
 		cin >> m_step_id;
+		m_step_id *= 1000;
 		stringstream file_name;
-		file_name << "log_files/TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
+		file_name << l_log_dir << "/TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
 		string base_file = file_name.str();
 		is.open(base_file);
 		if(is.is_open()) {
@@ -54,7 +68,7 @@ void TCDriver::askLoadNetwork()
 			cout << "\nLoading QTable from file.\n";
 			const char* char_base_file = base_file.c_str();
 			TCLearningInterface* l_TCLI = static_cast<TCLearningInterface*>(mp_RLinterface); 
-			l_TCLI->init(char_base_file);
+			l_TCLI->init(false, char_base_file);
 		} else {
 			cout << "Could not load '"<< base_file << "'. Creating new QTable.\n";
 			m_network_id = 0;
@@ -69,13 +83,13 @@ void TCDriver::askLoadNetwork()
 	}
 }
 
-void TCDriver::onRestart()
-{
-	RLDriver::onRestart();
-	
-	delete mp_reward_writer;
-
-	stringstream newfile;
-	newfile << "log_files/TCDriver_rewards_" << g_experiment_count << ".txt";
-	mp_reward_writer = new Writer(newfile.str());
-}
+//void TCDriver::onRestart()
+//{
+//	RLDriver::onRestart();
+//	
+//	delete mp_reward_writer;
+//
+//	stringstream newfile;
+//	newfile << "log_files/TCDriver_rewards_" << g_experiment_count << ".txt";
+//	mp_reward_writer = new Writer(newfile.str());
+//}

@@ -12,7 +12,8 @@ class QOSLearningInterface: public RLInterface
 		QOSLearningInterface(void);
 		~QOSLearningInterface(void);
 		void init();
-		void init(const char* nn_filename);
+		void init(const bool& automatic_experiment);
+		void init(const bool& automatic_experiment, const char* nn_filename);
 
 		//other
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
@@ -25,7 +26,7 @@ class QOSLearningInterface: public RLInterface
 
 	private:
 		//functions:
-		void _init();
+		void _init(const bool& automatic_experiment);
 		void initState();
 		void initActions();
 };

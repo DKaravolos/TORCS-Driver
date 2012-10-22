@@ -30,17 +30,24 @@ void QOSLearningInterface::init()
 {
 	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world) ; /////Note: NOT CACLA config
 	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
-	_init();
+	_init(false);
 }
 
-void QOSLearningInterface::init(const char* nn_filename)
+void QOSLearningInterface::init(const bool& automatic_experiment)
+{
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world) ; /////Note: NOT CACLA config
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init(automatic_experiment);
+}
+
+void QOSLearningInterface::init(const bool& automatic_experiment, const char* nn_filename)
 {
 	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world, nn_filename) ;
 	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n";
-	_init();
+	_init(automatic_experiment);
 }
 
-void QOSLearningInterface::_init()
+void QOSLearningInterface::_init(const bool& automatic)
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_experiment = new Experiment(Experiment::QOS);
@@ -51,10 +58,14 @@ void QOSLearningInterface::_init()
 	initExperimentParam();
 	initState();
 	initActions();
-	askExplore();
-	askUpdate();
+	if(!automatic)
+	{
+		askExplore();
+		askUpdate();
+	}
 }
 
+//cannot be RLInterface function, because it niets mp_algorithm
 void QOSLearningInterface::initState(){
 	mp_current_state = new State();
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
@@ -62,7 +73,7 @@ void QOSLearningInterface::initState(){
 	mp_prev_state = new State();
 	mp_experiment->initializeState(mp_prev_state, mp_algorithm, mp_world);
 }
-
+//cannot be RLInterface function, because it niets mp_algorithm
 void QOSLearningInterface::initActions(){
 	mp_current_action = new Action();
 	mp_experiment->initializeAction(mp_current_action, mp_algorithm, mp_world);

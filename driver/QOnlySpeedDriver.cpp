@@ -76,9 +76,9 @@ float QOnlySpeedDriver::getSteer(CarState &cs)
 	//Extra heuristic!
 	//Drive more towards the center if trackposition is halfway towards the sides
 	if(cs.getTrackPos() > 0.5)
-		targetAngle -= 0.15;
+		targetAngle -= 0.15f;
 	if (cs.getTrackPos() < -0.5)
-		targetAngle += 0.15;
+		targetAngle += 0.15f;
 
 	return (targetAngle)/steerLock; //steerLock is important, it prevents a lot of crashes.
 }

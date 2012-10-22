@@ -12,7 +12,8 @@ class LearningInterface: public RLInterface
 		LearningInterface(void);
 		~LearningInterface(void);
 		virtual void init();
-		virtual void init(const char* nn_filename);
+		virtual void init(const bool& automatic);
+		virtual void init(const bool& automatic, const char* nn_filename);
 
 		//learning functions
 		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option);
@@ -26,7 +27,7 @@ class LearningInterface: public RLInterface
 		Qlearning* mp_algorithm;
 
 		//functions:
-		void _init();
+		void _init(const bool& automatic);
 		virtual void initState();
 		virtual void initActions();
 };

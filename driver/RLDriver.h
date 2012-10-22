@@ -8,10 +8,8 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include "BaseDriver.h"
 #include "CarState.h"
 #include "CarControl.h"
-#include "SimpleParser.h"
 #include "WrapperBaseDriver.h"
 //
 #include <vector>
@@ -40,6 +38,7 @@ public:
 	
 	// Constructor
 	RLDriver();
+	RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_data);
 	//~RLDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
@@ -53,6 +52,12 @@ public:
 
 	// Initialization of the desired angles for the rangefinders
 	virtual void init(float *angles);
+
+	//Functions for automatic experiments
+	void changeLogWriterTo(std::string& new_file);
+	void changeRewardWriterTo(std::string& new_file);
+	int getLearningStep();
+	inline RLInterface* getInterface(){return mp_RLinterface;}
 
 protected:
 	
@@ -132,9 +137,11 @@ protected:
 	void clutching(CarState &cs, float &clutch);
 
 	////////Functions added by Daniel:
-	virtual void initInterface(bool load_network)=0;
-	virtual double computeReward(CarState &state, double* action, CarState &next_state);
-	virtual void doLearning(CarState &cs);
+	void setPrefs();
+	virtual void initInterface(const bool& load_network, const bool& automatic_experiment)=0;
+	double computeReward(CarState &state, double* action, CarState &next_state);
+	void doLearning(CarState &cs);
+	void doUpdate(CarState &cs);
 	virtual CarControl carStuckControl(CarState &cs);
 	CarControl simpleBotControl(CarState &cs);
 	virtual CarControl rlControl(CarState &cs);
@@ -181,6 +188,8 @@ protected:
 	int m_step_id;
 	int m_exp_count;
 	int m_round_size;
+	bool m_automatic_experiment;
+	string m_log_dir;
 };
 
 #endif /*RLDriver_H_*/

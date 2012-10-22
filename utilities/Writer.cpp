@@ -9,7 +9,7 @@ Writer::Writer(string file_name)
 	ofstream out (m_file, ios::trunc);
 	if( out.is_open()) 
 	{
-		out << "" << endl;
+		out << "";
 		out.close();
 	}
 	else 

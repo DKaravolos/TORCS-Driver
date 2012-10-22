@@ -7,12 +7,14 @@
 # include <map>
 # include "../rlcpp/StateActionAlgorithm.h"
 # include "../rlcpp/State.h"
+# include "../utilities/Writer.h"
 
 using namespace std;
+
 class TileCodingHM : public StateActionAlgorithm {
     public:
-        TileCodingHM(World * w);
-		TileCodingHM(World * w, const char* qtable_file);
+        TileCodingHM(World * w, const string& log_dir);
+		TileCodingHM(World * w, const string& log_dir, const char* qtable_file);
         ~TileCodingHM();
 
         void update	(State * st, Action * action, double rt, State * st_,
@@ -28,7 +30,15 @@ class TileCodingHM : public StateActionAlgorithm {
 
 		inline unsigned int getNumberOfLearningRates()	{return 1;}
 		inline const char * getName()					{return "TileCoding" ;}
+
+	protected:
+		void boltzmann (State* s, Action* a, double tau);
+
 	private:
+		//Log
+		Writer* mp_log;
+		bool m_verbose;
+
 		//QTable:
 		//tile,	speed,	trackpos,angle,		dist1, dist2, dist3, dist4, dist5,		actions
 		map<pair<string,int>,double> m_tilings;
@@ -52,7 +62,7 @@ class TileCodingHM : public StateActionAlgorithm {
 
 		// init functions
 		//void getTileCodingSettings(string parameterfile);
-		void init(World* world);
+		void init(World* world, const string& log_dir);
 		void setEdges();
 		void getEdgesFromFile(string filename);
 		void addEdge(string& type, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling);
@@ -69,8 +79,8 @@ class TileCodingHM : public StateActionAlgorithm {
 		int classifyValue(const double& state_value, const vector<double>& bin_edges);
 
 		// Keep track of how often each state is visited
-		map<string,int> state_visits;
-		void storeStateVisit(const string& key);
+		map<pair<string,int>,int> state_visits;
+		void storeStateVisit(const pair<string,int>& key);
 };
 
 #endif //TILECODINGHM_H

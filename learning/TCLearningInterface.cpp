@@ -4,15 +4,15 @@ using namespace std;
 
 ///////////////Initialization functions///////////////////
 
-TCLearningInterface::TCLearningInterface(void)
+TCLearningInterface::TCLearningInterface(const string& log_dir)
 {
 	srand(time(NULL));
 	cout << "Creating interface...\n";
-	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
-	mp_log = new Writer("log_files/TC_interface_output.txt");
-	mp_reward_log = new Writer("log_files/TC_cumulative_reward.txt");
-	mp_log->write("Interface created.");
+	m_log_dir = log_dir;
+	mp_reward_log = new Writer(m_log_dir + "TC_cumulative_reward.txt");
+	//mp_log = new Writer(m_log_dir + "]TC_interface_output.txt");
+	//mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
 	cout << "Done.\n";
@@ -21,26 +21,33 @@ TCLearningInterface::TCLearningInterface(void)
 TCLearningInterface::~TCLearningInterface(void)
 {
 	cout << "Destroying TCLearningInterface... Goodbye cruel world!" << endl;
-	delete mp_log;
+	//delete mp_log;
 	delete mp_reward_log;
 	delete mp_algorithm;
 }
 
 void TCLearningInterface::init()
 {
-	mp_algorithm = new TileCodingHM(mp_world) ;
+	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
 	cout << "TileCoding constructed.\n";
-	_init();
+	_init(false);
 }
 
-void TCLearningInterface::init(const char* qtable_filename)
+void TCLearningInterface::init(const bool& automatic_experiment)
 {
-	mp_algorithm = new TileCodingHM (mp_world, qtable_filename);
-	//err << "ERROR: No TileCoding object created!\n";
-	_init();
+	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
+	cout << "TileCoding constructed.\n";
+	_init(automatic_experiment);
 }
 
-void TCLearningInterface::_init()
+void TCLearningInterface::init(const bool& automatic_experiment, const char* qtable_filename)
+{
+	mp_algorithm = new TileCodingHM (mp_world, m_log_dir, qtable_filename);
+	//err << "ERROR: No TileCoding object created!\n";
+	_init(automatic_experiment);
+}
+
+void TCLearningInterface::_init(const bool& automatic_experiment)
 {
 	cout << "Initalizing remainder of interface.\n";
 	mp_experiment = new Experiment(Experiment::TILECODING); //Het is geen gek idee om de instellingen op te slaan in de log.
@@ -50,8 +57,13 @@ void TCLearningInterface::_init()
 	initExperimentParam();
 	initState();
 	initActions();
-	askExplore();
-	askUpdate();
+
+	cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
+	if(!automatic_experiment)
+	{
+		askExplore();
+		askUpdate();
+	}
 	cout << "Done.\n";
 }
 
@@ -87,6 +99,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	//Whether or not exploration is taken into account depends on the user input
 	if(m_explore)
 		mp_experiment->explore( mp_current_state, mp_current_action);
+		
 	else
 	{
 		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
@@ -96,7 +109,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 
 	double l_td_error = 100; //declare td_error, which might be used for sorting tuples later. initialisation is for 'storeTuple',this should not be necessary.
 
-	if ( mp_parameters->train)
+	if (mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
 		{
@@ -105,10 +118,10 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("TileCoding") == 0 ) {
-				if(m_update && option == UpdateOption::RANDOM)
+				if(m_update && option == RLInterface::UpdateOption::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				if(m_update && option == UpdateOption::TD)
+				if(m_update && option == RLInterface::UpdateOption::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
@@ -133,7 +146,8 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	copyAction( mp_current_action, mp_prev_action );
 
 	//Keep track of time / episodes
-	if ( mp_parameters->endOfEpisode ) {
+	if (mp_parameters->endOfEpisode) {
+		cout << "I did an endOfEpisode udpate, so I will turn the flag back to false.\n";
 		mp_parameters->episode++ ;
 		mp_parameters->first_time_step = true;
 		mp_parameters->endOfEpisode = false;
@@ -141,8 +155,8 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	mp_parameters->step++;
 	if(mp_parameters->step % 1000 == 0) {
 		stringstream message;
-		message << "Number of steps so far: " << mp_parameters->step;
-		mp_log->write(message.str());
+		//message << "Number of steps so far: " << mp_parameters->step;
+		//mp_log->write(message.str());
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
 		//cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}
@@ -221,7 +235,7 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
-	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
+	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
 	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->loadQTable(QNN_file.str());
 }
@@ -229,7 +243,7 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 //writeNetwork exists only for inheritance (calls writeQTable)
 void TCLearningInterface::writeNetwork(int identifier, int step)
 {
-	mp_algorithm->writeStateVisits("log_files/state_visits.txt");
+	mp_algorithm->writeStateVisits( m_log_dir + "state_visits.txt");
 	//cout << "NOTE: only writing state visits, not the QTable.\n";
 	writeQTable(identifier, step);
 }
@@ -237,11 +251,11 @@ void TCLearningInterface::writeNetwork(int identifier, int step)
 void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
-	QNN_file << "log_files/TC_QTable_id_" << identifier << "_step_" << step;
+	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
 	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
 
 	stringstream msg;
-	msg << "time: " << mp_parameters->step << ". Writing QTable\n";
-	mp_log->write(msg.str());
+	//msg << "time: " << mp_parameters->step << ". Writing QTable\n";
+	//mp_log->write(msg.str());
 }

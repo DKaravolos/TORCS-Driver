@@ -11,25 +11,28 @@ class TCLearningInterface: public RLInterface
 {
 	public:
 		//initialisation
-		TCLearningInterface(void);
+		TCLearningInterface(const std::string& log_dir);
 		~TCLearningInterface(void);
-		virtual void init();
-		virtual void init(const char* qtable_filename);
+		void init();
+		void init(const bool& automatic_experiment);
+		void init(const bool& automatic_experiment, const char* qtable_filename);
 
 		//learning functions
-		virtual bool learningUpdateStep(bool store_tuples, UpdateOption option);
+		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
 
 		//other
 		void writeNetwork(int identifier, int step); //only for inheritance (calls writeQTable)
 		void writeQTable(int identifier, int step);
 
+		//for automatic experiment
+		Experiment* getExperiment(){return mp_experiment;}
 	//protected:
 		//datamembers
 		TileCodingHM* mp_algorithm;
 
 		//functions:
-		void _init();
+		void _init(const bool& auto_exp);
 		virtual void initState();
 		virtual void initActions();
 		void loadQTable(int id, int step);

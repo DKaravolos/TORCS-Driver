@@ -38,11 +38,25 @@ class Experiment {
 		
 		Experiment(){}
 		Experiment(Configuration config);
-
         virtual ~Experiment() ;
         bool initializeState( State * state, Algorithm * algorithm, World * world ) ;
         bool initializeAction( Action * action, Algorithm * algorithm, World * world ) ;
         void getParametersAndRunExperiments( World * world ) ;
+
+		inline void setEpsilon(double eps){ epsilons[0] = eps;}
+		inline void setTau(double tau){ taus[0] = tau;}
+		inline void setGamma(double gamma_input) {gamma = gamma_input;}
+		inline void setLearningRate(double lr) {learningRate[0] = lr;}
+		inline void setLearningRates(double lr0, double lr1) {learningRate[0] = lr0; learningRate[1] = lr1;}
+		inline void setBoltzmann(bool input) { boltzmann = input;}
+		inline void setEGreedy(bool input) { egreedy = input;}
+
+		inline double getEpsilon() {return epsilons[0];}
+		inline double getTau() {return taus[0];}
+		inline double getGamma() {return gamma;}
+		inline double getLearningRate() {return learningRate[0];}
+		inline bool getBoltzmann() {return boltzmann;}
+		inline bool getEGreedy() {return egreedy;}
         
     protected:
         double * runExperiment( World * world ) ;
