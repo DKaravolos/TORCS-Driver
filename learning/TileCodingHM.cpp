@@ -604,37 +604,40 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
     double total = policy[0];
 	a = 0;
 
-    while(total < rnd){
+    while (a <= numberOfActions && total < rnd)
+	{
         a++;
-        if(a >= numberOfActions)
-		{
-            // Something went wrong...
-			cerr << "Error in boltzmann:\n";
-            cerr << total << " is smaller than " << rnd << endl ;
-			cerr << "Boltzmann values: \n";
-			int act;
-            for (act = 0; act < numberOfActions ; act++)
-                cerr << policy[act] << " " ;
-            cerr << endl ;
-			cerr << "Q values: \n";
-            for (act = 0; act < numberOfActions; act++)
-                cerr << q_values[act] << " " ;
-            cerr << endl ;
-			#ifdef WIN32
-				char end;
-				cin>>end;
-			#endif
-            exit(-1) ;
-        } else {
-			total += policy[a]; //is this implementation fair towards the smaller q-values?
-		}
+		total += policy[a]; //is this implementation fair towards the smaller q-values?
     }
 
-    action->discreteAction = a;
-	cout << "Chosen action: " << a << endl;
-	if(m_verbose)
-		ss << "Chosen action: " << a << endl;
-	mp_log->write(ss.str());
+	if(a <= numberOfActions)
+	{
+		action->discreteAction = a;
+		cout << "Chosen action: " << a << endl;
+		if(m_verbose)
+			ss << "Chosen action: " << a << endl;
+		mp_log->write(ss.str());
+		//return; // not necessary, but looks nice.
+    } else
+	{
+		// Something went wrong...
+		cerr << "Error in boltzmann:\n";
+        cerr << total << " is smaller than " << rnd << endl ;
+		cerr << "Boltzmann values: \n";
+		int act;
+        for (act = 0; act < numberOfActions ; act++)
+            cerr << policy[act] << " " ;
+        cerr << endl ;
+		cerr << "Q values: \n";
+        for (act = 0; act < numberOfActions; act++)
+            cerr << q_values[act] << " " ;
+        cerr << endl ;
+		#ifdef WIN32
+			char end;
+			cin>>end;
+		#endif
+        exit(-1) ;
+	}
 }
 
 //writeQTable writes only the Q-values to a file, not the edges of the tiles!!

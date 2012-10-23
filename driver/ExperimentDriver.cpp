@@ -27,6 +27,7 @@ CarControl ExperimentDriver::wDrive(CarState cs)
 
 void ExperimentDriver::init(float* angles)
 {
+	cout << "CALLING THE INIT FUNCTION!\n";
 	mp_driver->init(angles);
 	if(mp_driver->getLearningStep() <=0)
 	{
@@ -51,22 +52,36 @@ void ExperimentDriver::onShutdown()
 void ExperimentDriver::onRestart()
 {
 	mp_driver->onRestart();
-	if(mp_driver->getLearningStep() == m_steps[g_curr_experiment])
+	cout << "Steps done: " << mp_driver->getLearningStep() + 1 << endl;
+	cout << "Steps required: " << m_steps[g_curr_experiment]* m_runs[g_curr_experiment] << endl;
+
+	if(mp_driver->getLearningStep() + 1 == m_steps[g_curr_experiment]* m_runs[g_curr_experiment])
 	{
-		++g_curr_experiment;// This can be written in one line
-		setNewDriver(g_curr_experiment); // This can be written in one line
+		++g_curr_experiment;
+
+		if(g_curr_experiment == m_nr_of_experiments)
+		{
+			cout << m_nr_of_experiments << " experiments done! Quitting.\n";
+			#ifdef WIN32
+				char q;
+				cin >> q;
+				exit(0); //I don't know any other way to stop the game.
+			#endif
+		} else {
+			setNewDriver(g_curr_experiment);
+		}
 	}
 }
 
 void ExperimentDriver::selectFirstDriver()
 {
-	cout << "Would you like to save the datastructure?(y/n)\n";
+	cout << "Would you like to save the data structure? (y/n)\n";
 	char save;
 	cin >> save;
 	m_save_data = (save == 'y');
 
 	cout << "Which driver would you like to use for your experiment?\n";
-	cout << "0 = TCDriver, 1 = QDriver, 2 = CaclaDriver\n";
+	cout << "0 = TCDriver \n"; //, 1 = QDriver, 2 = CaclaDriver\n";
 	cin >> m_driver_type;
 	switch(m_driver_type)
 	{
@@ -81,6 +96,9 @@ void ExperimentDriver::selectFirstDriver()
 			//mp_driver = new CaclaDriver();
 			cout << "NOT IMPLEMENTED!\n";
 			break;
+		default:
+			cout << "\nDriver not implemented. Try again.\n";
+			selectFirstDriver();
 	}
 }
 
@@ -133,11 +151,11 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 				{
 					string exp_type;
 					parameter >> exp_type;
-					if (exp_type.compare("boltzmann"))
+					if (exp_type.compare("boltzmann") == 0)
 					{
 						cout << "Boltzmann: ";
 						addParameter(parameter_type, parameter, m_taus);
-					} else if (exp_type.compare("egreedy"))
+					} else if (exp_type.compare("egreedy") == 0)
 					{
 						cout << "E-greedy: ";
 							addParameter(parameter_type, parameter, m_epsilons);
