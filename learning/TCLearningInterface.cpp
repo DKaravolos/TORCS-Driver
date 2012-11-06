@@ -58,11 +58,21 @@ void TCLearningInterface::_init(const bool& automatic_experiment)
 	initState();
 	initActions();
 
-	cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
-	if(!automatic_experiment)
+	bool test = false; //ALLEEN VOOR TEST DRIVER.exe
+
+	if(test) //ALLEEN VOOR TEST DRIVER.exe
 	{
-		askExplore();
-		askUpdate();
+		cout << "TCLI: Using test settings!\n";
+		m_explore = false;
+		m_update = true;
+	} else {
+		if(!automatic_experiment)
+		{
+			askExplore();
+			askUpdate();
+		} else {
+			cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
+		}
 	}
 	cout << "Done.\n";
 }
@@ -244,6 +254,7 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 void TCLearningInterface::writeNetwork(int identifier, int step)
 {
 	mp_algorithm->writeStateVisits( m_log_dir + "state_visits.txt");
+	mp_algorithm->writeAverageTDError( m_log_dir + "average_td_errors.txt");
 	//cout << "NOTE: only writing state visits, not the QTable.\n";
 	writeQTable(identifier, step);
 }

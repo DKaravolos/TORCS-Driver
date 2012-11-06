@@ -27,6 +27,7 @@ class TileCodingHM : public StateActionAlgorithm {
 		void loadQTable (string filename);
 		void writeQTable (string filename);
 		void writeStateVisits(const string& filename);
+		void writeAverageTDError(const string& filename);
 
 		inline unsigned int getNumberOfLearningRates()	{return 1;}
 		inline const char * getName()					{return "TileCoding" ;}
@@ -80,7 +81,9 @@ class TileCodingHM : public StateActionAlgorithm {
 
 		// Keep track of how often each state is visited
 		map<pair<string,int>,int> state_visits;
+		map<pair<string,int>,double> average_td_errors;
 		void storeStateVisit(const pair<string,int>& key);
+		void storeAverageTDError(const pair<string,int>& key, double td_error);
 };
 
 #endif //TILECODINGHM_H

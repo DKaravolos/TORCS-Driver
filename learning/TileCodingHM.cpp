@@ -1,5 +1,5 @@
 # include "TileCodingHM.h"
-#define DEFAULT_Q 30.0 //Defines the default (i.e. first) value of a tile
+#define DEFAULT_Q 50.0 //Defines the default (i.e. first) value of a tile
 
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
@@ -41,7 +41,11 @@ void TileCodingHM::init(World* w, const string& log_dir)
 
 	mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
 	//Get parameter/config info from user ??
-	if(log_dir.compare("log_files/") == 0)
+	bool test = false;
+	if(test)
+		cout << "TileCoding: Using test settings!\n";
+
+	if(log_dir.compare("log_files/") == 0 && !test) //LET OP: ALLEEN VOOR TEST Driver!!
 	{
 		cout << "Do you want a verbose log file for the TileCoding algorithm?\n";
 		char ans;
@@ -73,7 +77,14 @@ void TileCodingHM::setEdges()
 	m_angle_edges.resize(m_numTilings);
 	m_dist_edges.resize(m_numTilings);
 
-	getEdgesFromFile("TileCodingEdges_5Tiles_5Vakjes.txt"); // assumes to find a maximum of m_numTilings values for tilings
+	//cout << "Hoeveel vakjes gebruiken je tilings?\n";
+	int num = 4;
+	//cin >> num;
+	stringstream filename;
+	filename << "TileCodingEdges_5Tiles_"<< num << "Vakjes.txt";
+	getEdgesFromFile(filename.str()); // assumes to find a maximum of m_numTilings values for tilings
+	
+	cout << "JE GEBRUIKT " << num << " VAKJES IN EEN TILING.\n";
 }
 
 //Reads the edges of the bins of the tiles from a file
@@ -259,7 +270,7 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 	if(endOfEpisode)
 	{
 		//Add penalty to end of episode state
-		rt -= 10;
+		//rt -= 10;
 		//cout << "NOTE: in TC-HM a reward of -10 is added for end of episode\n";
 
 		//Compute TD error (independent of tiling)
@@ -320,6 +331,12 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 	{
 		l_out << "\n\n";
 		mp_log->write(l_out.str());
+	}
+
+	for(tiling = 0; tiling < m_numTilings; tiling++)
+	{
+		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+		storeAverageTDError(state_action, td_error);
 	}
 	return td_error;
 }
@@ -604,10 +621,10 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
     double total = policy[0];
 	a = 0;
 
-    while (a <= numberOfActions && total < rnd)
+    while (a < (numberOfActions - 1) && total < rnd)
 	{
         a++;
-		total += policy[a]; //is this implementation fair towards the smaller q-values?
+		total += policy[a];
     }
 
 	if(a <= numberOfActions)
@@ -730,7 +747,7 @@ void TileCodingHM::loadQTable(string filename)
 		}
 		
 		f_in.close();
-		cout << "Loading QTable is done. Are you sure that the code-defined edges are the same??\n";
+		cout << "Loading QTable is done. Press any key to continue.\n"; // Are you sure that the code-defined edges are the same??
 		char a;
 		cin >> a;
 	} else {
@@ -773,5 +790,43 @@ void TileCodingHM::writeStateVisits(const string& filename)
 		f_out.close();
 	} else {
 		cerr << "ERROR: Could not open '" << filename << "' for writing state visits.\n";
+	}
+}
+
+//Keeps track of the average td error in each state action pair
+void TileCodingHM::storeAverageTDError(const pair<string,int>& key, double td_error)
+{
+	if(state_visits.count(key) > 0)
+	{
+		double curr_td = average_td_errors[key];
+		double td_sum = curr_td * (state_visits[key] -1); //we know that state_visits is updated before average_td_errors
+		td_sum += td_error;
+		average_td_errors[key] = td_sum / state_visits[key];// new average = ((avg * N) + new_val) / (N+1)
+
+	} else { //else add this state to average_td_errors and set value to td_error
+		average_td_errors[key] = td_error;
+	}
+}
+
+//Writes visited states and their visit counts to a file
+
+void TileCodingHM::writeAverageTDError(const string& filename)
+{
+	ofstream f_out;
+	f_out.open(filename);
+	if(f_out.is_open())
+	{
+		map<pair<string,int>,double>::iterator it;
+		//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
+		//f_out << "NOTE: This is independent of actions.\n";
+		int sum = 0;
+		for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
+		{
+			f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
+			sum += it->second;
+		}
+		f_out.close();
+	} else {
+		cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
 	}
 }

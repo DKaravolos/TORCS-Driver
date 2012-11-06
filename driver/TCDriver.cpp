@@ -49,7 +49,7 @@ void TCDriver::askLoadNetwork()
 	cin >> answer;
 	if(answer == 'y')
 	{
-		cout << "Which directory? (without / at the end)\n";
+		cout << "Which directory? (ending with /)\n";
 		string l_log_dir;
 		cin >> l_log_dir;
 
@@ -60,7 +60,7 @@ void TCDriver::askLoadNetwork()
 		cin >> m_step_id;
 		m_step_id *= 1000;
 		stringstream file_name;
-		file_name << l_log_dir << "/TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
+		file_name << l_log_dir << "TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
 		string base_file = file_name.str();
 		is.open(base_file);
 		if(is.is_open()) {

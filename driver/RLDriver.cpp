@@ -7,22 +7,33 @@ RLDriver::RLDriver()
 {
 	setPrefs();
 	//Set user preferences
-	cout << "How many updates should be in one round?\n";
-	cin >> m_round_size;
 
-	cout << "How many runs of "<< m_round_size << "? \n";
-	cin >> m_exp_count;
+	bool test = false; //ALLEEN VOOR TEST DRIVER.exe
 
-	cout << "Do you want to save the data structure? (y/n)\n";
-	char answer = 'n';
-	cin >> answer;
-	if(answer == 'y')
+	if(test) //ALLEEN VOOR TEST DRIVER.exe
 	{
-		cout << "Saving nn.\n";
-		m_save_nn = true;
-	} else {
-		cout << "Not saving nn.\n";
+		cout << "RLDriver: Using test settings!\n";
+		m_round_size = 10000;
+		m_exp_count = 1;
 		m_save_nn = false;
+	} else {
+		cout << "How many updates should be in one round?\n";
+		cin >> m_round_size;
+
+		cout << "How many runs of "<< m_round_size << "? \n";
+		cin >> m_exp_count;
+
+		cout << "Do you want to save the data structure? (y/n)\n";
+		char answer = 'n';
+		cin >> answer;
+		if(answer == 'y')
+		{
+			cout << "Saving nn.\n";
+			m_save_nn = true;
+		} else {
+			cout << "Not saving nn.\n";
+			m_save_nn = false;
+		}
 	}
 	m_automatic_experiment = false;
 }
@@ -125,21 +136,20 @@ CarControl RLDriver::wDrive(CarState cs)
 	g_count++;
 
 	//// check if car is currently stuck
-	if  ( (cs.getTrackPos() > 0.8)  && (cs.getAngle() >= 2 * 0.087266) || // angle > 10 degrees
-		  (cs.getTrackPos() < -0.8) && (cs.getAngle() <= 2 * -0.087266)
-		) 
-		stuck++; //if agent is driving on side of the track with nose pointed outwards, correct it.
-	else if ( fabs(cs.getAngle()) > stuckAngle ) {
+	if (stuckCheck(cs))
         stuck++; // update stuck counter
-    } else {
+    else
         stuck = 0; // if not stuck reset stuck counter
-    }
 
 	// after car is stuck for a while apply recovering policy //update: end the episode
-	if ((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 30)) // 29-08: changed from 5 to 30.
+	if  (
+		((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 30)) || // 29-08: changed from 5 to 30.
+		(fabs(cs.getTrackPos()) > 0.95)
+		)
 	{ 
 		g_stuck_step_count++;
-		cout << "Car stuck for too long. Ending Episode!\n";
+		//cout << "Car stuck for too long. Ending Episode!\n";
+		cout << "Car is stuck or outside of track. Ending episode!\n";
 		//The episode has ended, make sure the agent is properly updated.
 		mp_RLinterface->setEOE();
 		doLearning(cs);
@@ -238,6 +248,22 @@ CarControl RLDriver::wDrive(CarState cs)
 	return rlControl(cs);
 }
 
+bool RLDriver::stuckCheck(CarState& cs)
+{
+	//if agent is driving on side of the track with nose pointed outwards
+	if	( (cs.getTrackPos() >  0.8 && cs.getAngle() >= 2 * 0.087266) || // angle > 10 degrees
+		  (cs.getTrackPos() < -0.8 && cs.getAngle() <= 2 * -0.087266)
+		) 
+		return true; 
+
+	//if agent is almost outside of track and does not move
+	if (cs.getSpeedX() < 5 && (cs.getTrackPos() >  0.99 || cs.getTrackPos() <  -0.99))
+		 return true;
+	
+	//if agent's angle is larger than predefined stuckAngle
+	return (fabs(cs.getAngle()) > stuckAngle); //last condition, so we can return its value. if it is true: stuck, if false: not stuck.
+}
+
 double RLDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
 
@@ -250,27 +276,26 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	double reward = 0;
 		
 	/////////DISTANCE
-	int dist_weight = 1; //Hier stond 0.2 Waarom stond dat hier? het bereik was vet klein?!
+	int dist_weight = 2;
 	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
+
+	if(next_state.getCurLapTime() < state.getCurLapTime()) //detect end of lap
+		dist_reward = 0; //no dist reward at end of lap, only lap reward
+
 	reward+= dist_weight * dist_reward; 
-	cout << "\tDistance reward: "<< dist_reward << ".";
+	cout << "\tDistance reward: "<< dist_reward << ".\n";
 
-	//if(next_state.getSpeedX() <= 5)
-	//{
-	//	reward -= 4;
-	//	cout << "\tSpeed Penalty! (-4) : " << reward << endl;
-	//}
-	//else if(next_state.getSpeedX() <= 10) //Drive, damn you!!
-	//{		
-	//	reward -= 2;
-	//	cout << "\tSpeed Penalty! (-2) : " << reward << endl; 
-	//} 
-	//else if(next_state.getSpeedX() >= 10)
-	//{	
-	//	reward += 4;
-	//	cout << "\tSpeed bonus! (4) : " << reward << endl; 
-	//}
+	if( dist_reward < 0.01)
+		reward -= 1;
 
+	/////////// FINISH A LAP
+	int lap_weight = 1;
+	double lap_reward = 0;
+
+	if(next_state.getCurLapTime() < state.getCurLapTime()) //detect end of lap
+		lap_reward = 10;
+
+	reward+= lap_weight * lap_reward; 
 	///////////POSITION
 	//double pos_reward = 0;
 	//int pos_weight = -1;
@@ -314,8 +339,9 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	double damage_reward = 0;
 	//damage_reward = -(next_state.getDamage() - state.getDamage());
 	//cout << "Damage reward: " << damage_reward << endl;
-	if(next_state.getDamage() > 0) {
-		damage_reward = 20;
+	if(next_state.getDamage() > 1) {
+		damage_reward = 5;
+		cout << "Damage: " << next_state.getDamage() <<endl;
 		cout << "Damage difference: " << next_state.getDamage() - state.getDamage() << endl;
 		reward += damage_weight * damage_reward;
 	}

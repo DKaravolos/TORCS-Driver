@@ -139,6 +139,7 @@ protected:
 	////////Functions added by Daniel:
 	void setPrefs();
 	virtual void initInterface(const bool& load_network, const bool& automatic_experiment)=0;
+	bool stuckCheck(CarState& cs);
 	double computeReward(CarState &state, double* action, CarState &next_state);
 	void doLearning(CarState &cs);
 	void doUpdate(CarState &cs);
