@@ -253,8 +253,9 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 //writeNetwork exists only for inheritance (calls writeQTable)
 void TCLearningInterface::writeNetwork(int identifier, int step)
 {
-	mp_algorithm->writeStateVisits( m_log_dir + "state_visits.txt");
-	mp_algorithm->writeAverageTDError( m_log_dir + "average_td_errors.txt");
+	//mp_algorithm->writeStateVisits( m_log_dir + "state_visits.txt");
+	//mp_algorithm->writeAverageTDError( m_log_dir + "average_td_errors.txt");
+	mp_algorithm->writeStateInfo(m_log_dir + "state_info.txt");
 	//cout << "NOTE: only writing state visits, not the QTable.\n";
 	writeQTable(identifier, step);
 }

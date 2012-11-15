@@ -1,5 +1,5 @@
 # include "TileCodingHM.h"
-#define DEFAULT_Q 50.0 //Defines the default (i.e. first) value of a tile
+#define DEFAULT_Q 10.0 //Defines the default (i.e. first) value of a tile
 
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
@@ -37,9 +37,11 @@ void TileCodingHM::init(World* w, const string& log_dir)
         numberOfActions = w->getNumberOfActions() ;
     }
 	stateDimension = w->getStateDimension();
-
+	m_nr_of_updates = 0;
 
 	mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	mp_td_log = new Writer(log_dir + "average_td_error");
+	
 	//Get parameter/config info from user ??
 	bool test = false;
 	if(test)
@@ -56,7 +58,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 		cout << "How many tilings are defined in the edge configuration file?\n";
 		cin >> m_numTilings; //NOTE: Vector subscript out of range error is produced when the actual number is larger than this.
 	} else {
-		m_verbose = false;
+		m_verbose = true;
 		m_numTilings = 10; //HARD CODED SETTING! LAZY PROGRAMMER ALERT!
 	}
 
@@ -78,10 +80,11 @@ void TileCodingHM::setEdges()
 	m_dist_edges.resize(m_numTilings);
 
 	//cout << "Hoeveel vakjes gebruiken je tilings?\n";
-	int num = 4;
+	int num = 10;
+	int version = 1;
 	//cin >> num;
 	stringstream filename;
-	filename << "TileCodingEdges_5Tiles_"<< num << "Vakjes.txt";
+	filename << "TileCodingEdges_5Tiles_"<< num << "Vakjes" << version << ".txt";
 	getEdgesFromFile(filename.str()); // assumes to find a maximum of m_numTilings values for tilings
 	
 	cout << "JE GEBRUIKT " << num << " VAKJES IN EEN TILING.\n";
@@ -270,7 +273,7 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 	if(endOfEpisode)
 	{
 		//Add penalty to end of episode state
-		//rt -= 10;
+		rt -= 50;
 		//cout << "NOTE: in TC-HM a reward of -10 is added for end of episode\n";
 
 		//Compute TD error (independent of tiling)
@@ -326,7 +329,7 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 			}
 		}		
 	}
-
+	//log functions:
 	if(m_verbose)
 	{
 		l_out << "\n\n";
@@ -338,6 +341,9 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
 		storeAverageTDError(state_action, td_error);
 	}
+
+	computeGeneralTDError(td_error);
+	checkTDError(td_error);
 	return td_error;
 }
 
@@ -796,6 +802,7 @@ void TileCodingHM::writeStateVisits(const string& filename)
 //Keeps track of the average td error in each state action pair
 void TileCodingHM::storeAverageTDError(const pair<string,int>& key, double td_error)
 {
+	//average error per state
 	if(state_visits.count(key) > 0)
 	{
 		double curr_td = average_td_errors[key];
@@ -808,25 +815,85 @@ void TileCodingHM::storeAverageTDError(const pair<string,int>& key, double td_er
 	}
 }
 
+void TileCodingHM::computeGeneralTDError(double td_input)
+{
+	double td_error = abs(td_input);
+	//general average error
+	if(m_nr_of_updates == 0) {
+		m_avg_td_error = td_error;
+		m_nr_of_updates++;
+	} else {
+		double sum_of_tds = (m_nr_of_updates * m_avg_td_error) + td_error;
+		m_avg_td_error = sum_of_tds / ++m_nr_of_updates;
+		//cout << "Sum: " << sum_of_tds << "\t Nr of updates: " << m_nr_of_updates << endl;
+	}
+
+	stringstream ss;
+	ss << m_avg_td_error;
+	mp_td_log->write(ss.str());
+}
+
 //Writes visited states and their visit counts to a file
 
 void TileCodingHM::writeAverageTDError(const string& filename)
+{
+	//ofstream f_out;
+	//f_out.open(filename);
+	//if(f_out.is_open())
+	//{
+	//	map<pair<string,int>,double>::iterator it;
+	//	//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
+	//	//f_out << "NOTE: This is independent of actions.\n";
+	//	for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
+	//	{
+	//		f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
+	//	}
+	//	f_out.close();
+	//} else {
+	//	cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
+	//}
+}
+
+void TileCodingHM::writeStateInfo(const string& filename)
 {
 	ofstream f_out;
 	f_out.open(filename);
 	if(f_out.is_open())
 	{
-		map<pair<string,int>,double>::iterator it;
+		map<pair<string,int>,int>::iterator state_it;
+		map<pair<string,int>,double>::iterator td_it = average_td_errors.begin();
+
 		//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
 		//f_out << "NOTE: This is independent of actions.\n";
-		int sum = 0;
-		for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
+		//int sum = 0;
+		for(state_it = state_visits.begin(); state_it != state_visits.end(); ++state_it)
 		{
-			f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
-			sum += it->second;
+			f_out << "state: " << state_it->first.first << ", " << state_it->first.second << ". ";
+			f_out << "Visits: " << state_it->second << ". TD error: " << td_it->second << endl;
+			//sum += it->second;
+			++td_it;
 		}
+		//f_out << "Total number of actions: " << sum / m_numTilings;
 		f_out.close();
 	} else {
-		cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
+		cerr << "ERROR: Could not open '" << filename << "' for writing state visits.\n";
+	}
+}
+
+void TileCodingHM::checkTDError(double td_error)
+{
+	stringstream f_out;
+	if(td_error >= 5000) //BTW, this could happen when finishing a lap.
+	{
+		f_out << "WARNING! TD error  = " << td_error << ". This is larger than or equal to MAXIMAL TD error!";
+		mp_log->write(f_out.str());
+		cout << f_out;
+	} else if(td_error > 50)
+	{
+		f_out << "Warning! TD error  = " << td_error << ". This is larger than 1/10 of maximal TD error!";
+		mp_log->write(f_out.str());
+		cout << f_out;
+	} else {
+		//cout << "TD error: " << td_error << endl;
 	}
 }

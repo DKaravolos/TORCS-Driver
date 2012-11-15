@@ -182,6 +182,8 @@ protected:
 	int g_print_mod;
 	//int debug_stuck_count;
 	int debug_rlcontrol_count;
+	double debug_max_reward;
+	double debug_min_reward;
 
 	//user preferences
 	bool m_save_nn;

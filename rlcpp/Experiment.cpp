@@ -203,8 +203,8 @@ Experiment::Experiment(Experiment::Configuration config) {
 			storePerStep = true;
 			storePerEpisode = false;
 
-			boltzmann = false;		////IMPORTANT
-			egreedy = true;			////IMPORTANT
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
 			gaussian = false;
 
 			algorithmName = "TileCoding";
@@ -215,7 +215,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRate = new double[nLearningRates];
 			learningRate[0] = 0.1; ////IMPORTANT - was 0.02
 
-			tau = 0.2;
+			tau = 1;
 			epsilon = 0.15; // was 0.01
 			sigma = 0.01;
 			taus.push_back(tau);

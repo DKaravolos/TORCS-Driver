@@ -91,6 +91,8 @@ void RLDriver::init(float *angles)
 	g_learning_done = false;
 	g_first_time = true;
 	g_reupdates_left = 0;
+	debug_max_reward = 0;
+	debug_min_reward = 0;
 
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
@@ -135,12 +137,17 @@ CarControl RLDriver::wDrive(CarState cs)
 	//keep track of time
 	g_count++;
 
-	//// check if car is currently stuck
-	if (stuckCheck(cs))
-        stuck++; // update stuck counter
-    else
+	////// check if car is currently stuck
+	//if (stuckCheck(cs))
+ //       stuck++; // update stuck counter
+ //   else
         stuck = 0; // if not stuck reset stuck counter
 
+	//if(g_count % 10 == 0){
+	//	cout << "TrackPos: " << cs.getTrackPos() << "\n";
+	//	cout << "Sensor left: " << cs.getTrack(5) << endl << "Sensor middle: " << cs.getTrack(9) << endl;
+	//	cout << "Sensor right: " << cs.getTrack(13) << endl;
+	//}
 	// after car is stuck for a while apply recovering policy //update: end the episode
 	if  (
 		((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 30)) || // 29-08: changed from 5 to 30.
@@ -150,6 +157,11 @@ CarControl RLDriver::wDrive(CarState cs)
 		g_stuck_step_count++;
 		//cout << "Car stuck for too long. Ending Episode!\n";
 		cout << "Car is stuck or outside of track. Ending episode!\n";
+		if(getKeyboardInput() == 'p')
+		{
+			char temp;
+			cin >> temp;
+		}
 		//The episode has ended, make sure the agent is properly updated.
 		mp_RLinterface->setEOE();
 		doLearning(cs);
@@ -277,7 +289,7 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		
 	/////////DISTANCE
 	int dist_weight = 2;
-	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
+	double dist_reward = next_state.getDistFromStart() - state.getDistFromStart();
 
 	if(next_state.getCurLapTime() < state.getCurLapTime()) //detect end of lap
 		dist_reward = 0; //no dist reward at end of lap, only lap reward
@@ -286,14 +298,14 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	cout << "\tDistance reward: "<< dist_reward << ".\n";
 
 	if( dist_reward < 0.01)
-		reward -= 1;
+		reward -= 20;
 
 	/////////// FINISH A LAP
 	int lap_weight = 1;
 	double lap_reward = 0;
 
 	if(next_state.getCurLapTime() < state.getCurLapTime()) //detect end of lap
-		lap_reward = 10;
+		lap_reward = 100;
 
 	reward+= lap_weight * lap_reward; 
 	///////////POSITION
@@ -335,16 +347,16 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//}
 
 	///////////DAMAGE
-	double damage_weight = -1;
-	double damage_reward = 0;
-	//damage_reward = -(next_state.getDamage() - state.getDamage());
-	//cout << "Damage reward: " << damage_reward << endl;
-	if(next_state.getDamage() > 1) {
-		damage_reward = 5;
-		cout << "Damage: " << next_state.getDamage() <<endl;
-		cout << "Damage difference: " << next_state.getDamage() - state.getDamage() << endl;
-		reward += damage_weight * damage_reward;
-	}
+	//double damage_weight = -1;
+	//double damage_reward = 0;
+	////damage_reward = -(next_state.getDamage() - state.getDamage());
+	////cout << "Damage reward: " << damage_reward << endl;
+	//if(next_state.getDamage() > 1) {
+	//	damage_reward = 5;
+	//	cout << "Damage: " << next_state.getDamage() <<endl;
+	//	cout << "Damage difference: " << next_state.getDamage() - state.getDamage() << endl;
+	//	reward += damage_weight * damage_reward;
+	//}
 	/////////ACTION
 	//if(g_count != 0)
 	//	reward += action[1];
@@ -352,6 +364,17 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//if(g_count %100 == 0)
 		cout << "\n\t\tFinal reward: " << reward << ".\n\n";
 
+	if(reward > debug_max_reward) //Keep track of max reward
+		debug_max_reward = reward;
+	if(reward < debug_min_reward) //Keep track of min reward
+		debug_min_reward = reward;
+
+	if(reward > 20 || reward < -21){
+		cout << "Reward: " << reward << ". REWARD OUT OF BOUNDS!! I did not expect this.\n";
+		double alt_dist_reward = dist_weight * (next_state.getDistRaced() - state.getDistRaced());
+		cout << "The alternative reward would have been: " << alt_dist_reward <<endl;
+		reward = alt_dist_reward;
+	}
 	return reward;
 }
 
@@ -452,6 +475,8 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		debug_msg << "steps in LI: " << mp_RLinterface->getSteps() << endl;
 		debug_msg << "learn steps: " << g_learn_step_count << "\treupdate: "<< g_reupdate_step_count << endl; //was debug_msg
 		debug_msg << "rl_control: " << debug_rlcontrol_count << endl;
+		debug_msg << "Maximal reward: " << debug_max_reward << endl;
+		debug_msg << "Minimal reward: " << debug_min_reward << endl;
 		mp_log->write(debug_msg.str());
 		
 		g_experiment_count++;		
@@ -481,7 +506,8 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	if(g_experiment_count == m_exp_count && !m_automatic_experiment) {
 		cout << "\nExperiments done.\n";
 		//onShutdown(); //this only calls RLDriver::onShutdown(), the actual driver does not shut down, so this is hardly useful
-
+		cout << "MAX REWARD WAS: "<< debug_max_reward << endl;
+		cout << "MIN REWARD WAS: "<< debug_min_reward << endl;
 		#ifdef WIN32
 			char end;
 			cin>>end;
