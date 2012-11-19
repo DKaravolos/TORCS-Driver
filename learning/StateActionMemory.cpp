@@ -65,7 +65,7 @@ void StateActionMemory::storeTuple(State* state, Action* action, double reward,
 			mp_next_states->push_back(*next_state);
 			mp_end_of_eps->push_back(end_of_ep);
 			mp_td_errors->push_back(td_error);
-			cout << "option 0\n";
+			//cout << "option 0\n";
 			return;
 		}
 		else if (option == 1) //LearningInterface::UpdateOption::TD

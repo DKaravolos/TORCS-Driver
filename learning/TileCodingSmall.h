@@ -1,5 +1,5 @@
-#ifndef TILECODINGHM_H
-#define TILECODINGHM_H
+#ifndef TILECODINGSMALL_H
+#define TILECODINGSMALL_H
 # include <iostream>
 # include <sstream>
 # include <string>
@@ -12,11 +12,11 @@
 
 using namespace std;
 
-class TileCodingHM : public StateActionAlgorithm {
+class TileCodingSmall : public StateActionAlgorithm {
     public:
-        TileCodingHM(World * w, const string& log_dir);
-		TileCodingHM(World * w, const string& log_dir, const char* qtable_file);
-        ~TileCodingHM();
+        TileCodingSmall(World * w, const string& log_dir);
+		TileCodingSmall(World * w, const string& log_dir, const char* qtable_file);
+        ~TileCodingSmall();
 
         void update	(State * st, Action * action, double rt, State * st_,
 					bool endOfEpisode, double * learningRate, double gamma);
@@ -97,4 +97,4 @@ class TileCodingHM : public StateActionAlgorithm {
 
 };
 
-#endif //TILECODINGHM_H
+#endif //TILECODINGSMALL_H

@@ -1,31 +1,31 @@
-# include "TileCodingHM.h"
+# include "TileCodingSmall.h"
 #define DEFAULT_Q 10.0 //Defines the default (i.e. first) value of a tile
 
 
-TileCodingHM::TileCodingHM(World * w, const string& log_dir)
+TileCodingSmall::TileCodingSmall(World * w, const string& log_dir)
 {
 	init(w, log_dir);    
 }
 
-TileCodingHM::TileCodingHM(World * w, const string& log_dir, const char* qtable_file)
+TileCodingSmall::TileCodingSmall(World * w, const string& log_dir, const char* qtable_file)
 {
 	loadQTable(string(qtable_file));
 	init(w, log_dir);
 }
 
-TileCodingHM::~TileCodingHM()
+TileCodingSmall::~TileCodingSmall()
 {
 	delete mp_log;
 }
 
 //initialisation
-void TileCodingHM::init(World* w, const string& log_dir)
+void TileCodingSmall::init(World* w, const string& log_dir)
 {
 	discreteStates = w->getDiscreteStates() ;
 
     if (!w->getDiscreteActions() || w->getDiscreteStates()) {
 
-        cout << "This TileCodingHM does not support continuous actions or discrete states." << endl ;
+        cout << "This TileCodingSmall does not support continuous actions or discrete states." << endl ;
         cout << "Please check which MDP you are using it on." << endl ;
 		#ifdef WIN32
 			char end_program;
@@ -39,7 +39,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	stateDimension = w->getStateDimension();
 	m_nr_of_updates = 0;
 
-	mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	mp_log = new Writer(log_dir + "TileCoding_Small_Log.txt"); // Creating the log file does not depend on answer
 	mp_td_log = new Writer(log_dir + "average_td_error");
 	
 	//Get parameter/config info from user ??
@@ -71,7 +71,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 }
 
 //Sets the edges of the bins of the tiles using file input
-void TileCodingHM::setEdges()
+void TileCodingSmall::setEdges()
 {
 	//init sizes, so we can use element access of vectors 
 	m_speed_edges.resize(m_numTilings);
@@ -91,7 +91,7 @@ void TileCodingHM::setEdges()
 }
 
 //Reads the edges of the bins of the tiles from a file
-void TileCodingHM::getEdgesFromFile(string l_parameterfile)
+void TileCodingSmall::getEdgesFromFile(string l_parameterfile)
 {
 	//Keep track of the defined tilings per dimension
 	int speed_tiling = 0;
@@ -185,7 +185,7 @@ void TileCodingHM::getEdgesFromFile(string l_parameterfile)
 }
 
 //Adds edge from input to given vector
-void TileCodingHM::addEdge(string& edgetype, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling)
+void TileCodingSmall::addEdge(string& edgetype, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling)
 {
 	double edge;
 	//It would be nice to be able to check if the number of tilings does not exceed user input
@@ -200,13 +200,13 @@ void TileCodingHM::addEdge(string& edgetype, stringstream& ss, vector<vector<dou
 }
 
 //same as updateAndReturnTDError, but does not return TD error
-void TileCodingHM::update( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
+void TileCodingSmall::update( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
 {
 	updateAndReturnTDError(state,action,rt,nextState,endOfEpisode,learningRate,gamma);
 }
 
 //Performs an update of the Q-table by computing the TD error explicitly and returns the TD error.
-double TileCodingHM::updateAndReturnTDError( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
+double TileCodingSmall::updateAndReturnTDError( State * state, Action * action, double rt, State * nextState, bool endOfEpisode, double * learningRate, double gamma)
 {
 	if (!state->continuous )
 	{
@@ -348,10 +348,11 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 }
 
 // Find the tile indices for a given state. Returns NULL if the state is not in this tile.
-string TileCodingHM::classifyState(const State* state, const int& tiling)
+string TileCodingSmall::classifyState(const State* state, const int& tiling)
 {
+	const int l_num_inputs = 4;
 	stringstream key;
-	int tile_indices[8]; //NOTE: It should be possible to use a vector<int>* for this
+	int tile_indices[l_num_inputs]; //NOTE: It should be possible to use a vector<int>* for this
 
 
 	//stringstream log;
@@ -368,21 +369,13 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 	//cout << "Angle. Value: " << state->continuousState[2] << " tile: " << tile_indices[2] << endl;
 	//mp_log->write("Classifying Dist1.");
 	tile_indices[3] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
-	//mp_log->write("Classifying Dist2.");
-	tile_indices[4] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
-	//mp_log->write("Classifying Dist3.");
-	tile_indices[5] = classifyValue(state->continuousState[5], m_dist_edges[tiling]);
-	//mp_log->write("Classifying Dist4.");
-	tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
-	//mp_log->write("Classifying Dist5.");
-	tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);
-	
+
 	//use tiling as part of key for map
 	key << tiling;
 
 	//Check if there was any value out of bounds
 	int idx;
-	for(idx = 0; idx < 8; ++idx)
+	for(idx = 0; idx < l_num_inputs; ++idx)
 	{
 		if(tile_indices[idx] >= 0)
 		{
@@ -398,7 +391,7 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 }
 
 //Classifies a given value into the given tile bins
-int TileCodingHM::classifyValue(const double& state_value, const vector<double>& bin_edges)
+int TileCodingSmall::classifyValue(const double& state_value, const vector<double>& bin_edges)
 {
 	//stringstream log;
 	int bin = -1; 
@@ -418,7 +411,7 @@ int TileCodingHM::classifyValue(const double& state_value, const vector<double>&
 }
 
 //Gets the max action-value of a state (vector of strings)
-double TileCodingHM::getMaxQOfState(const vector<string>& state_keys)
+double TileCodingSmall::getMaxQOfState(const vector<string>& state_keys)
 {
 	vector<double> Q_values = vector<double> (numberOfActions, 0.0);
 	//stringstream l_out;
@@ -461,7 +454,7 @@ double TileCodingHM::getMaxQOfState(const vector<string>& state_keys)
 }
 
 //Gets the Q-value of a specific tile
-double TileCodingHM::getQOfStateActionPair(const vector<string>& state_keys, int action)
+double TileCodingSmall::getQOfStateActionPair(const vector<string>& state_keys, int action)
 {
 	double Q_value = 0;
 	int tiling;
@@ -496,7 +489,7 @@ double TileCodingHM::getQOfStateActionPair(const vector<string>& state_keys, int
 }
 
 //Get the max element of a vector of doubles
-double TileCodingHM::myTCMax(const vector<double>& action_values)
+double TileCodingSmall::myTCMax(const vector<double>& action_values)
 {
 	double max_val = action_values[0];
 	unsigned int idx;
@@ -508,7 +501,7 @@ double TileCodingHM::myTCMax(const vector<double>& action_values)
 }
 
 //Get the index of the max element of a vector of doubles
-int TileCodingHM::myTCArgMax(const vector<double>& action_values)
+int TileCodingSmall::myTCArgMax(const vector<double>& action_values)
 {
 	double max_val = action_values[0];
 	int max_idx = 0;
@@ -526,7 +519,7 @@ int TileCodingHM::myTCArgMax(const vector<double>& action_values)
 }
 
 //Get the action with the highest Q-value in a given state and put it in a given Action object
-void TileCodingHM::getMaxAction(State* state, Action* action)
+void TileCodingSmall::getMaxAction(State* state, Action* action)
 {
 	stringstream ss;
 	if(m_verbose)
@@ -564,7 +557,7 @@ void TileCodingHM::getMaxAction(State* state, Action* action)
 
 
 //boltzmann implements boltzmann exploration for this TileCoding implementation
-void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
+void TileCodingSmall::boltzmann(State* state, Action * action, double tau ) {
     //Log
 	stringstream ss;
 	if(m_verbose)
@@ -593,9 +586,9 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 
 	//Just for the log:
 	double max_action = myTCArgMax(q_values);
-	cout << "max action : " << translateAction(max_action) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+	cout << "max action : \t" << max_action << ". " << translateAction(max_action) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 	if(m_verbose)
-		ss << "Max action: " << translateAction(max_action) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+		ss << "Max action: " << max_action << ". " << translateAction(max_action) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 
 	////Do Boltzmann exploration
 	//Compute Boltzmann value
@@ -636,9 +629,9 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 	if(a <= numberOfActions)
 	{
 		action->discreteAction = a;
-		cout << "\n\nChosen action: " << translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+		cout << "\n\nChosen action: \t" << a << ". " <<translateAction(a) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		if(m_verbose)
-			ss << "Chosen action: " << translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+			ss << "Chosen action: " << a << ". " << translateAction(a) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		mp_log->write(ss.str());
 		//return; // not necessary, but looks nice.
     } else
@@ -664,7 +657,7 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 }
 
 //writeQTable writes only the Q-values to a file, not the edges of the tiles!!
-void TileCodingHM::writeQTable(string filename)
+void TileCodingSmall::writeQTable(string filename)
 {
 	ofstream f_out;
 	f_out.open(filename);
@@ -694,7 +687,7 @@ void TileCodingHM::writeQTable(string filename)
 }
 
 //loadQTable loads only the Q-values to a file, not the edges of the tiles!!
-void TileCodingHM::loadQTable(string filename)
+void TileCodingSmall::loadQTable(string filename)
 {
 	ifstream f_in;
 	f_in.open(filename);
@@ -762,7 +755,7 @@ void TileCodingHM::loadQTable(string filename)
 }
 
 //Keeps track of how often each state is visited
-void TileCodingHM::storeStateVisit(const pair<string,int>& key)
+void TileCodingSmall::storeStateVisit(const pair<string,int>& key)
 {
 	//if state_visits contains the key, add 1 to the value
 	if(state_visits.count(key) > 0)
@@ -777,7 +770,7 @@ void TileCodingHM::storeStateVisit(const pair<string,int>& key)
 
 //Writes visited states and their visit counts to a file
 
-void TileCodingHM::writeStateVisits(const string& filename)
+void TileCodingSmall::writeStateVisits(const string& filename)
 {
 	ofstream f_out;
 	f_out.open(filename);
@@ -800,7 +793,7 @@ void TileCodingHM::writeStateVisits(const string& filename)
 }
 
 //Keeps track of the average td error in each state action pair
-void TileCodingHM::storeAverageTDError(const pair<string,int>& key, double td_error)
+void TileCodingSmall::storeAverageTDError(const pair<string,int>& key, double td_error)
 {
 	//average error per state
 	if(state_visits.count(key) > 0)
@@ -815,7 +808,7 @@ void TileCodingHM::storeAverageTDError(const pair<string,int>& key, double td_er
 	}
 }
 
-void TileCodingHM::computeGeneralTDError(double td_input)
+void TileCodingSmall::computeGeneralTDError(double td_input)
 {
 	double td_error = abs(td_input);
 	//general average error
@@ -835,7 +828,7 @@ void TileCodingHM::computeGeneralTDError(double td_input)
 
 //Writes visited states and their visit counts to a file
 
-void TileCodingHM::writeAverageTDError(const string& filename)
+void TileCodingSmall::writeAverageTDError(const string& filename)
 {
 	//ofstream f_out;
 	//f_out.open(filename);
@@ -854,7 +847,7 @@ void TileCodingHM::writeAverageTDError(const string& filename)
 	//}
 }
 
-void TileCodingHM::writeStateInfo(const string& filename)
+void TileCodingSmall::writeStateInfo(const string& filename)
 {
 	ofstream f_out;
 	f_out.open(filename);
@@ -880,7 +873,7 @@ void TileCodingHM::writeStateInfo(const string& filename)
 	}
 }
 
-void TileCodingHM::checkTDError(double td_error)
+void TileCodingSmall::checkTDError(double td_error)
 {
 	stringstream f_out;
 	if(td_error >= 5000) //BTW, this could happen when finishing a lap.

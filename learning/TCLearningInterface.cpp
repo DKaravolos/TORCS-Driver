@@ -28,21 +28,24 @@ TCLearningInterface::~TCLearningInterface(void)
 
 void TCLearningInterface::init()
 {
-	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
+	//mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
+	mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
 	cout << "TileCoding constructed.\n";
 	_init(false);
 }
 
 void TCLearningInterface::init(const bool& automatic_experiment)
 {
-	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
+	//mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
+	mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
 	cout << "TileCoding constructed.\n";
 	_init(automatic_experiment);
 }
 
 void TCLearningInterface::init(const bool& automatic_experiment, const char* qtable_filename)
 {
-	mp_algorithm = new TileCodingHM (mp_world, m_log_dir, qtable_filename);
+	//mp_algorithm = new TileCodingSmall (mp_world, m_log_dir, qtable_filename);
+	mp_algorithm = new TileCodingSmall (mp_world, m_log_dir, qtable_filename);
 	//err << "ERROR: No TileCoding object created!\n";
 	_init(automatic_experiment);
 }
@@ -223,12 +226,14 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 		switch(option)
 		{
 			case RANDOM:
+				//cout << "Reupdate.\n";
 				mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
 									l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
 				break;
 
 			case TD:
 				//Update network with this tuple
+				//cout << "Reupdate.\n";
 				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 						mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 							
@@ -246,7 +251,8 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
-	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
+	//TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
+	TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
 	lp_tilecoding->loadQTable(QNN_file.str());
 }
 
@@ -264,7 +270,8 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
-	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
+	//TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
+	TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
 
 	stringstream msg;

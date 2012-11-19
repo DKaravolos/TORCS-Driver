@@ -3,7 +3,7 @@
 
 #include "..\learning\RLInterface.h"
 #include "..\rlcpp\StateActionAlgorithm.h"
-//#include "..\learning\TileCoding.h"
+#include "..\learning\TileCodingSmall.h"
 #include "..\learning\TileCodingHM.h"
 #include <string>
 
@@ -29,7 +29,8 @@ class TCLearningInterface: public RLInterface
 		Experiment* getExperiment(){return mp_experiment;}
 	//protected:
 		//datamembers
-		TileCodingHM* mp_algorithm;
+		//TileCodingHM* mp_algorithm;
+		TileCodingSmall* mp_algorithm;
 
 		//functions:
 		void _init(const bool& auto_exp);

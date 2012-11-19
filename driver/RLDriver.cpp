@@ -143,11 +143,15 @@ CarControl RLDriver::wDrive(CarState cs)
  //   else
         stuck = 0; // if not stuck reset stuck counter
 
-	//if(g_count % 10 == 0){
+	if(g_count % 10 == 0) {
+	//	cout << "Distance from start: " << cs.getDistFromStart() << endl;
+	//	cout << "Distance raced: "<< cs.getDistRaced() << endl;
 	//	cout << "TrackPos: " << cs.getTrackPos() << "\n";
-	//	cout << "Sensor left: " << cs.getTrack(5) << endl << "Sensor middle: " << cs.getTrack(9) << endl;
+	//	cout << "Sensor left: " << cs.getTrack(5) << endl
+		cout << "Sensor front: " << cs.getTrack(9) << endl;
 	//	cout << "Sensor right: " << cs.getTrack(13) << endl;
-	//}
+	}
+
 	// after car is stuck for a while apply recovering policy //update: end the episode
 	if  (
 		((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 30)) || // 29-08: changed from 5 to 30.
@@ -289,7 +293,7 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		
 	/////////DISTANCE
 	int dist_weight = 2;
-	double dist_reward = next_state.getDistFromStart() - state.getDistFromStart();
+	double dist_reward = next_state.getDistRaced() - state.getDistRaced();
 
 	if(next_state.getCurLapTime() < state.getCurLapTime()) //detect end of lap
 		dist_reward = 0; //no dist reward at end of lap, only lap reward
@@ -371,9 +375,6 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 
 	if(reward > 20 || reward < -21){
 		cout << "Reward: " << reward << ". REWARD OUT OF BOUNDS!! I did not expect this.\n";
-		double alt_dist_reward = dist_weight * (next_state.getDistRaced() - state.getDistRaced());
-		cout << "The alternative reward would have been: " << alt_dist_reward <<endl;
-		reward = alt_dist_reward;
 	}
 	return reward;
 }
