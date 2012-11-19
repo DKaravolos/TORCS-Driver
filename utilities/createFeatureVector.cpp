@@ -101,7 +101,7 @@ void createMinimalFeatureVectorPointer(CarState state, vector<double>* featureVe
 	featureVector->clear();
 	featureVector->push_back(state.getSpeedX()/300);// Genormaliseerd. 300kmh lijkt max. praktisch bijna niet boven 290.
 	featureVector->push_back(state.getTrackPos()); //Zit al tussen -1 (rechts) en 1 (links). Waarde buiten deze range betekent off-track (maar bestaat dus wel!!)
-	featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
+	//featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 
 	featureVector->push_back(state.getTrack(9)/200); // 0 graden
 }

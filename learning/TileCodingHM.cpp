@@ -593,9 +593,9 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 
 	//Just for the log:
 	double max_action = myTCArgMax(q_values);
-	cout << "max action : " << translateAction(max_action) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+	cout << "max action : \t" << max_action << ". " << translateAction(max_action) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 	if(m_verbose)
-		ss << "Max action: " << translateAction(max_action) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+		ss << "max action : \t" << max_action << ". " << translateAction(max_action) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 
 	////Do Boltzmann exploration
 	//Compute Boltzmann value
@@ -636,9 +636,9 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 	if(a <= numberOfActions)
 	{
 		action->discreteAction = a;
-		cout << "\n\nChosen action: " << translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+		cout << "\n\nChosen action: \t" << a << ". " <<translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		if(m_verbose)
-			ss << "Chosen action: " << translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+			ss << "Chosen action: \t" << a << ". " <<translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		mp_log->write(ss.str());
 		//return; // not necessary, but looks nice.
     } else

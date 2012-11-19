@@ -350,25 +350,14 @@ double TileCodingSmall::updateAndReturnTDError( State * state, Action * action, 
 // Find the tile indices for a given state. Returns NULL if the state is not in this tile.
 string TileCodingSmall::classifyState(const State* state, const int& tiling)
 {
-	const int l_num_inputs = 4;
+	const int l_num_inputs = 3;
 	stringstream key;
 	int tile_indices[l_num_inputs]; //NOTE: It should be possible to use a vector<int>* for this
 
-
-	//stringstream log;
-	//log << "Classifying state with tiling " << tiling;
-	//mp_log->write(log.str());
-	//cout << "classifying tiling "<< tiling << endl;
-	//Classify each dimension separately
-	//mp_log->write("Classifying speed.");
 	tile_indices[0] = classifyValue(state->continuousState[0], m_speed_edges[tiling]);
-	//mp_log->write("Classifying trackPos.");
 	tile_indices[1] = classifyValue(state->continuousState[1], m_trackPos_edges[tiling]);
-	//mp_log->write("Classifying Angle.");
-	tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
-	//cout << "Angle. Value: " << state->continuousState[2] << " tile: " << tile_indices[2] << endl;
-	//mp_log->write("Classifying Dist1.");
-	tile_indices[3] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
+	//tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
+	tile_indices[2] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
 
 	//use tiling as part of key for map
 	key << tiling;
@@ -629,9 +618,9 @@ void TileCodingSmall::boltzmann(State* state, Action * action, double tau ) {
 	if(a <= numberOfActions)
 	{
 		action->discreteAction = a;
-		cout << "\n\nChosen action: \t" << a << ". " <<translateAction(a) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+		cout << "\n\nChosen action: \t" << a << ". " <<translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		if(m_verbose)
-			ss << "Chosen action: " << a << ". " << translateAction(a) << endl;//THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
+			ss << "Chosen action: " << a << ". " << translateAction(a) << endl; //THIS IS A SEPARATELY DEFINED FUNCTION. THIS SHOULD BE IN A UTILITIES CLASS OR SOMETHING!
 		mp_log->write(ss.str());
 		//return; // not necessary, but looks nice.
     } else
