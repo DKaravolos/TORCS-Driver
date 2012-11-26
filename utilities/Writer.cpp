@@ -6,7 +6,7 @@ Writer::Writer(string file_name)
 {
 	m_file = file_name;
 
-	ofstream out (m_file, ios::trunc);
+	ofstream out (m_file.c_str(), ios::trunc);
 	if( out.is_open()) 
 	{
 		out << "";

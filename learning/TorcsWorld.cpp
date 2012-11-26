@@ -47,7 +47,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			discreteStates		= false ;
 			discreteActions		= false ;
 
-			stateDimension		= 8;
+			stateDimension		= 3;
 			actionDimension		= 2;
 			numberOfStates		= 0;
 			numberOfActions		= 0;

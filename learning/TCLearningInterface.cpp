@@ -1,6 +1,7 @@
 #include "TCLearningInterface.h"
 //#include <Windows.h>
 using namespace std;
+//#define INTERFACE_DEBUG true
 
 ///////////////Initialization functions///////////////////
 
@@ -28,24 +29,22 @@ TCLearningInterface::~TCLearningInterface(void)
 
 void TCLearningInterface::init()
 {
-	//mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
-	mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
+	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
 	cout << "TileCoding constructed.\n";
 	_init(false);
 }
 
 void TCLearningInterface::init(const bool& automatic_experiment)
 {
-	//mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
-	mp_algorithm = new TileCodingSmall(mp_world, m_log_dir) ;
+	mp_algorithm = new TileCodingHM(mp_world, m_log_dir) ;
 	cout << "TileCoding constructed.\n";
 	_init(automatic_experiment);
 }
 
 void TCLearningInterface::init(const bool& automatic_experiment, const char* qtable_filename)
 {
-	//mp_algorithm = new TileCodingSmall (mp_world, m_log_dir, qtable_filename);
-	mp_algorithm = new TileCodingSmall (mp_world, m_log_dir, qtable_filename);
+	//mp_algorithm = new TileCodingHM (mp_world, m_log_dir, qtable_filename);
+	mp_algorithm = new TileCodingHM (mp_world, m_log_dir, qtable_filename);
 	//err << "ERROR: No TileCoding object created!\n";
 	_init(automatic_experiment);
 }
@@ -111,8 +110,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
 	if(m_explore)
-		mp_experiment->explore( mp_current_state, mp_current_action);
-		
+		mp_experiment->explore( mp_current_state, mp_current_action);	
 	else
 	{
 		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
@@ -142,7 +140,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 				return true;
 			}
 		} else {
-			cout << "it: " << mp_parameters->step << ". First time step. Not performing learning because of invalid state values "  << endl;
+			cout << "tcli_time: " << mp_parameters->step << ". First time step. Not performing learning because of invalid state values "  << endl;
 			mp_parameters->first_time_step = false;
 			copyState( mp_current_state, mp_prev_state ) ;
 			copyAction( mp_current_action, mp_prev_action ) ;
@@ -167,11 +165,10 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	}
 	mp_parameters->step++;
 	if(mp_parameters->step % 1000 == 0) {
-		stringstream message;
+		//stringstream message;
 		//message << "Number of steps so far: " << mp_parameters->step;
 		//mp_log->write(message.str());
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
-		//cout << "Max learning steps: " << mp_experiment->nSteps << endl;
 	}
 	return false;
 }
@@ -189,7 +186,7 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 	bool l_end_of_ep = false;
 	int tuple_idx = 0;
 	double l_td_error;
-
+	//cout << "Start of reupdate\n";
 	//if(mp_memory->getSize() >= 5) {
 	//	mp_log->write("Before reupdate:");
 	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
@@ -198,6 +195,7 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 	switch(option)
 	{
 		case RANDOM:
+			//cout << "Retrieving old tuple.\n";
 			//update with random tuple from memory
 			tuple_idx = rand() % mp_memory->getSize();
 			//cout << "Retrieving tuple "<<tuple_idx <<endl;
@@ -224,16 +222,14 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 	{
 		//cout << "Updating old tuple\n";
 		switch(option)
-		{
+		{ //START OF ERROR?
 			case RANDOM:
-				//cout << "Reupdate.\n";
 				mp_algorithm->update(lp_state, lp_action, l_reward, lp_next_state,
 									l_end_of_ep, mp_experiment->learningRate, mp_experiment->gamma);
 				break;
 
 			case TD:
 				//Update network with this tuple
-				//cout << "Reupdate.\n";
 				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 						mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 							
@@ -245,14 +241,19 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 				break;
 		}
 	}
-}
+	//cout << "Deleting pointers.\n";
+	delete lp_state;
+	delete lp_action;
+	delete lp_next_state;
+
+} //END OF ERROR?
 
 void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
-	//TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
-	TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
+	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
+	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->loadQTable(QNN_file.str());
 }
 
@@ -270,8 +271,8 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
 	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
-	//TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
-	TileCodingSmall* lp_tilecoding = static_cast<TileCodingSmall*>(mp_algorithm);
+	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
+	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
 
 	stringstream msg;

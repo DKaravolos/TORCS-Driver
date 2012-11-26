@@ -219,7 +219,7 @@ double TileCodingSmall::updateAndReturnTDError( State * state, Action * action, 
 	stringstream l_out;
 	if(m_verbose)
 		l_out << "Start of update()\n";
-	
+	//cout << "start of update.\n";
 	//For each tile: convert continuous state into discrete states defined by tiles
 	double active_tilings = 0;
 	int tiling;
@@ -350,21 +350,31 @@ double TileCodingSmall::updateAndReturnTDError( State * state, Action * action, 
 // Find the tile indices for a given state. Returns NULL if the state is not in this tile.
 string TileCodingSmall::classifyState(const State* state, const int& tiling)
 {
-	const int l_num_inputs = 3;
+	//const int l_num_inputs = 8;
 	stringstream key;
-	int tile_indices[l_num_inputs]; //NOTE: It should be possible to use a vector<int>* for this
+	//int tile_indices[l_num_inputs]; //NOTE: It should be possible to use a vector<int>* for this
+	int tile_indices[8];
 
 	tile_indices[0] = classifyValue(state->continuousState[0], m_speed_edges[tiling]);
 	tile_indices[1] = classifyValue(state->continuousState[1], m_trackPos_edges[tiling]);
-	//tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
-	tile_indices[2] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
+	//tile_indices[2] = 0;//classifyValue(state->continuousState[2], m_angle_edges[tiling]);
+	tile_indices[3] = classifyValue(state->continuousState[3], m_dist_edges[tiling]); //based on minimalfeaturevector
+
+	//To Counter bugs:
+	tile_indices[2] = 0;
+	tile_indices[4] = 0;
+	tile_indices[5] = 0;
+	tile_indices[6] = 0;
+	tile_indices[7] = 0;
+
 
 	//use tiling as part of key for map
 	key << tiling;
 
 	//Check if there was any value out of bounds
 	int idx;
-	for(idx = 0; idx < l_num_inputs; ++idx)
+	//for(idx = 0; idx < l_num_inputs; ++idx)
+	for(idx = 0; idx < 8; ++idx)
 	{
 		if(tile_indices[idx] >= 0)
 		{

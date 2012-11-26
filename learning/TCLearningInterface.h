@@ -29,8 +29,8 @@ class TCLearningInterface: public RLInterface
 		Experiment* getExperiment(){return mp_experiment;}
 	//protected:
 		//datamembers
-		//TileCodingHM* mp_algorithm;
-		TileCodingSmall* mp_algorithm;
+		TileCodingHM* mp_algorithm;
+		//TileCodingSmall* mp_algorithm;
 
 		//functions:
 		void _init(const bool& auto_exp);

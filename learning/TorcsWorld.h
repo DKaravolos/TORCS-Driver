@@ -35,17 +35,17 @@ private:
 
 //inline functions
 public:
-	inline void TorcsWorld::setState(State* state)	{mp_state = state;}
-	inline void TorcsWorld::getState(State* state)	{state = mp_state;}
+	inline void setState(State* state)	{mp_state = state;}
+	inline void getState(State* state)	{state = mp_state;}
 
-	inline Action* TorcsWorld::getAction()			{return mp_action;}
+	inline Action* getAction()			{return mp_action;}
 
-	inline void setReward(double reward)			{m_reward = reward;}
-	inline double getReward()						{return m_reward;}
+	inline void setReward(double reward){m_reward = reward;}
+	inline double getReward()			{return m_reward;}
 	
-	inline const char * TorcsWorld::getName()		{return "TorcsWorld";}
-	inline void setEOE(bool new_val)				{m_end_of_ep = new_val;}
-	inline bool endOfEpisode()						{return m_end_of_ep;}
+	inline const char * getName()		{return "TorcsWorld";}
+	inline void setEOE(bool new_val)	{m_end_of_ep = new_val;}
+	inline bool endOfEpisode()			{return m_end_of_ep;}
 };
 
 #endif //TORCSWORLD_H

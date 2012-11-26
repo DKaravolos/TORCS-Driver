@@ -9,7 +9,7 @@ class CaclaLearningI: public RLInterface
 {
 	public:
 		//initialisation
-		CaclaLearningI(void);
+		CaclaLearningI(const string& log_dir);
 		~CaclaLearningI(void);
 		virtual void init();
 		virtual void init(const bool& automatic);

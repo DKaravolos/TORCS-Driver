@@ -178,12 +178,33 @@ protected:
 	int g_reupdate_steps_per_tick;
 	int g_reupdates_left;
 
+	//Debug function
+	void checkSensorInput(vector<double>* input);
+	void printInputRange(int exp_count);
+
 	//debug parameters
 	int g_print_mod;
 	//int debug_stuck_count;
 	int debug_rlcontrol_count;
 	double debug_max_reward;
+	double debug_max_speed;
+	double debug_max_trackpos;
+	double debug_max_angle;
+	double debug_max_dist_front;
+	double debug_max_distl40;
+	double debug_max_distl20;
+	double debug_max_distr20;
+	double debug_max_distr40;
+
 	double debug_min_reward;
+	double debug_min_speed;
+	double debug_min_trackpos;
+	double debug_min_angle;
+	double debug_min_dist_front;
+	double debug_min_distl40;
+	double debug_min_distl20;
+	double debug_min_distr20;
+	double debug_min_distr40;
 
 	//user preferences
 	bool m_save_nn;

@@ -4,8 +4,14 @@
 	#include <time.h>
 #endif
 
-Cacla::Cacla( const char * parameterFile, World * w ) {
-	mp_critic_log = new Writer("log_files/cacla_critic_log.txt");
+Cacla::Cacla( const char * parameterFile, World * w)
+{
+	Cacla(parameterFile,w,"log_files/CACLA");
+}
+
+Cacla::Cacla( const char * parameterFile, World * w, const string& log_dir ) {
+	m_log_dir = log_dir;
+	mp_critic_log = new Writer( log_dir + "cacla_critic_log.txt");
     discreteStates      = w->getDiscreteStates() ;
 
     actionDimension     = w->getActionDimension() ;
@@ -50,8 +56,8 @@ Cacla::Cacla( const char * parameterFile, World * w ) {
 
 }
 
-Cacla::Cacla( const char * parameterFile, World * w, const char* ann_file, const char* vnn_file ) {
-	mp_critic_log = new Writer("cacla_critic_log");
+Cacla::Cacla( const char * parameterFile, World * w, const char* ann_file, const char* vnn_file, const string& log_dir) {
+	mp_critic_log = new Writer( log_dir + "cacla_critic_log.txt");
     discreteStates      = w->getDiscreteStates() ;
     actionDimension     = w->getActionDimension() ;
 
@@ -398,8 +404,8 @@ void Cacla::readNN(string ANN_file, string VNN_file)
 
 void Cacla::writeNN(string ANN_file, string VNN_file)
 {
-	ANN->writeNetwork(ANN_file);
-	VNN->writeNetwork(VNN_file);
+	ANN->writeNetwork(m_log_dir + ANN_file);
+	VNN->writeNetwork(m_log_dir + VNN_file);
 }
 
 unsigned int Cacla::getNumberOfLearningRates() {

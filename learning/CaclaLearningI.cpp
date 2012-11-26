@@ -1,18 +1,21 @@
 #include "CaclaLearningI.h"
 //#include <Windows.h>
 using namespace std;
+//#define INTERFACE_DEBUG true
+#define HIDDEN_NODES 10
 
 ///////////////Initialization functions///////////////////
 
-CaclaLearningI::CaclaLearningI(void)
+CaclaLearningI::CaclaLearningI(const string& log_dir)
 {
 	srand(time(NULL));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::CACLA);
-	mp_log = new Writer("log_files/cacla_interface_output.txt");
-	mp_reward_log = new Writer("log_files/cacla_cumulative_reward.txt");
-	mp_log->write("Interface created.");
+	m_log_dir = log_dir;
+	//mp_log = new Writer(m_log_dir + "cacla_interface_output.txt");
+	mp_reward_log = new Writer(m_log_dir + "cacla_cumulative_reward.txt");
+	//mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
 	cout << "Done.\n";
@@ -21,22 +24,28 @@ CaclaLearningI::CaclaLearningI(void)
 CaclaLearningI::~CaclaLearningI(void)
 {
 	cout << "Destroying CaclaLearningI... Goodbye cruel world!" << endl;
-	delete mp_log;
+	//delete mp_log;
 	delete mp_reward_log;
 	delete mp_algorithm;
 }
 
 void CaclaLearningI::init()
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world) ;
-	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	int num_hidden = HIDDEN_NODES;
+	stringstream config;
+	config << "TorcsWorldCfg" << num_hidden;
+	mp_algorithm = new Cacla(config.str().c_str(), mp_world, m_log_dir) ;
+	cout << "NOTE: USING " << num_hidden << " HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init(false);
 }
 
 void CaclaLearningI::init(const bool& automatic)
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world) ;
-	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	int num_hidden = HIDDEN_NODES;
+	stringstream config;
+	config << "TorcsWorldCfg" << num_hidden;
+	mp_algorithm = new Cacla(config.str().c_str(), mp_world, m_log_dir) ;
+	cout << "NOTE: USING " << num_hidden << " HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init(automatic);
 }
 
@@ -44,14 +53,20 @@ void CaclaLearningI::init(const bool& automatic)
 void CaclaLearningI::init(const bool& automatic, const char* ann_filename)
 {
 	cerr << "Are you sure you want to initialize Cacla with only one network??\n";
-	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, ann_filename) ;
+	int num_hidden = HIDDEN_NODES;
+	stringstream config;
+	config << "TorcsWorldCfg" << num_hidden;
+	mp_algorithm = new Cacla(config.str().c_str(), mp_world, ann_filename, ann_filename, m_log_dir) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init(automatic);
 }
 
 void CaclaLearningI::init(const bool& automatic, const char* ann_filename, const char* vnn_filename)
 {
-	mp_algorithm = new Cacla("TorcsWorldCfg20", mp_world, ann_filename, vnn_filename) ;
+	int num_hidden = HIDDEN_NODES;
+	stringstream config;
+	config << "TorcsWorldCfg" << num_hidden;
+	mp_algorithm = new Cacla(config.str().c_str(), mp_world, ann_filename, vnn_filename, m_log_dir) ;
 	//cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
 	_init(automatic);
 }
@@ -67,10 +82,22 @@ void CaclaLearningI::_init(const bool& automatic)
 	initExperimentParam();
 	initState();
 	initActions();
-	if(!automatic)
+
+	bool test = false; //ALLEEN VOOR TESTDRIVER.exe
+
+	if(test) //ALLEEN VOOR TESTDRIVER.exe
 	{
-		askExplore();
-		askUpdate();
+		cout << "CACLA_LI: Using test settings!\n";
+		m_explore = false;
+		m_update = true;
+	} else {
+		if(!automatic)
+		{
+			askExplore();
+			askUpdate();
+		} else {
+			cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
+		}
 	}
 	cout << "Done.\n";
 }
@@ -112,7 +139,7 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 		cout << "NOT EXPLORING!!\n";
 	}
 	//Current_action now has a value
-	double l_td_error; //declare td_error, which might be used for sorting tuples later
+	double l_td_error = 100; //declare td_error, which might be used for sorting tuples later
 
 	if ( mp_parameters->train)
 	{
@@ -134,9 +161,9 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 				return true;
 			}
 		} else {
-			cout << "li_time: " << mp_parameters->step << ". First time step. Not performing learning because of invalid state values "  << endl;
-			mp_current_action->continuousAction[0] = 0;
-			mp_current_action->continuousAction[1] = 1; //28-08: Er staat geen uitleg bij. Eerste actie is nu gas geven zonder sturen. Is dat niet valsspelen?
+			cout << "caclali_time: " << mp_parameters->step << ". First time step. Not performing learning because of invalid state values "  << endl;
+			//mp_current_action->continuousAction[0] = 0;
+			//mp_current_action->continuousAction[1] = 1; //28-08: Er staat geen uitleg bij. Eerste actie is nu gas geven zonder sturen. Is dat niet valsspelen?
 			mp_parameters->first_time_step = false;
 			copyState( mp_current_state, mp_prev_state ) ;
 			copyAction( mp_current_action, mp_prev_action ) ;
@@ -154,18 +181,18 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 
 	//Keep track of time / episodes
 	if ( mp_parameters->endOfEpisode ) {
+		cout << "I did an endOfEpisode udpate, so I will turn the flag back to false.\n";
 		mp_parameters->episode++ ;
 		mp_parameters->first_time_step = true;
 		mp_parameters->endOfEpisode = false;
 	}
 	mp_parameters->step++;
-	//if(mp_parameters->step % 1000 == 0) {
+	if(mp_parameters->step % 1000 == 0) {
 	//	stringstream message;
 	//	message << "Number of steps so far: " << mp_parameters->step;
 	//	mp_log->write(message.str());
-	//	cout << "Number of steps so far: " << mp_parameters->step << endl;
-	//	//cout << "Max learning steps: " << mp_experiment->nSteps << endl;
-	//}
+		cout << "Number of steps so far: " << mp_parameters->step << endl;
+	}
 
 	return false;
 }
@@ -248,5 +275,5 @@ void CaclaLearningI::writeNetwork(int identifier, int step)
 		ANN_file << "log_files/Cacla_ANN_id_" << identifier << "_step_"<< step;
 		VNN_file << "log_files/Cacla_VNN_id_" << identifier << "_step_" << step;
 		mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
-		mp_log->write("Writing ANN and VNN\n");
+		//mp_log->write("Writing ANN and VNN\n");
 }

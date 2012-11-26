@@ -1,7 +1,5 @@
 #include "TCDriver.h"
-#ifdef WIN32
-    #include <Windows.h>
-#endif
+
 TCDriver::TCDriver(): RLDriver()
 {
 	m_log_dir = "log_files/";

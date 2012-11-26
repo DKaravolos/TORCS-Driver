@@ -624,10 +624,10 @@ void        cNeuralNetwork::write_double(ostream &os, double result) {
 	os << result;
 }
 
-void        cNeuralNetwork::readNetwork( const char * file ) { 
+void cNeuralNetwork::readNetwork( const char * file ) { 
     ifstream ifile ;
     
-    ifile.open( file, ifstream::in ) ;
+    ifile.open(file, ifstream::in) ;
 	if(ifile.is_open()){
 		nLayers                 = read_int( ifile ) ; 
     

@@ -74,6 +74,7 @@ class TileCodingHM : public StateActionAlgorithm {
 
 		//Q-value functions
 		double getMaxQOfState(const vector<string>& state);
+		double getMaxActionOfState(const vector<string>& state);
 		double getQOfStateActionPair(const vector<string>& state_bins, int action);
 		double myTCMax(const vector<double>& action_values);
 		int myTCArgMax(const vector<double>& action_values);
@@ -93,7 +94,7 @@ class TileCodingHM : public StateActionAlgorithm {
 		int m_nr_of_updates;
 		double m_avg_td_error;
 		//Analyse TD error
-		void checkTDError(double td_error);
+		void checkTDError(const double& td_error, const double& q_of_state, const int& action, const double& reward, const double& q_next);
 
 };
 

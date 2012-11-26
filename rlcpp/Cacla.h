@@ -14,8 +14,9 @@
 
 class Cacla : public Algorithm {
     public:
-        Cacla( const char * parameterFile, World * w ) ;
-		Cacla( const char * parameterFile, World * w, const char* annFile, const char* vnnFile ) ;
+		Cacla( const char * parameterFile, World * w);
+        Cacla( const char * parameterFile, World * w, const std::string& log_dir) ;
+		Cacla( const char * parameterFile, World * w, const char* annFile, const char* vnnFile, const std::string& log_dir) ;
         ~Cacla() ;
 
         void readParameterFile( const char * parameterFile ) ;
@@ -52,6 +53,8 @@ class Cacla : public Algorithm {
         cNeuralNetwork * VNN ;
         double * VTarget ;
 
+
+		std::string m_log_dir;
 		Writer* mp_critic_log;
 };
 

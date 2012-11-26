@@ -8,5 +8,6 @@ vector<double> createFeatureVector(const CarState state);
 vector<double>* createFeatureVectorPointer(const CarState state);
 void createFeatureVectorPointer(const CarState state, vector<double>* featureVector);
 void createSmallFeatureVectorPointer(const CarState state, vector<double>* featureVector);
+void createMinimalFeatureVectorPointer(const CarState state, vector<double>* featureVector);
 
 #endif //CREATE_FEATURE_VECTOR_H

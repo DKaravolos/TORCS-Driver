@@ -12,7 +12,7 @@ ExperimentDriver::ExperimentDriver()
 	g_curr_experiment = 0;
 	//Ask user which driver to test
 	selectFirstDriver();
-	setNewDriver(g_curr_experiment);
+	//setNewDriver(m_driver_type);
 }
 
 ExperimentDriver::~ExperimentDriver()
@@ -81,7 +81,7 @@ void ExperimentDriver::selectFirstDriver()
 	m_save_data = (save == 'y');
 
 	cout << "Which driver would you like to use for your experiment?\n";
-	cout << "0 = TCDriver \n"; //, 1 = QDriver, 2 = CaclaDriver\n";
+	cout << "0 = TCDriver, 1 = CaclaDriver \n"; //, 2 = QDriver\n";
 	cin >> m_driver_type;
 	switch(m_driver_type)
 	{
@@ -89,11 +89,11 @@ void ExperimentDriver::selectFirstDriver()
 			mp_driver = new TCDriver(m_dirs[0],m_steps[0],m_runs[0],m_save_data);
 			break;
 		case 1:
-			//mp_driver = new QDriver();
+			mp_driver = new CaclaDriver(m_dirs[0],m_steps[0],m_runs[0],m_save_data);
 			cout << "NOT IMPLEMENTED!\n";
 			break;
 		case 2:
-			//mp_driver = new CaclaDriver();
+			//mp_driver = new QDriver();
 			cout << "NOT IMPLEMENTED!\n";
 			break;
 		default:
@@ -159,6 +159,10 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 					{
 						cout << "E-greedy: ";
 							addParameter(parameter_type, parameter, m_epsilons);
+					}else if (exp_type.compare("gaussian") == 0)
+					{
+						cout << "Gaussian: ";
+							addParameter(parameter_type, parameter, m_sigmas);
 					}else
 						cerr << "Uh o. Unknown exploration type encountered.\n";
 				}
@@ -246,11 +250,13 @@ void ExperimentDriver::autoCompleteParameters()
 
 	//It is not necessary to define at least one tau and one epsilon.
 	//Either one will do, so the other vector can be empty.
-	if( m_taus.size() > 0 && m_taus.size() < l_experiments)
+	//Note:Added gaussian exploration
+	if (m_taus.size() > 0 && m_taus.size() < l_experiments)
 		autoCompleteParameter(m_taus);
-
-	if(  m_epsilons.size() > 0 && m_epsilons.size() < l_experiments)
+	if (m_epsilons.size() > 0 && m_epsilons.size() < l_experiments)
 		autoCompleteParameter(m_epsilons);
+	if (m_sigmas.size() > 0 && m_sigmas.size() < l_experiments)
+		autoCompleteParameter(m_sigmas);
 }
 
 //Fills the supplied parameter vector with it's last element until it has a size of nr_of_experiments.
@@ -282,7 +288,7 @@ void ExperimentDriver::autoCompleteParameter(vector<string>& parameter_vector)
  //logs are changed in constructor
 }*/
 
-void ExperimentDriver::setNewDriver(const int& driver_nr)
+/*void ExperimentDriver::setNewDriver(const int& driver_nr)
 {
 	//Create a new driver
 	delete mp_driver;
@@ -292,15 +298,15 @@ void ExperimentDriver::setNewDriver(const int& driver_nr)
 			mp_driver = new TCDriver(m_dirs[driver_nr],m_steps[driver_nr],m_runs[driver_nr],m_save_data);
 			break;
 		case 1:
+			mp_driver = new CaclaDriver(m_dirs[driver_nr],m_steps[driver_nr],m_runs[driver_nr],m_save_data);
+			//cout << "NOT IMPLEMENTED!\n";
+			break;
+		case 2:
 			//mp_driver = new QDriver();
 			cout << "NOT IMPLEMENTED!\n";
 			break;
-		case 2:
-			//mp_driver = new CaclaDriver();
-			cout << "NOT IMPLEMENTED!\n";
-			break;
 	}
-}
+}*/
 
 void ExperimentDriver::setNewParameters(const int& driver_nr)
 {
@@ -311,9 +317,11 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 	lp_experiment->setGamma(m_gammas[driver_nr]);
 	lp_experiment->setLearningRate(m_learning_rates[driver_nr]);
 
-	if(m_epsilons.size() > 0 && m_taus.size() > 0)
+	if ((m_epsilons.size() > 0 && m_taus.size() > 0)   ||
+		(m_epsilons.size() > 0 && m_gammas.size() > 0) ||
+		(m_gammas.size() > 0 && m_taus.size() > 0))
 	{
-		cerr << "ERROR: TWO WAYS OF EXPLORATION DEFINED! I DON'T KNOW WHAT TO CHOOSE!!!\n";
+		cerr << "ERROR: MORE THAN ONE WAY OF EXPLORATION DEFINED! I DON'T KNOW WHAT TO CHOOSE!!!\n";
 		exit(-1);
 	} else if(m_epsilons.size() > 0)
 	{
@@ -323,6 +331,7 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 		//make sure the right exploration type is used
 		lp_experiment->setBoltzmann(false);
 		lp_experiment->setEGreedy(true);
+		lp_experiment->setGaussian(false);
 
 		////delete the used item
 		//vector<double>::iterator it = m_epsilons.begin() + driver_nr;
@@ -335,10 +344,24 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 		//Make sure the right exploration type is used
 		lp_experiment->setBoltzmann(true);
 		lp_experiment->setEGreedy(false);
+		lp_experiment->setGaussian(false);
 
 		////delete the used item
 		//vector<double>::iterator it = m_taus.begin() + driver_nr;
 		//m_taus.erase(it);
+	}else if(m_gammas.size() > 0)
+	{
+		//set variable value
+		lp_experiment->setSigma(m_gammas[driver_nr]);
+
+		//Make sure the right exploration type is used
+		lp_experiment->setBoltzmann(false);
+		lp_experiment->setEGreedy(false);
+		lp_experiment->setGaussian(true);
+
+		////delete the used item
+		//vector<double>::iterator it = m_gammas.begin() + driver_nr;
+		//m_gammas.erase(it);
 	} else 
 	{
 		cerr << "ERROR: Can't find a tau or epsilon. Using last known variable.\n" << endl;

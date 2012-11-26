@@ -2,6 +2,8 @@
 //#ifdef WIN32
 //    #include <Windows.h>
 //#endif
+#define DRIVER_DEBUG true
+#define DEF_MINIMAL true
 
 RLDriver::RLDriver()
 {
@@ -91,8 +93,27 @@ void RLDriver::init(float *angles)
 	g_learning_done = false;
 	g_first_time = true;
 	g_reupdates_left = 0;
+
+	//Set debug variables
 	debug_max_reward = 0;
-	debug_min_reward = 0;
+	debug_max_speed = 0;
+	debug_max_trackpos = 0;
+	debug_max_angle = 0;
+	debug_max_dist_front = 0;
+	debug_max_distl40 = 0;
+	debug_max_distl20 = 0;
+	debug_max_distr20 = 0;
+	debug_max_distr40 = 0;
+
+	debug_min_reward = 10;
+	debug_min_speed = 10;
+	debug_min_trackpos = 10;
+	debug_min_angle = 10;
+	debug_min_dist_front = 10;
+	debug_min_distl40 = 10;
+	debug_min_distl20 = 10;
+	debug_min_distr20 = 10;
+	debug_min_distr40 = 10;
 
 	//Set Daniels datamembers
 	mp_features = new vector<double>;
@@ -138,12 +159,12 @@ CarControl RLDriver::wDrive(CarState cs)
 	g_count++;
 
 	////// check if car is currently stuck
-	//if (stuckCheck(cs))
- //       stuck++; // update stuck counter
- //   else
+	if (stuckCheck(cs))
+        stuck++; // update stuck counter
+    else
         stuck = 0; // if not stuck reset stuck counter
 
-	if(g_count % 10 == 0) {
+	if(DRIVER_DEBUG && g_count % 10 == 0) {
 	//	cout << "Distance from start: " << cs.getDistFromStart() << endl;
 	//	cout << "Distance raced: "<< cs.getDistRaced() << endl;
 	//	cout << "TrackPos: " << cs.getTrackPos() << "\n";
@@ -282,10 +303,7 @@ bool RLDriver::stuckCheck(CarState& cs)
 
 double RLDriver::computeReward(CarState &state, double* action, CarState &next_state)
 {
-
-	//if (g_count % 100 == 0)
-		cout << "Time: " << g_count << ". ";
-
+	cout << "Time: " << g_count << ".\n";
 	//cout << "action: "<< action[0]<< ". ";
 
 	//double[2] action is not used for computing the reward
@@ -299,7 +317,8 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		dist_reward = 0; //no dist reward at end of lap, only lap reward
 
 	reward+= dist_weight * dist_reward; 
-	cout << "\tDistance reward: "<< dist_reward << ".\n";
+	if(DRIVER_DEBUG)
+		cout << "\tDistance reward: "<< dist_reward << ".\n";
 
 	if( dist_reward < 0.01)
 		reward -= 20;
@@ -312,43 +331,6 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		lap_reward = 100;
 
 	reward+= lap_weight * lap_reward; 
-	///////////POSITION
-	//double pos_reward = 0;
-	//int pos_weight = -1;
-	//if (fabs(next_state.getTrackPos()) > 0.75)
-	//	pos_reward = - 10 * fabs(next_state.getTrackPos());
-	//else if(fabs(next_state.getTrackPos()) > 0.2) // Dit was 0.5 voor QOS
-	//	pos_reward = -5* fabs(next_state.getTrackPos());
-	//else if(fabs(next_state.getTrackPos()) < 0.05 && fabs(state.getTrackPos()) < 0.05)
-	//	pos_reward = 10;
-	//else
-	//	pos_reward = abs(next_state.getTrackPos());
-	
-
-	//if (fabs(next_state.getTrackPos()) > 0.75)
-	//	pos_reward = fabs(next_state.getTrackPos());
-	//reward += pos_weight * pos_reward;
-	//cout << "\tpos reward: " << pos_reward << ". ";
-
-	/////////ANGLE 
-	//double angle_reward = 0;
-	//int angle_weight = -200; //was 20 voor angle zonder acceleratie. 100 is nodig om de angle en distance in hetzelfde bereik te krijgen.
-	//double diff_angle = fabs(next_state.getAngle()) - fabs(state.getAngle());
-	//angle_reward = angle_weight * diff_angle; //maybe in the future we want to do more than just the angle difference
-	////cout << "\tNew angle: " << next_state.getAngle() * 180 / PI << ". ";
-	//
-	//reward += angle_reward;
-	//cout << "\t\tAngle reward: " << angle_reward << ".";
-
-	//if(fabs(next_state.getAngle()) <= 2 * 0.01745) //2 * 1 degree
-	//{	
-	//	reward += 4;
-	//	cout << "\tTwo degree bonus! (+4) : " << angle_reward + 4 << ".\n";
-	//} else if(fabs(next_state.getAngle()) <= 5 * 0.01745) //5 * 1 degree
-	//{	
-	//	reward += 2;
-	//	cout << "\tFive degree bonus! (+2) : " << reward + 2 << ".\n";
-	//}
 
 	///////////DAMAGE
 	//double damage_weight = -1;
@@ -365,7 +347,7 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	//if(g_count != 0)
 	//	reward += action[1];
 
-	//if(g_count %100 == 0)
+	if(DRIVER_DEBUG)
 		cout << "\n\t\tFinal reward: " << reward << ".\n\n";
 
 	if(reward > debug_max_reward) //Keep track of max reward
@@ -403,8 +385,13 @@ void RLDriver::doLearning(CarState &cs)
 
 	//Get state features
 	//createFeatureVectorPointer(cs, mp_features); //creates 13 features
-	createSmallFeatureVectorPointer(cs, mp_features); //creates 7 features
-	
+	if(DEF_MINIMAL)
+		createMinimalFeatureVectorPointer(cs, mp_features); //creates 3 features
+	else
+		createSmallFeatureVectorPointer(cs, mp_features); //creates 8 features
+
+	//Check if input is not out of bounds
+	checkSensorInput(mp_features);
 	//Create a state (pass state features to the interface)
 	mp_RLinterface->setState(mp_features);
 
@@ -482,7 +469,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		
 		g_experiment_count++;		
 		cout << "Experiment nr: " << g_experiment_count;
-
+		printInputRange(g_experiment_count);
 		//When should the network be saved?
 		//Save first, last and every couple of runs
 		if(g_experiment_count == 1 || g_experiment_count % 5 == 0 || g_experiment_count == m_exp_count)
@@ -509,6 +496,8 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		//onShutdown(); //this only calls RLDriver::onShutdown(), the actual driver does not shut down, so this is hardly useful
 		cout << "MAX REWARD WAS: "<< debug_max_reward << endl;
 		cout << "MIN REWARD WAS: "<< debug_min_reward << endl;
+		printInputRange(g_experiment_count);
+
 		#ifdef WIN32
 			char end;
 			cin>>end;
@@ -894,4 +883,90 @@ int RLDriver::getLearningStep()
 	curr_step += g_learn_step_count + g_reupdate_step_count;
 
 	return curr_step;
+}
+
+void RLDriver::checkSensorInput(vector<double>* input)
+{
+	//check speed
+	if(input->at(0) > debug_max_speed)
+		debug_max_speed = input->at(0);
+	if(input->at(0) < debug_min_speed)
+		debug_min_speed = input->at(0);
+
+	//check trackpos
+	if(input->at(1) > debug_max_trackpos)
+		debug_max_trackpos = input->at(1);
+	if(input->at(1) < debug_min_trackpos)
+		debug_min_trackpos = input->at(1);
+	
+	if(input->size() == 3)
+	{
+		//check front sensor
+		if(input->at(2) > debug_max_dist_front)
+			debug_max_dist_front = input->at(2);
+		if(input->at(2) < debug_min_dist_front)
+			debug_min_dist_front = input->at(2);
+
+	} else if(input->size() == 8)
+	{
+		//check angle
+		if(input->at(2) > debug_max_angle)
+			debug_max_angle = input->at(2);
+		if(input->at(2) < debug_min_angle)
+			debug_min_angle = input->at(2);
+
+		//check dist left 40
+		if(input->at(3) > debug_max_distl40)
+			debug_max_distl40 = input->at(3);
+		if(input->at(3) < debug_min_distl40)
+			debug_min_distl40 = input->at(3);
+
+		//check dist left 20
+		if(input->at(4) > debug_max_distl20)
+			debug_max_distl20 = input->at(4);
+		if(input->at(4) < debug_min_distl20)
+			debug_min_distl20 = input->at(4);
+
+		//check front sensor
+		if(input->at(5) > debug_max_dist_front)
+			debug_max_dist_front = input->at(5);
+		if(input->at(5) < debug_min_dist_front)
+			debug_min_dist_front = input->at(5);
+
+		//check dist right 20
+		if(input->at(6) > debug_max_distr20)
+			debug_max_distr20 = input->at(6);
+		if(input->at(6) < debug_min_distr20)
+			debug_min_distr20 = input->at(6);
+
+		//check dist right 40
+		if(input->at(7) > debug_max_distr40)
+			debug_max_distr40 = input->at(7);
+		if(input->at(7) < debug_min_distr40)
+			debug_min_distr40 = input->at(7);
+
+	} else {
+		cerr << "WARNING: UNKNOWN INPUT! Number of dimensions: " << input->size() << endl;
+	}
+}
+
+void RLDriver::printInputRange(int l_experiment_count)
+{
+	stringstream file_out;
+	file_out << "Input range of experiment " << l_experiment_count << endl;
+	file_out << "Range of reward. \tMin: "<< debug_min_reward << " \t\tMax: " << debug_max_reward << endl; 
+	file_out << "Range of speed. \tMin: "<< debug_min_speed << " \tMax: " << debug_max_speed << endl;
+	file_out << "Range of trackPos. \tMin: "<< debug_min_trackpos << " \t\tMax: " << debug_max_trackpos << endl;
+	file_out << "Range of front sensor. \tMin: "<< debug_min_dist_front << " \t\tMax: " << debug_max_dist_front << endl;
+
+	if(mp_features->size() == 8)
+	{
+		file_out << "Range of angle. \tMin: "<< debug_min_angle << " \tMax: " << debug_max_angle << endl;
+		file_out << "Range of sensor  40. \tMin: "<< debug_min_distl40 << " \t\tMax: " << debug_max_distl40 << endl;
+		file_out << "Range of sensor  20. \tMin: "<< debug_min_distl20 << " \t\tMax: " << debug_max_distl20 << endl;
+		file_out << "Range of sensor -20. \tMin: "<< debug_min_distr20 << " \t\tMax: " << debug_max_distr20 << endl;
+		file_out << "Range of sensor -40. \tMin: "<< debug_min_distr40 << " \t\tMax: " << debug_max_distr40 << endl;
+	}
+	file_out << endl;
+	mp_log->write(file_out.str());
 }
