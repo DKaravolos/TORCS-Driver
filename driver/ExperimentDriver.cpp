@@ -12,7 +12,7 @@ ExperimentDriver::ExperimentDriver()
 	g_curr_experiment = 0;
 	//Ask user which driver to test
 	selectFirstDriver();
-	//setNewDriver(m_driver_type);
+	setNewParameters(g_curr_experiment);
 }
 
 ExperimentDriver::~ExperimentDriver()
@@ -69,6 +69,7 @@ void ExperimentDriver::onRestart()
 			#endif
 		} else {
 			setNewDriver(g_curr_experiment);
+			setNewParameters(g_curr_experiment);
 		}
 	}
 }
@@ -288,7 +289,7 @@ void ExperimentDriver::autoCompleteParameter(vector<string>& parameter_vector)
  //logs are changed in constructor
 }*/
 
-/*void ExperimentDriver::setNewDriver(const int& driver_nr)
+void ExperimentDriver::setNewDriver(const int& driver_nr)
 {
 	//Create a new driver
 	delete mp_driver;
@@ -306,7 +307,7 @@ void ExperimentDriver::autoCompleteParameter(vector<string>& parameter_vector)
 			cout << "NOT IMPLEMENTED!\n";
 			break;
 	}
-}*/
+}
 
 void ExperimentDriver::setNewParameters(const int& driver_nr)
 {

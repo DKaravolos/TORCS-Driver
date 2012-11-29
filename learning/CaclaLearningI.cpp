@@ -150,10 +150,10 @@ bool CaclaLearningI::learningUpdateStep(bool store_tuples, UpdateOption option)
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				if(m_update && option == UpdateOption::RANDOM)
+				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				if(m_update && option == UpdateOption::TD)
+				if(m_update && option == RLInterface::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
@@ -272,8 +272,8 @@ void CaclaLearningI::writeNetwork(int identifier, int step)
 {
 		stringstream ANN_file;
 		stringstream VNN_file;
-		ANN_file << "log_files/Cacla_ANN_id_" << identifier << "_step_"<< step;
-		VNN_file << "log_files/Cacla_VNN_id_" << identifier << "_step_" << step;
+		ANN_file << m_log_dir << "Cacla_ANN_id_" << identifier << "_step_"<< step;
+		VNN_file << m_log_dir << "Cacla_VNN_id_" << identifier << "_step_" << step;
 		mp_algorithm->writeNN(ANN_file.str(), VNN_file.str());
 		//mp_log->write("Writing ANN and VNN\n");
 }

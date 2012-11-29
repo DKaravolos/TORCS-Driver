@@ -55,12 +55,12 @@ RLDriver::RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_dat
 	m_automatic_experiment = true;
 }
 
-//RLDriver::~RLDriver()
-//{
-//	delete mp_features;
-//	delete mp_action_set;
-//	delete gp_prev_state;
-//}
+RLDriver::~RLDriver()
+{
+	delete mp_features;
+	delete mp_action_set;
+	delete gp_prev_state;
+}
 
 void RLDriver::setPrefs()
 {
@@ -781,7 +781,7 @@ void RLDriver::onShutdown()
 	cout << "Bye bye!" << endl;
 	delete mp_features;
 	mp_features = NULL;
-	delete mp_action_set;
+	//delete mp_action_set;
 	delete gp_prev_state;
 }
 

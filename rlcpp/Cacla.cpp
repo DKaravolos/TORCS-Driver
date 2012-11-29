@@ -404,8 +404,8 @@ void Cacla::readNN(string ANN_file, string VNN_file)
 
 void Cacla::writeNN(string ANN_file, string VNN_file)
 {
-	ANN->writeNetwork(m_log_dir + ANN_file);
-	VNN->writeNetwork(m_log_dir + VNN_file);
+	ANN->writeNetwork(ANN_file);
+	VNN->writeNetwork(VNN_file);
 }
 
 unsigned int Cacla::getNumberOfLearningRates() {

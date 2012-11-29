@@ -25,6 +25,7 @@ TCLearningInterface::~TCLearningInterface(void)
 	//delete mp_log;
 	delete mp_reward_log;
 	delete mp_algorithm;
+	delete[] mp_torcs_action;
 }
 
 void TCLearningInterface::init()

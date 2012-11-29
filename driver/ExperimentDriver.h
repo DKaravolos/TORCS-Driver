@@ -60,7 +60,7 @@ private:
 
 	//functions
 	void selectFirstDriver();
-	//void setNewDriver(const int& driver_nr);
+	void setNewDriver(const int& driver_nr);
 	void setNewParameters(const int& driver_nr);
 	void readExperimentParameters(const std::string& file);
 	void addParameter(const std::string& type, std::stringstream& parameter, std::vector<double>& stored_values);

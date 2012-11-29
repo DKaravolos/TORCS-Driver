@@ -39,7 +39,7 @@ public:
 	// Constructor
 	RLDriver();
 	RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_data);
-	//~RLDriver();
+	~RLDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);

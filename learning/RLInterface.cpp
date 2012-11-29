@@ -33,12 +33,14 @@ RLInterface::~RLInterface(void)
 	delete mp_current_state;
 	delete mp_prev_state;
 
-	delete[] mp_current_action->continuousAction;
-	delete[] mp_prev_action->continuousAction;
-	delete mp_current_action; //bij continue acties: apart het double array deleten
+	if(mp_current_action->continuous){ //bij continue acties: apart het double array deleten
+		delete[] mp_current_action->continuousAction;
+		delete[] mp_prev_action->continuousAction;
+	}
+	delete mp_current_action; 
 	delete mp_prev_action;
 
-	delete[] mp_torcs_action;
+	//delete[] mp_torcs_action;
 }
 
 void RLInterface::initExperimentParam()
