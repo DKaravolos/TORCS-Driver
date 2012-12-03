@@ -12,7 +12,6 @@ ExperimentDriver::ExperimentDriver()
 	g_curr_experiment = 0;
 	//Ask user which driver to test
 	selectFirstDriver();
-	setNewParameters(g_curr_experiment);
 }
 
 ExperimentDriver::~ExperimentDriver()
@@ -69,7 +68,6 @@ void ExperimentDriver::onRestart()
 			#endif
 		} else {
 			setNewDriver(g_curr_experiment);
-			setNewParameters(g_curr_experiment);
 		}
 	}
 }
@@ -99,6 +97,7 @@ void ExperimentDriver::selectFirstDriver()
 			break;
 		default:
 			cout << "\nDriver not implemented. Try again.\n";
+			cin.clear();
 			selectFirstDriver();
 	}
 }
@@ -160,11 +159,11 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 					{
 						cout << "E-greedy: ";
 							addParameter(parameter_type, parameter, m_epsilons);
-					}else if (exp_type.compare("gaussian") == 0)
+					} else if (exp_type.compare("gaussian") == 0)
 					{
 						cout << "Gaussian: ";
 							addParameter(parameter_type, parameter, m_sigmas);
-					}else
+					} else
 						cerr << "Uh o. Unknown exploration type encountered.\n";
 				}
 			}
@@ -303,7 +302,7 @@ void ExperimentDriver::setNewDriver(const int& driver_nr)
 			//cout << "NOT IMPLEMENTED!\n";
 			break;
 		case 2:
-			//mp_driver = new QDriver();
+			//mp_driver = new CaclaDriver();
 			cout << "NOT IMPLEMENTED!\n";
 			break;
 	}

@@ -1,6 +1,6 @@
 # include "TileCodingHM.h"
 #define DEFAULT_Q 0.0 //Defines the default (i.e. first) value of a tile
-
+#define DEF_MINIMAL true
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
 {
@@ -362,19 +362,24 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 
 	//mp_log->write("Classifying Angle.");
 	//tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
-	tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
 	
+	
+#ifdef DEF_MINIMAL
+	tile_indices[2] = classifyValue(state->continuousState[2], m_dist_edges[tiling]);
+	tile_indices[3] = 0;
+	tile_indices[4] = 0;
+	tile_indices[5] = 0;
+	tile_indices[6] = 0;
+	tile_indices[7] = 0;
+#else
+	tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
 	tile_indices[3] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
 	tile_indices[4] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
 	tile_indices[5] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
 	tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
 	tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);
+#endif
 
-	//tile_indices[3] = 0;
-	//tile_indices[4] = 0;
-	//tile_indices[5] = 0;
-	//tile_indices[6] = 0;
-	//tile_indices[7] = 0;
 	
 	//use tiling as part of key for map
 	key << tiling;
