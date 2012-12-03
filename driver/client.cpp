@@ -14,17 +14,27 @@
  *                                                                         *
  ***************************************************************************/
 /* Uncomment the following lines under windows */
+
+#define __DRIVER_CLASS__ ExperimentDriver
+#define __DRIVER_INCLUDE__ "ExperimentDriver.h"
+//
+//#define __DRIVER_CLASS__ TCDriver
+//#define __DRIVER_INCLUDE__ "TCDriver.h"
+
+
+
 //#define __DRIVER_CLASS__ BASDriver
 //#define __DRIVER_INCLUDE__ "BASDriver.h"
-#define __DRIVER_CLASS__ CaclaDriver
-#define __DRIVER_INCLUDE__ "CaclaDriver.h"
-//#define __DRIVER_CLASS__ RecitingDriver
-//#define __DRIVER_INCLUDE__ "RecitingDriver.h"
+//#define __DRIVER_CLASS__ CaclaDriver
+//#define __DRIVER_INCLUDE__ "CaclaDriver.h"
 
-//#define __DRIVER_CLASS__ MyFirstDriver
-//#define __DRIVER_INCLUDE__ "MyFirstDriver.h"
-//#define __DRIVER_CLASS__ SimpleDriver     // put here the name of your driver class
-//#define __DRIVER_INCLUDE__ "SimpleDriver.h" // put here the filename of your driver header
+//#define __DRIVER_CLASS__ QDriver
+//#define __DRIVER_INCLUDE__ "QDriver.h"
+
+//#define __DRIVER_CLASS__ QOnlySpeedDriver
+//#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
+//#define __DRIVER_CLASS__ QSteerDriver
+//#define __DRIVER_INCLUDE__ "QSteerDriver.h"
 
 #ifdef WIN32
 #include <WinSock.h>
@@ -328,6 +338,7 @@ int main(int argc, char *argv[])
     WSACleanup();
 #endif
 
+    cout << "end of program! press a key.\n";
 	char end;
 	cin >> end;
     return 0;
@@ -346,7 +357,7 @@ void parse_args(int argc, char *argv[], char *hostName, unsigned int &serverPort
     maxSteps=0;
     serverPort=3001;
     strcpy(hostName,"localhost");
-    strcpy(id,"SCR");
+    strcpy(id,"championship2011");
 //    noise=false;
 //    noiseAVG=0;
 //    noiseSTD=0.05;

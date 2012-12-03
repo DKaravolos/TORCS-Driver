@@ -8,20 +8,18 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include "BaseDriver.h"
 #include "CarState.h"
 #include "CarControl.h"
-#include "SimpleParser.h"
 #include "WrapperBaseDriver.h"
 //
 #include <vector>
 
 //Functions/classes by Daniel:
 #ifdef WIN32
-#include "..\learning\RLInterface.h"
-#include "..\utilities\createFeatureVector.h"
-#include "..\utilities\printFeatureVector.h"
-#include "..\utilities\Writer.h"
+#include "../learning/RLInterface.h"
+#include "../utilities/createFeatureVector.h"
+#include "../utilities/printFeatureVector.h"
+#include "../utilities/Writer.h"
 #else
 #include "../learning/RLInterface.h"
 #include "../utilities/createFeatureVector.h"
@@ -40,6 +38,8 @@ public:
 	
 	// Constructor
 	RLDriver();
+	RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_data);
+	//~RLDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);
@@ -48,10 +48,16 @@ public:
 	virtual void onShutdown();
 	
 	// Print a restart message 
-	virtual void onRestart()=0;
+	virtual void onRestart();
 
 	// Initialization of the desired angles for the rangefinders
 	virtual void init(float *angles);
+
+	//Functions for automatic experiments
+	void changeLogWriterTo(std::string& new_file);
+	void changeRewardWriterTo(std::string& new_file);
+	int getLearningStep();
+	inline RLInterface* getInterface(){return mp_RLinterface;}
 
 protected:
 	
@@ -119,7 +125,7 @@ protected:
 	int getGear(CarState &cs);
 
 	// Solves the steering subproblems
-	float getSteer(CarState &cs);
+	virtual float getSteer(CarState &cs);
 	
 	// Solves the gear changing subproblems
 	float getAccel(CarState &cs);
@@ -131,15 +137,18 @@ protected:
 	void clutching(CarState &cs, float &clutch);
 
 	////////Functions added by Daniel:
-	virtual void initInterface(bool load_network)=0;
-	virtual double computeReward(CarState &state, double* action, CarState &next_state);
-	virtual void doLearning(CarState &cs);
+	void setPrefs();
+	virtual void initInterface(const bool& load_network, const bool& automatic_experiment)=0;
+	bool stuckCheck(CarState& cs);
+	double computeReward(CarState &state, double* action, CarState &next_state);
+	void doLearning(CarState &cs);
+	void doUpdate(CarState &cs);
 	virtual CarControl carStuckControl(CarState &cs);
-	virtual CarControl simpleBotControl(CarState &cs);
+	CarControl simpleBotControl(CarState &cs);
 	virtual CarControl rlControl(CarState &cs);
 	virtual void endOfRunCheck(CarState &cs, CarControl &cc);
-	virtual char getKeyboardInput();
-
+	char getKeyboardInput();
+	char getArrowInput();
 
 	///////Datamembers added by Daniel:
 	vector<double>* mp_features;
@@ -167,11 +176,23 @@ protected:
 	int g_steps_per_action;
 	int g_learn_steps_per_tick;
 	int g_reupdate_steps_per_tick;
+	int g_reupdates_left;
 
 	//debug parameters
 	int g_print_mod;
-	int debug_stuck_count;
+	//int debug_stuck_count;
 	int debug_rlcontrol_count;
+	double debug_max_reward;
+	double debug_min_reward;
+
+	//user preferences
+	bool m_save_nn;
+	int m_network_id;
+	int m_step_id;
+	int m_exp_count;
+	int m_round_size;
+	bool m_automatic_experiment;
+	string m_log_dir;
 };
 
 #endif /*RLDriver_H_*/

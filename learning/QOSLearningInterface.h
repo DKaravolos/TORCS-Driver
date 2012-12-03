@@ -1,88 +1,34 @@
 #ifndef QOS_LEARNING_INTERFACE_H
 #define QOS_LEARNING_INTERFACE_H
 
-#include <vector>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <time.h>
-#include <stdlib.h>
-#include <string.h>
+#include "RLInterface.h"
+#include "../rlcpp/StateActionAlgorithm.h"
+#include "../rlcpp/Qlearning.h"
 
-#include "..\rlcpp\Action.h"
-#include "..\rlcpp\World.h"
-#include "..\rlcpp\StateActionAlgorithm.h"
-#include "..\rlcpp\Qlearning.h"
-#include "..\rlcpp\State.h"
-#include "..\rlcpp\Experiment.h"
-#include "..\rlcpp\StateActionUtils.h"
-
-#include "TorcsWorld.h"
-#include "StateActionMemory.h"
-#include "ExperimentParameters.h"
-#include "..\utilities\Writer.h"
-
-
-class QOSLearningInterface
+class QOSLearningInterface: public RLInterface
 {
 	public:
-		enum UpdateOption{RANDOM,TD};
 
 		QOSLearningInterface(void);
 		~QOSLearningInterface(void);
 		void init();
-		void init(const char* nn_filename);
-		//Loop of a time step:
-		/*
-		- setRewardPrevAction()
-		- setState()
-		- experimentMainloop()
-		- getAction()
-		*/
-
-		//driver functions
-		double* getAction(); //called from TORCS to receive computed action
-		void setRewardPrevAction(double reward); //called from TORCS before mainloop to get reward of previous action
-
-		//state of the world functions
-		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
-		void printState();
-		void logState(int timestamp);
-		void logAction(int timestamp);
-		inline double getReward()	{ return m_reward;}
-		void setEOE();
-		inline bool getEOE(){ return mp_world->endOfEpisode();}
+		void init(const bool& automatic_experiment);
+		void init(const bool& automatic_experiment, const char* nn_filename);
 
 		//other
-		bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
 		bool learningUpdateStep(bool store_tuples, UpdateOption option);
 		void updateWithOldTuple(UpdateOption option);
+		void writeNetwork(int identifier, int steps);
 
 	protected:
 		//datamembers
-		TorcsWorld* mp_world;
 		Qlearning* mp_algorithm;
-		Experiment* mp_experiment;
-		State* mp_prev_state;
-		State* mp_current_state;
-		Action* mp_prev_action;
-		Action* mp_current_action;
-		ExperimentParameters* mp_parameters;
-		double* mp_torcs_action;
 
-		double m_reward;
-
-		Writer* mp_log;
-		Writer* mp_reward_log;
-		StateActionMemory* mp_memory;
-
+	private:
 		//functions:
-			//init
+		void _init(const bool& automatic_experiment);
 		void initState();
 		void initActions();
-		void initExperimentParam();
-
-			//other
 };
 
 #endif /*QOS_LEARNING_INTERFACE_H*/

@@ -2,6 +2,9 @@
 
 #ifdef WIN32
 	#include <time.h>
+#else
+#include<stdlib.h>
+#include<stdexcept>
 #endif
 
 Cacla::Cacla( const char * parameterFile, World * w ) {

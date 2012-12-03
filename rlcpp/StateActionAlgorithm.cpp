@@ -8,7 +8,7 @@ StateActionAlgorithm::StateActionAlgorithm() {
 }
 
 void StateActionAlgorithm::getMaxActionFirst( State * state, Action * action ) {
-
+	cout << "SAF\n";
     if ( state->discrete ) {
 
         Qs = Q[ state->discreteState ] ;
@@ -28,7 +28,7 @@ void StateActionAlgorithm::getMaxActionFirst( State * state, Action * action ) {
 }
 
 void StateActionAlgorithm::getMaxActionRandom( State * state, Action * action ) {
-
+	cout << "SAR\n";
     if ( state->discrete ) {
 
         Qs = Q[ state->discreteState ] ;
@@ -55,7 +55,7 @@ void StateActionAlgorithm::getMaxActionRandom( State * state, Action * action ) 
 }
 
 void StateActionAlgorithm::getMaxAction( State * state, Action * action ) {
-
+	cout << "SA getmax\n";
     getMaxActionRandom( state, action ) ;
 
 }
@@ -63,9 +63,9 @@ void StateActionAlgorithm::getMaxAction( State * state, Action * action ) {
 void StateActionAlgorithm::getRandomAction( State * state, Action * action ) {
 
 	#ifdef WIN32
-		action->discreteAction = (int) ( numberOfActions*double(rand())/RAND_MAX ) ;
+		action->discreteAction = (int) ( ((numberOfActions - 1)*double(rand())/RAND_MAX) + 0.5f) ; //+0.5f is for rounding behaviour of the int cast
 	#else
-		action->discreteAction = (int) ( numberOfActions*drand48() ) ;
+		action->discreteAction = (int) ( (numberOfActions - 1)*drand48() +0.5f) ;
 	#endif
 }
 
@@ -73,11 +73,9 @@ void StateActionAlgorithm::getRandomAction( State * state, Action * action ) {
 void StateActionAlgorithm::explore( State * state, Action * action, double explorationRate, string explorationType, bool endOfEpisode ) {
 
     if ( explorationType.compare("boltzmann") == 0 ) {
-
         boltzmann( state, action, explorationRate ) ;
 
     } else if ( explorationType.compare("egreedy") == 0  ) {
-
         egreedy( state, action, explorationRate ) ;
 
     } else if ( explorationType.compare("gaussian") == 0  ) {
@@ -106,19 +104,18 @@ void StateActionAlgorithm::explore( State * state, Action * action, double explo
 
 }
 void StateActionAlgorithm::egreedy( State * state, Action * action, double epsilon ) {
-
 	#ifdef WIN32
 		double random_nr = double(rand())/RAND_MAX;
 	#else
 		double random_nr = drand48();
 	#endif
 
-    if ( random_nr < epsilon ) {
+    if ( random_nr > epsilon ) {
 
         getMaxAction( state, action ) ;
 
     } else {
-
+		cout << "Taking Random action\n";
         getRandomAction( state, action ) ;
 
     }

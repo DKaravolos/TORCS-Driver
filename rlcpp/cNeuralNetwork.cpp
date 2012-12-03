@@ -1,6 +1,5 @@
 # include "cNeuralNetwork.h"
 # include <cstdlib>
-//# include <math.h>
 
 #define THRESHOLD 2
 #define TANH 1
@@ -10,6 +9,8 @@
 
 #ifdef WIN32
 	#include <time.h>
+#else
+#include <stdexcept>
 #endif
 
 using namespace std ;
@@ -182,7 +183,7 @@ void cNeuralNetwork::_createLog(string f_name)
 	{
 		stringstream file_name;
 		file_name << f_name << f_nr << ".txt";
-		check.open(file_name.str());
+		check.open(file_name.str().c_str());
 		if(!check.is_open())
 		{
 			mp_NN_log = new Writer(file_name.str());
@@ -700,7 +701,7 @@ void        cNeuralNetwork::readNetwork( const char * file ) {
 void cNeuralNetwork::readNetwork( string file ) { 
     ifstream ifile ;
     
-    ifile.open( file, ifstream::in ) ;
+    ifile.open( file.c_str(), ifstream::in ) ;
 	if(ifile.is_open()){
 		nLayers                 = read_int( ifile ) ; 
     
@@ -844,7 +845,7 @@ void cNeuralNetwork::readNetwork(ifstream& ifile) {
 void cNeuralNetwork::writeNetwork( std::string file ) { 
     ofstream ofile ;
     
-    ofile.open( file, ofstream::trunc ) ;
+    ofile.open( file.c_str(), ofstream::trunc ) ;
     if(ofile.is_open())
 	{
 		write_int( ofile, nLayers ) ; 

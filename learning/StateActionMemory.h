@@ -4,10 +4,17 @@
 #include <iomanip>
 #include <sstream>
 #include <deque>
+#include <stdexcept>
 
-#include "..\rlcpp\State.h"
-#include "..\rlcpp\Action.h"
-#include "..\utilities\Writer.h"
+#ifdef  WIN32
+	#include "../rlcpp/State.h"
+	#include "../rlcpp/Action.h"
+	#include "../utilities/Writer.h"
+#else
+	#include "../rlcpp/State.h"
+	#include "../rlcpp/Action.h"
+	#include "../utilities/Writer.h"
+#endif
 class StateActionMemory
 {
 public:

@@ -18,7 +18,7 @@ class Algorithm {
     public:
         Algorithm() ;
         virtual ~Algorithm() ;
-		void egreedy( State * state, Action * action, double epsilon ) ;
+		virtual void egreedy( State * state, Action * action, double epsilon ) ;
 		std::vector< int > argmaxAll( double * myarray, int n ) ;
 
         virtual void getMaxAction( State * state, Action * action ) =0 ;

@@ -5,50 +5,50 @@ using namespace std;
 Experiment::Experiment(Experiment::Configuration config) {
 	cout << "\nIn Experiment constructor:\n";
 
+	nExperiments = 1;
+	nAlgorithms = 1;
+	//THESE VALUES ARE QUITE RANDOM!
+	nSteps = 150000;
+	nEpisodes = 10;
+	nMaxStepsPerEpisode = 50000;
+	nResults =100; //?????
+	nTrainSteps = 100000;
+	nTrainEpisodes = 10;
+	nMaxStepsPerTrainEpisode = 50000;  
+	nTrainResults = 100;
+	trainStorePer = 100;
+	nTestSteps = 0;
+	nTestEpisodes = 0;
+	nMaxStepsPerTestEpisode = 0;
+	nTestResults = 0;
+	testStorePer = 0;
+	//END OF RANDOM
+
 	switch(config) {
 		case QLEARNING:
-			nExperiments = 1;
-			nAlgorithms = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-			nSteps = 150000;
-			nEpisodes = 10;
-			nMaxStepsPerEpisode = 50000;
-			nResults =100; //?????
-			nTrainSteps = 500000;
-			nTrainEpisodes = 10;
-			nMaxStepsPerTrainEpisode = 50000;  
-			nTrainResults = 100;
-			trainStorePer = 100;
-			nTestSteps = 0;
-			nTestEpisodes = 0;
-			nMaxStepsPerTestEpisode = 0;
-			nTestResults = 0;
-			testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13;
-			actionDimension = int(-1);
-			discreteStates = int(-1);
-			discreteActions = 15;
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 15;
 
 			endOfEpisode  = false;
 
 			storePerStep = true;
 			storePerEpisode = false;
 
-			boltzmann = false;		////IMPORTANT
-			egreedy = true;			////IMPORTANT
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
 			gaussian = false;
 
-			algorithmName = "Qlearning";
+			algorithmName = "Q";
 			algorithms.push_back(algorithmName);
 
 			learningRateDecreaseType = "none";
 			nLearningRates = 1;
 			learningRate = new double[nLearningRates];
-			learningRate[0] = 0.01; ////IMPORTANT
+			learningRate[0] = 0.02; ////IMPORTANT - was 0.02
 
-			tau = 0.01;
+			tau = 0.8; //was 0.02
 			epsilon = 0.01;
 			sigma = 0.01;
 			taus.push_back(tau);
@@ -58,34 +58,16 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
         
 			train = true;
-			cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		case CACLA:
-			nExperiments = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-				nSteps = 100000;
-				nEpisodes = 10;
-				nMaxStepsPerEpisode = 50000;
-				nResults =100; //?????
-				nTrainSteps = 100000;
-				nTrainEpisodes = 10;
-				nMaxStepsPerTrainEpisode = 50000;  
-				nTrainResults = 100;
-				trainStorePer = 100;
-				nTestSteps = 0;
-				nTestEpisodes = 0;
-				nMaxStepsPerTestEpisode = 0;
-				nTestResults = 0;
-				testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
-			actionDimension = 2;
-			discreteStates = 0;
-			discreteActions = 0;
+			//stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
+			//actionDimension = 2;
+			//discreteStates = 0;
+			//discreteActions = 0;
 
 			endOfEpisode  = false;
 
@@ -106,9 +88,10 @@ Experiment::Experiment(Experiment::Configuration config) {
 			learningRate[0] = 0.001; ////Dit wordt niet goed uit de parameterfile gelezen
 			learningRate[1] = 0.001;
 
-			tau = 0.01;
-			epsilon = 0.1;
-			sigma = 0.2;
+			tau = 0.8;
+			epsilon = 0.01;
+			sigma = 0.8;
+			//sigma = 0;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);
@@ -116,34 +99,21 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
 			
 			train = true;
-			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			//cout << "\tGaussian : " << gaussian << endl;
-			//cout << "\tLearningRate: " << learningRate[0] << endl;
+			cout << "\tE-Greedy: " << egreedy << "\t(tau: "<< epsilon << ")\n";
+			cout << "\tGaussian : " << gaussian << "\t(sigma: " << sigma << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			//if(gaussian)
+			//{
+			//	cout << "Enter sigma: ";
+			//	cin >> sigma;
+			//}
 			break;
 
 		case BAS:
-			nExperiments = 1;
-			//THESE VALUES ARE QUITE RANDOM!
-				nSteps = 200000;
-				nEpisodes = 10;
-				nMaxStepsPerEpisode = 50000;
-				nResults =100; //?????
-				nTrainSteps = 200000;
-				nTrainEpisodes = 10;
-				nMaxStepsPerTrainEpisode = 50000;  
-				nTrainResults = 100;
-				trainStorePer = 100;
-				nTestSteps = 0;
-				nTestEpisodes = 0;
-				nMaxStepsPerTestEpisode = 0;
-				nTestResults = 0;
-				testStorePer = 0;
-			//END OF RANDOM
-
-			stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
-			actionDimension = 2;
-			discreteStates = 0;
-			discreteActions = 0;
+			//stateDimension = 13; //waarom zou experiment dit moeten weten? Dit staat toch al in World en Algorithm?
+			//actionDimension = 2;
+			//discreteStates = 0;
+			//discreteActions = 0;
 
 			endOfEpisode  = false;
 
@@ -154,9 +124,9 @@ Experiment::Experiment(Experiment::Configuration config) {
 			egreedy = false;			////IMPORTANT
 			gaussian = true;
 			
-			tau = 0.01;
-			epsilon = 0.1;
-			sigma = 0.2;
+			tau = 0.8;
+			epsilon = 0.01;
+			sigma = 0.25;
 			taus.push_back(tau);
 			epsilons.push_back(epsilon);
 			sigmas.push_back(sigma);
@@ -173,14 +143,96 @@ Experiment::Experiment(Experiment::Configuration config) {
 			gamma = 0.99;
 			
 			train = true;
-			//cout << "\tBoltzmann exploration: " << boltzmann << endl;
-			cout << "\tGaussian : " << gaussian << endl;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
+			cout << "\tGaussian : " << gaussian << "\t(sigma: " << sigma << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
+
+	case QOS:
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 5;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
+			gaussian = false;
+			if(boltzmann)
+				cout << "Using Boltzmann exploration.\n";
+			else if(egreedy)
+				cout << "Using epsilon greedy exploration.\n";
+
+			algorithmName = "Qlearning";
+			algorithms.push_back(algorithmName);
+
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.02; ////IMPORTANT
+
+			tau = 0.8; //was 0.02
+			epsilon = 0.001; //previously epsilon was 0.01
+			sigma = 0.01;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
+			gamma = 0.99;
+        
+			train = true;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
+			cout << "\tLearningRate: " << learningRate[0] << endl;
+			break;
+
+		case TILECODING:
+			//stateDimension = 13;
+			//actionDimension = int(-1);
+			//discreteStates = int(-1);
+			//discreteActions = 15;
+
+			endOfEpisode  = false;
+
+			storePerStep = true;
+			storePerEpisode = false;
+
+			boltzmann = true;		////IMPORTANT
+			egreedy = false;			////IMPORTANT
+			gaussian = false;
+
+			algorithmName = "TileCoding";
+			algorithms.push_back(algorithmName);
+
+			learningRateDecreaseType = "none";
+			nLearningRates = 1;
+			learningRate = new double[nLearningRates];
+			learningRate[0] = 0.1; ////IMPORTANT - was 0.02
+
+			tau = 1;
+			epsilon = 0.15; // was 0.01
+			sigma = 0.01;
+			taus.push_back(tau);
+			epsilons.push_back(epsilon);
+			sigmas.push_back(sigma);
+			
+			gamma = 0.99;
+        
+			train = true;
+			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
+			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
 			break;
 
 		default:
 			cerr << "There is no default configuration for Experiment.";
-			cerr << "Please specify which configuration to use: QLEARNING, CACLA or BAS.\n";
+			cerr << "Please specify which configuration to use, p.e. QLEARNING, CACLA or BAS.\n";
 			#ifdef WIN32
 					char end;
 					cin>>end;
@@ -188,7 +240,6 @@ Experiment::Experiment(Experiment::Configuration config) {
 			exit(-1);
 	}
 }
-
 
 bool Experiment::initializeState( State * state, Algorithm * algorithm, World * world ) {
 
@@ -666,23 +717,18 @@ double * Experiment::runExperiment( World * world ) {
 void Experiment::explore( State * state, Action * action ) {
 
     if ( !train ) {
-
         algorithm->getMaxAction( state, action ) ;
 
     } else if ( boltzmann ) {
-
         algorithm->explore( state, action, tau, "boltzmann", endOfEpisode ) ;
 
     } else if ( egreedy ) {
-
         algorithm->explore( state, action, epsilon, "egreedy", endOfEpisode ) ;
 
     } else if ( gaussian ) {
-
         algorithm->explore( state, action, sigma, "gaussian", endOfEpisode ) ;
 
     } else {
-
         algorithm->getMaxAction( state, action ) ;
 
     }
@@ -850,7 +896,7 @@ void Experiment::readParameterFile(string paramFile ) {
 
     ifstream ifile ;
 
-    ifile.open( paramFile, ifstream::in ) ;
+    ifile.open( paramFile.c_str(), ifstream::in ) ;
 
     string temp ;
 

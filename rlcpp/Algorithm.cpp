@@ -87,10 +87,11 @@ void Algorithm::egreedy( State * state, Action * action, double epsilon ) {
 
     if ( random_nr < epsilon ) {
 
+		cout << "Algoritm: Taking Max Action\n";
         getMaxAction( state, action ) ;
 
     } else {
-
+		cout << "Algoritm: Taking Random Action\n";
         getRandomAction( state, action ) ;
 
     }

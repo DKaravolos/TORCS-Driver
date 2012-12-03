@@ -5,8 +5,8 @@ using namespace std;
 Writer::Writer(string file_name)
 {
 	m_file = file_name;
+	ofstream out (m_file.c_str(), ios::trunc);
 
-	ofstream out (m_file, ios::trunc);
 	if( out.is_open()) 
 	{
 		out << "" << endl;
@@ -24,7 +24,9 @@ Writer::~Writer(void)
 void Writer::write(string message)
 {
 	//cout << "writing without bool: " << message << endl ;
-	ofstream out (m_file, ios::app);
+
+	ofstream out (m_file.c_str(), ios::app);
+
 	if( out.is_open()) 
 	{
 		out << message << endl;
@@ -38,10 +40,11 @@ void Writer::write(string message, bool append)
 {
 	//cout << "writing with bool: " << message << endl ;
 	ofstream out;
+
 	if(append)
-		out.open(m_file, ios::app);
-	else 
-		out.open(m_file,ios::trunc);
+		out.open(m_file.c_str(), ios::app);
+	else
+		out.open(m_file.c_str(),ios::trunc);
 
 	if( out.is_open()) 
 	{

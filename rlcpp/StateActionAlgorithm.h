@@ -13,7 +13,7 @@ class StateActionAlgorithm : public Algorithm {
     public:
         StateActionAlgorithm() ;
         virtual ~StateActionAlgorithm() {}
-        void getMaxAction( State * state, Action * action ) ;
+        virtual void getMaxAction( State * state, Action * action ) ;
         void explore( State * state, Action * action, double explorationRate, string explorationType, bool endOfEpisode ) ;
         bool getContinuousStates() ;
         bool getDiscreteStates() ;
@@ -30,7 +30,7 @@ class StateActionAlgorithm : public Algorithm {
         void setQs( State * state, Action * action ) ;
 
         void egreedy( State * state, Action * action, double epsilon ) ;
-        void boltzmann( State  * state, Action * action, double tau ) ;
+        virtual void boltzmann( State  * state, Action * action, double tau ) ;
         void boltzmann( Action * action, double tau ) ;
         void gaussian( State * state, Action * action, double tau ) ;
 

@@ -1,6 +1,7 @@
 #include "BinaryActionSearch.h"
-#include <windows.h>
+
 #ifdef WIN32
+#include <windows.h>
 	#include <time.h>
 #endif
 
@@ -179,8 +180,6 @@ void BinaryActionSearch::getMaxAction( State * state, Action * action, GetMaxOpt
 
 void BinaryActionSearch::originalGetMax( State * state, Action * action )
 {
-	timeBeginPeriod(1);
-	DWORD start = timeGetTime();
 	//stringstream message;
 	if(action->continuous)
 	{
@@ -252,21 +251,13 @@ void BinaryActionSearch::originalGetMax( State * state, Action * action )
 		//Stuff after both loops
 		//mp_BAS_log->write(message.str());
 		m_NN_input->clear();
-
-		DWORD end = timeGetTime();
-		timeEndPeriod(1);
-		DWORD  diff = end - start;
-		stringstream debug_message;
-		debug_message << "original getmax time taken: " << diff << endl;
-		mp_BAS_log->write(debug_message.str());
-
 	}
 	else
 	{
 		cerr << "Binary Action Search on discrete actions is not implemented. Quitting program...";
 		#ifdef WIN32
-		char end;
-		cin >> end;
+			char end;
+			cin >> end;
 		#endif
 		exit(-5);
 	}
@@ -410,9 +401,6 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 void BinaryActionSearch::update( State * state, Action * action, double rt, State * state_,
 								 bool endOfEpisode, double * learningRate, double gamma, GetMaxOption option)
 {
-	timeBeginPeriod(1);
-	DWORD start = timeGetTime();
-
 	switch(option)
 	{
 		case ORIGINAL:
@@ -427,13 +415,6 @@ void BinaryActionSearch::update( State * state, Action * action, double rt, Stat
 			cerr << "Unknown GetMaxOption, please check its value. Calling originalUpdate().\n";
 			originalUpdate(state,action,rt, state_,endOfEpisode,learningRate, gamma);
 	}
-
-	DWORD end = timeGetTime();
-	timeEndPeriod(1);
-	DWORD  diff = end - start;
-	stringstream debug_message;
-	debug_message << "original update. time taken: " << diff << endl;
-	mp_BAS_log->write(debug_message.str());
 }
 
 void BinaryActionSearch::originalUpdate( State * state, Action * action, double rt, State * state_,

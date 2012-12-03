@@ -9,11 +9,11 @@ QOSLearningInterface::QOSLearningInterface(void)
 	srand(time(NULL));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
-	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
+	mp_world = new TorcsWorld(TorcsWorld::QSTEER5);
 	mp_log = new Writer("log_files/qlearning_interface_output.txt");
 	mp_reward_log = new Writer("log_files/qlearning_cumulative_reward.txt");
 	mp_log->write("Interface created.");
-	//mp_memory = new StateActionMemory(6000);
+	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
 	cout << "Done.\n";
 }
@@ -23,45 +23,34 @@ QOSLearningInterface::~QOSLearningInterface(void)
 	cout << "Destroying QOSLearningInterface... Goodbye cruel world!" << endl;
 	delete mp_log;
 	delete mp_reward_log;
-	delete mp_memory;
-
-	delete mp_world;
 	delete mp_algorithm;
-	delete mp_experiment;
-	delete mp_parameters;
-
-	delete mp_current_state;
-	delete mp_prev_state;
-
-	delete[] mp_current_action->continuousAction;
-	delete[] mp_prev_action->continuousAction;
-	delete mp_current_action; //bij continue acties: apart het double array deleten
-	delete mp_prev_action;
-
-	delete[] mp_torcs_action;
 }
 
 void QOSLearningInterface::init()
 {
-	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Qlearning("TorcsWorldCaclaCfg", mp_world) ;
-
-	mp_experiment = new Experiment(Experiment::QLEARNING);
-	mp_experiment->algorithm = mp_algorithm;
-	mp_experiment->world = mp_world;
-	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
-
-	initExperimentParam();
-	initState();
-	initActions();
-	cout << "Done.\n";
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world) ; /////Note: NOT CACLA config
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init(false);
 }
 
-void QOSLearningInterface::init(const char* nn_filename)
+void QOSLearningInterface::init(const bool& automatic_experiment)
+{
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world) ; /////Note: NOT CACLA config
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n"; //normally we use Cfg2, which has 30 nodes
+	_init(automatic_experiment);
+}
+
+void QOSLearningInterface::init(const bool& automatic_experiment, const char* nn_filename)
+{
+	mp_algorithm = new Qlearning("TorcsWorldCfg10", mp_world, nn_filename) ;
+	cout << "NOTE: USING ONLY 10 HIDDEN NODES!\n";
+	_init(automatic_experiment);
+}
+
+void QOSLearningInterface::_init(const bool& automatic)
 {
 	cout << "Initalizing remainder of interface.\n";
-	mp_algorithm = new Qlearning("TorcsWorldCaclaCfg", mp_world, nn_filename) ;
-	mp_experiment = new Experiment(Experiment::QLEARNING);
+	mp_experiment = new Experiment(Experiment::QOS);
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
 	//mp_experiment->readParameterFile("TorcsWorldCaclaCfg");
@@ -69,9 +58,14 @@ void QOSLearningInterface::init(const char* nn_filename)
 	initExperimentParam();
 	initState();
 	initActions();
-	cout << "Done.\n";
+	if(!automatic)
+	{
+		askExplore();
+		askUpdate();
+	}
 }
 
+//cannot be RLInterface function, because it niets mp_algorithm
 void QOSLearningInterface::initState(){
 	mp_current_state = new State();
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
@@ -79,7 +73,7 @@ void QOSLearningInterface::initState(){
 	mp_prev_state = new State();
 	mp_experiment->initializeState(mp_prev_state, mp_algorithm, mp_world);
 }
-
+//cannot be RLInterface function, because it niets mp_algorithm
 void QOSLearningInterface::initActions(){
 	mp_current_action = new Action();
 	mp_experiment->initializeAction(mp_current_action, mp_algorithm, mp_world);
@@ -88,160 +82,28 @@ void QOSLearningInterface::initActions(){
 	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
 	
 	mp_torcs_action = new double[2];
-	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geüpdate dienen te worden.
+	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geï¿½pdate dienen te worden.
 	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
 
-void QOSLearningInterface::initExperimentParam()
-{
-	mp_parameters = new ExperimentParameters();
-	mp_parameters->episode = 0 ;
-    mp_parameters->step = 0 ;
-    mp_parameters->result = 0 ;
-    mp_parameters->rewardSum = 0.0 ;
-	mp_parameters->endOfEpisode = false;
-	mp_parameters->train = true;
-	mp_parameters->first_time_step = true;
-
-    if ( mp_parameters->train ) {
-        mp_parameters->storePer = mp_experiment->trainStorePer ;
-    } else {
-        mp_parameters->storePer = mp_experiment->testStorePer ;
-    }
-}
-
-///////////////Driver functions///////////////////
-double* QOSLearningInterface::getAction()
-{
-	//double* torcs_action = mp_world->convertAction(mp_current_action);
-	if(mp_current_action->discrete) 
-		mp_world->convertDiscreteAction(mp_current_action, mp_torcs_action);
-	else if(mp_current_action->continuous)
-		mp_world->convertContinuousAction(mp_current_action, mp_torcs_action);
-	else {
-		cerr << "Action must be discrete or continuous!\n";
-		return NULL;
-	}
-
-	if (mp_torcs_action == NULL)
-	{
-		cerr << "ERROR: request for action, while action is empty!\n";
-		return NULL;
-	}
-	else	
-		return mp_torcs_action;
-}
-
-void QOSLearningInterface::setRewardPrevAction(double reward)
-{
-	m_reward = reward;
-}
-
-////////////////// STATE FUNCTIONS ///////////////////////
-
-void QOSLearningInterface::setState(vector<double>* features)
-{
-	for(size_t idx = 0; idx < features->size(); idx++){
-		if (abs(features->at(idx)) < 0.001)
-			mp_current_state->continuousState[idx] = 0;
-		else
-			mp_current_state->continuousState[idx] = features->at(idx);
-	}
-	mp_world->setState(mp_current_state);
-}
-
-void QOSLearningInterface::printState()
-{
-	cout << "Printing dimensions of State through QOSLearningInterface.";
-
-	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
-		cout << "Dimension " << idx << " : " << mp_current_state->continuousState[idx] << endl;
-	}
-}
-
-void QOSLearningInterface::logState(int timestamp)
-{
-	stringstream state_log;
-	state_log << timestamp << ": Printing dimensions of State through QOSLearningInterface.\n";
-	mp_log->write(state_log.str());
-
-	for(int idx = 0; idx < mp_current_state->stateDimension; idx++) {
-		stringstream state_log2;
-		state_log2 << "Dimension " << idx << " : " << mp_current_state->continuousState[idx];
-		mp_log->write(state_log2.str());
-	}
-}
-
-void QOSLearningInterface::setEOE(){
-	//If an episode has ended, keep track of this and make sure that the next state-action pair
-	//is not updated with info from previous episode
-	mp_parameters->endOfEpisode = true;
-}
-
-void QOSLearningInterface::logAction(int timestamp)
-{
-	if(mp_current_action->continuous)
-	{
-		stringstream action;
-		action	<< timestamp << ": "
-				<< "Actor output:\n\t steer: " << mp_current_action->continuousAction[0] 
-				<< "\n\t accel: " << mp_current_action->continuousAction[1];
-		mp_log->write(action.str());
-	} else {
-		stringstream action;
-		double* lp_converted_action = new double[2];
-		mp_world->convertDiscreteAction(mp_current_action, lp_converted_action);
-		action	<< timestamp << ": "
-			<< "Actor output: "
-				<< "Q-action: " <<  mp_current_action->discreteAction
-				<< "\n\t steer: " << lp_converted_action[0]
-				<< "\n\t accel: " << lp_converted_action[1];
-		mp_log->write(action.str());
-		delete lp_converted_action;
-	}
-}
-
-
 /////////////////////////LEARNING FUNCTIONS ///////////////////////////
-bool QOSLearningInterface::learningUpdateStep()
-{
-	return learningUpdateStep(false,QOSLearningInterface::RANDOM);
-}
 
 bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
-	//Check for stop conditions
-	if( (mp_parameters->step >= mp_experiment->nSteps) ){
-		cout << "Learning experiment is over. learningUpdateStep will not be ran.\n";
-		mp_algorithm->writeQNN("log_files/QLearning_end_"); //write NN to file if done with learning
-		mp_log->write("Writing QNN after stop condition\n");
-		return true;
-	}
-
-	//timeBeginPeriod(1);
-	//DWORD start = timeGetTime();
-
-	////Store NN every X steps
-	//if(mp_parameters->step % 75 == 0) { //% 100 == 0 //< 5
-	//	//mp_algorithm->writeQNN("RD_first_run_QNN"); //write NN every 10.000 steps
-	//	stringstream QNN_file;
-	//	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
-	//	QNN_file << "log_files/QLearning_QNN_step_" << mp_parameters->step;
-	//	mp_algorithm->writeQNN(QNN_file.str());
-	//	stringstream msg;
-	//	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
-	//	mp_log->write(msg.str());
-	//	//mp_log->write("Writing QNN\n");
+	////Check for stop condition
+	//if( (mp_parameters->step >= mp_experiment->nSteps) ){
 	//}
-	//
-	//DWORD end = timeGetTime();
-	//timeEndPeriod(1);
-	//DWORD  diff = end - start;
-	//cout << "storing QNN. time taken: " << diff << endl;
 
 	//Compute new action based on current state
-	mp_experiment->explore( mp_current_state, mp_current_action); 
-	//Current_action now has a value
+	//Whether or not exploration is taken into account depends on the user input
+	if(m_explore)
+		mp_experiment->explore( mp_current_state, mp_current_action);
+	else
+	{
+		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
+		cout << "NOT EXPLORING!!\n";
+	}
+		//Current_action now has a value
 
 	double l_td_error; //declare td_error, which might be used for sorting tuples later
 
@@ -253,20 +115,13 @@ bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 			stringstream rsum;
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
-			if ( mp_experiment->algorithmName.compare("Sarsa") == 0 )
-			{
-				cerr << "SARSA is not implemented, please use QLEARNING. LearningMainloop is now shutting down.\n";
-				return true;
-
-			} else if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-							mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-
-			} else if ( mp_experiment->algorithmName.compare("Cacla") == 0 ) {
-				//l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
-				//			mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				cerr << "This is the QDriver, not the CaclaDriver.Quitting.\n";
-				return true;
+			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
+				if(m_update && option == RLInterface::RANDOM)
+					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
+				if(m_update && option == RLInterface::TD)
+					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
+								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
 				cerr << "Algorithm name not found. Quitting.\n";
 				return true;
@@ -281,7 +136,7 @@ bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 	}
 
 	//Copy current state and action to history
-	if(store_tuples){	
+	if(store_tuples && m_update){	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
@@ -319,10 +174,10 @@ void QOSLearningInterface::updateWithOldTuple(UpdateOption option)
 	int tuple_idx = 0;
 	double l_td_error;
 
-	if(mp_memory->getSize() >= 5) {
-		mp_log->write("Before reupdate:");
-		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
-	}
+	//if(mp_memory->getSize() >= 5) {
+	//	mp_log->write("Before reupdate:");
+	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
+	//}
 
 	switch(option)
 	{
@@ -371,9 +226,31 @@ void QOSLearningInterface::updateWithOldTuple(UpdateOption option)
 			}
 	}
 
-	//Debug Log
-	if(mp_memory->getSize() >= 5) {
-		mp_log->write("After reupdate:");
-		mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
+	////Debug Log
+	//if(mp_memory->getSize() >= 5) {
+	//	mp_log->write("After reupdate:");
+	//	mp_memory->writeTuple(mp_log,mp_memory->getSize()-1);
+	//}
+}
+
+void QOSLearningInterface::writeNetwork(int identifier, int steps)
+{
+	bool steer = true;
+	
+	stringstream QNN_file;
+	//QNN_file << "log_files/QLearning_QNN_ep_" << mp_parameters->episode << "_step_" << mp_parameters->step; 
+	
+	if(steer){
+		cout << "Writing Steer Network.\n";
+		QNN_file << "log_files/QSteer_QNN_id_" << identifier << "_step_" << (mp_parameters->step + steps);
+	}else {
+		cout << "Writing Only Speed Network\n";
+		QNN_file << "log_files/QOS_QNN_id_" << identifier << "_step_" << (mp_parameters->step + steps);
 	}
+	mp_algorithm->writeQNN(QNN_file.str());
+	stringstream msg;
+	msg << "time: " << mp_parameters->step << ". Writing QNN\n";
+	mp_log->write(msg.str());
+
+	//cout << " \n\n\nNOT STORING NETWORK!!!!!!\n\n\n";
 }
