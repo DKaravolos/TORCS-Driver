@@ -68,6 +68,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	//Set size of state-action vectors
 	m_state_keys.resize(m_numTilings);
 	m_next_state_keys.resize(m_numTilings);
+
 }
 
 //Sets the edges of the bins of the tiles using file input
@@ -233,7 +234,7 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 
 		//Store the visit to this state
 		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-		storeStateVisit(state_action);
+		storeStateActionVisit(state_action);
 	}	
 
 	//Define the learning rate of this update. This depends on the number of active tilings.
@@ -795,7 +796,7 @@ void TileCodingHM::loadQTable(string filename)
 }
 
 //Keeps track of how often each state is visited
-void TileCodingHM::storeStateVisit(const pair<string,int>& key)
+void TileCodingHM::storeStateActionVisit(const pair<string,int>& key)
 {
 	//if state_visits contains the key, add 1 to the value
 	if(state_visits.count(key) > 0)
@@ -960,4 +961,45 @@ void TileCodingHM::checkTDError(const double& td_error, const double& q_of_state
 
 		mp_log->write(f_out.str());
 	}
+}
+
+bool TileCodingHM::isStateKnown(const State& state) //const because we do not want to risk changing the value of the state!
+{
+	int tiling;
+	vector<string> state_keys;
+	for(tiling = 0; tiling < m_numTilings; ++tiling)
+	{
+		state_keys.push_back(classifyState(&state,tiling));
+		if(state_keys[tiling].empty() == true){ ////if the state cannot exist
+			cout << "This state cannot exist\n";
+			return false; //it is considered unknown
+		}
+
+		pair<string,int> state_action = make_pair(state_keys[tiling], 0); //make state-action pair, action is arbitrary
+		map<pair<string,int>,double>::iterator it = m_tilings.find(state_action);
+		if(it == m_tilings.end()){ //If the state-action pair is not in the map
+			cout << "I don't know tile "<<tiling << ": " << state_keys[tiling] << endl;
+			return false; //state is not known
+		}
+		//cout << "I know tile "<<tiling << ": " << state_keys[tiling] << endl;
+	}
+
+	cout << "I know this state!\n";
+	return true; //if the state can exist and the state is known in all tilings, the state is known
+}
+
+//Returns the number of times a state is visitedl, independent of which action was taken in that state.
+//If this is used on an unknown state, it creates entries of 0.
+int TileCodingHM::getStateCount(const string& state)
+{
+	int action;
+	int state_encounters = 0;
+	pair<string,int> state_action;
+	for(action = 0; action < numberOfActions; ++action)
+	{
+		state_action = make_pair(state,action);
+		state_encounters += state_visits[state_action];
+	}
+	
+	return state_encounters;
 }

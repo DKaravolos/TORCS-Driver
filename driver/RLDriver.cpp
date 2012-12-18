@@ -4,6 +4,12 @@
 //#endif
 #define DRIVER_DEBUG true
 #define DEF_MINIMAL true
+#define DEF_TC_HAS_INFO false
+
+#ifdef DEF_TC_HAS_INFO
+	#include "..\learning\TileCodingHM.h"
+	#include "..\learning\TCLearningInterface.h"
+#endif
 
 RLDriver::RLDriver()
 {
@@ -394,7 +400,11 @@ void RLDriver::doLearning(CarState &cs)
 	checkSensorInput(mp_features);
 	//Create a state (pass state features to the interface)
 	mp_RLinterface->setState(mp_features);
-
+	
+	if(DEF_TC_HAS_INFO){ // TC heuristic is based on actual CarState. If heuristic is used, give CarState to TileCodingHM.
+		TCLearningInterface* l_TCLI = static_cast<TCLearningInterface*>(mp_RLinterface); 
+		*(l_TCLI->public_car_control) = simpleBotControl(cs);
+	}
 	//do the actual update step
 	try{
 		doUpdate(cs);

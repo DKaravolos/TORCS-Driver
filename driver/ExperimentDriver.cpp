@@ -318,8 +318,8 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 	lp_experiment->setLearningRate(m_learning_rates[driver_nr]);
 
 	if ((m_epsilons.size() > 0 && m_taus.size() > 0)   ||
-		(m_epsilons.size() > 0 && m_gammas.size() > 0) ||
-		(m_gammas.size() > 0 && m_taus.size() > 0))
+		(m_epsilons.size() > 0 && m_sigmas.size() > 0) ||
+		(m_sigmas.size() > 0 && m_taus.size() > 0))
 	{
 		cerr << "ERROR: MORE THAN ONE WAY OF EXPLORATION DEFINED! I DON'T KNOW WHAT TO CHOOSE!!!\n";
 		exit(-1);

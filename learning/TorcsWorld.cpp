@@ -263,6 +263,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 		case QLEARNING:
 			switch(action->discreteAction)
 			{
+				//Steer straight
 				case 0:
 					torcs_action[0] = 0;
 					torcs_action[1] = 1;
@@ -278,6 +279,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[1] = -1;
 					break;
 
+			//steer right
 				case 3:
 					torcs_action[0] = -1;
 					torcs_action[1] = 1;
@@ -292,7 +294,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = -1;
 					torcs_action[1] = -1;
 					break;
-
+			//steer left
 				case 6:
 					torcs_action[0] = 1;
 					torcs_action[1] = 1;
@@ -306,7 +308,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = 1;
 					torcs_action[1] = -1;
 					break;
-				//steer half left
+				//steer half right
 				case 9:
 					torcs_action[0] = -0.5;
 					torcs_action[1] = -1;
@@ -321,7 +323,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = -0.5;
 					torcs_action[1] = 1;
 					break;
-				//steer half right
+				//steer half left
 				case 12:
 					torcs_action[0] = 0.5;
 					torcs_action[1] = -1;

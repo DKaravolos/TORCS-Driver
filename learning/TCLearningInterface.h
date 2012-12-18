@@ -7,6 +7,8 @@
 #include "..\learning\TileCodingHM.h"
 #include <string>
 
+#include "..\driver\CarControl.h"
+
 class TCLearningInterface: public RLInterface
 {
 	public:
@@ -22,15 +24,17 @@ class TCLearningInterface: public RLInterface
 		void updateWithOldTuple(UpdateOption option);
 
 		//other
+		//TileCodingHM* getAlgorithm(){return mp_algorithm;}
+		void doInformedAction(Action* action);
 		void writeNetwork(int identifier, int step); //only for inheritance (calls writeQTable)
 		void writeQTable(int identifier, int step);
 
 		//for automatic experiment
 		Experiment* getExperiment(){return mp_experiment;}
-	//protected:
+		CarControl* public_car_control;
+	protected:
 		//datamembers
 		TileCodingHM* mp_algorithm;
-		//TileCodingSmall* mp_algorithm;
 
 		//functions:
 		void _init(const bool& auto_exp);

@@ -25,6 +25,8 @@ class TileCodingHM : public StateActionAlgorithm {
 										bool endOfEpisode, double * learningRate, double gamma);
 		
 		void getMaxAction(State* state, Action* action);
+		int getStateCount(const string& state);
+		bool isStateKnown(const State& state);
 		void loadQTable (string filename);
 		void writeQTable (string filename);
 		void writeStateVisits(const string& filename);
@@ -33,7 +35,7 @@ class TileCodingHM : public StateActionAlgorithm {
 
 		inline unsigned int getNumberOfLearningRates()	{return 1;}
 		inline const char * getName()					{return "TileCoding" ;}
-
+		
 	protected:
 		void boltzmann (State* s, Action* a, double tau);
 
@@ -86,7 +88,7 @@ class TileCodingHM : public StateActionAlgorithm {
 		// Keep track of how often each state is visited
 		map<pair<string,int>,int> state_visits;
 		map<pair<string,int>,double> average_td_errors;
-		void storeStateVisit(const pair<string,int>& key);
+		void storeStateActionVisit(const pair<string,int>& key);
 		void storeAverageTDError(const pair<string,int>& key, double td_error);
 
 		// compute td error over all states

@@ -2,6 +2,8 @@
 //#include <Windows.h>
 using namespace std;
 //#define INTERFACE_DEBUG true
+#define HAS_INFORMATION false
+
 
 ///////////////Initialization functions///////////////////
 
@@ -26,6 +28,9 @@ TCLearningInterface::~TCLearningInterface(void)
 	delete mp_reward_log;
 	delete mp_algorithm;
 	delete[] mp_torcs_action;
+
+	if(HAS_INFORMATION)
+		delete public_car_control;
 }
 
 void TCLearningInterface::init()
@@ -56,6 +61,9 @@ void TCLearningInterface::_init(const bool& automatic_experiment)
 	mp_experiment = new Experiment(Experiment::TILECODING); //Het is geen gek idee om de instellingen op te slaan in de log.
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
+
+	if(HAS_INFORMATION)
+		public_car_control = new CarControl();
 
 	initExperimentParam();
 	initState();
@@ -110,7 +118,11 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
-	if(m_explore)
+
+	//Binary way of checking whether an informed action is necessary:
+	if(HAS_INFORMATION && !mp_algorithm->isStateKnown(*mp_current_state))
+		doInformedAction(mp_current_action);
+	else if(m_explore)
 		mp_experiment->explore( mp_current_state, mp_current_action);	
 	else
 	{
@@ -130,7 +142,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("TileCoding") == 0 ) {
-				if(m_update && option == RLInterface::UpdateOption::RANDOM)
+				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 				if(m_update && option == RLInterface::UpdateOption::TD)
@@ -279,4 +291,65 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 	stringstream msg;
 	//msg << "time: " << mp_parameters->step << ". Writing QTable\n";
 	//mp_log->write(msg.str());
+}
+
+
+void TCLearningInterface::doInformedAction(Action* action)
+{
+
+	////Simple check to see if we use the same state for learning and driving
+	//if(state.continuousState[0] != public_state_info.getSpeedX())
+	//{
+	//	cerr << "ERROR! In TileCodingHM: State from LearningInterface and RLDriver are not the same!!" << endl;
+	//	cerr << "TCHM. Speed. LI State: " << state.continuousState[0] << ". CarState: " << public_state_info->getSpeedX() << endl;
+	//	return;
+	//} 
+
+	//get continuous values from heuristic
+	float steer = public_car_control->getSteer();
+	float accel = public_car_control->getAccel();
+
+	//Discretize dimensions to get discrete action for Q learning
+	if(steer <= -0.75) { //-1
+		if(accel <= -0.25) //-1
+			action->discreteAction = 5;
+		else if(accel <= 0.25) //0
+			action->discreteAction = 4;
+		else //1
+			action->discreteAction = 3;
+
+	} else if(steer <= -0.25) { //-0.5
+		if(accel <= -0.25)
+			action->discreteAction = 9;
+		else if(accel <= 0.25)
+			action->discreteAction = 10;
+		else
+			action->discreteAction = 11;
+
+	}else if(steer <= 0.25) { //0.5
+		if(accel <= -0.25)
+			action->discreteAction = 2;
+		else if(accel <= 0.25)
+			action->discreteAction = 1;
+		else
+			action->discreteAction = 0;
+
+	}else if(steer <= 0.75) {
+		if(accel <= -0.25)
+			action->discreteAction = 12;
+		else if(accel <= 0.25)
+			action->discreteAction = 13;
+		else
+			action->discreteAction = 14;
+
+	}else {
+		if(steer <= -0.25)
+			action->discreteAction = 8;
+		else if(accel <= 0.25)
+			action->discreteAction = 7;
+		else
+			action->discreteAction = 6;
+	}
+
+	cout << "Doing a heuristic action: " << action->discreteAction << endl;
 }
