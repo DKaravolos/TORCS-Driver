@@ -1,6 +1,6 @@
 # include "TileCodingHM.h"
 #define DEFAULT_Q 0.0 //Defines the default (i.e. first) value of a tile
-#define DEF_MINIMAL true
+#define DEF_MINIMAL false
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
 {

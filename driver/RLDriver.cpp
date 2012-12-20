@@ -3,7 +3,7 @@
 //    #include <Windows.h>
 //#endif
 #define DRIVER_DEBUG true
-#define DEF_MINIMAL true
+#define DEF_MINIMAL false
 #define DEF_TC_HAS_INFO false
 
 #ifdef DEF_TC_HAS_INFO
