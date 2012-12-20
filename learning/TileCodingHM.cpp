@@ -365,22 +365,22 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 	//tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
 	
 	
-#ifdef DEF_MINIMAL
-	tile_indices[2] = classifyValue(state->continuousState[2], m_dist_edges[tiling]);
-	tile_indices[3] = 0;
-	tile_indices[4] = 0;
-	tile_indices[5] = 0;
-	tile_indices[6] = 0;
-	tile_indices[7] = 0;
-#else
-	tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
-	tile_indices[3] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
-	tile_indices[4] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
-	tile_indices[5] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
-	tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
-	tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);
-#endif
-
+	if(DEF_MINIMAL)
+	{
+		tile_indices[2] = classifyValue(state->continuousState[2], m_dist_edges[tiling]);
+		tile_indices[3] = 0;
+		tile_indices[4] = 0;
+		tile_indices[5] = 0;
+		tile_indices[6] = 0;
+		tile_indices[7] = 0;
+	} else {
+		tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
+		tile_indices[3] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
+		tile_indices[4] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
+		tile_indices[5] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
+		tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
+		tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);
+	}
 	
 	//use tiling as part of key for map
 	key << tiling;
