@@ -84,6 +84,7 @@ class TileCodingHM : public StateActionAlgorithm {
 		//Classification of input values (to tile indices)
 		string classifyState(const State* state, const int& tile);
 		int classifyValue(const double& state_value, const vector<double>& bin_edges);
+		int classifyValue(const double& state_value, const vector<double>& bin_edges, bool verbose);
 
 		// Keep track of how often each state is visited
 		map<pair<string,int>,int> state_visits;

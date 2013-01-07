@@ -379,7 +379,8 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 		tile_indices[6] = 0;
 		tile_indices[7] = 0;
 	} else {
-		tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
+		//cout << "In classification: Dist = " << state->continuousState[5] << endl;
+		tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling], true); //front sensor
 		tile_indices[3] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
 		tile_indices[4] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
 		tile_indices[5] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
@@ -407,22 +408,36 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 	return key.str();
 }
 
-//Classifies a given value into the given tile bins
+//Classifies a given value into the given tile bins without verbose output
 int TileCodingHM::classifyValue(const double& state_value, const vector<double>& bin_edges)
 {
-	//stringstream log;
+	return classifyValue(state_value, bin_edges, false);
+}
+
+//Classifies a given value into the given tile bins
+int TileCodingHM::classifyValue(const double& state_value, const vector<double>& bin_edges, bool verbose)
+{
+	stringstream l_log;
 	int bin = -1; 
 	for(unsigned int idx = 0; idx < bin_edges.size()-1; idx++)
 		if(state_value >= bin_edges[idx] && state_value < bin_edges[idx+1]) //check each bin
 		{
-			//cout << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
-			//cout << ", thus the bin is " << idx << endl;
-			//log << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
-			//log << ", thus the bin is " << idx << endl;
+			//if(verbose){
+			//	cout << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
+			//	cout << ", thus the bin is " << idx << endl;
+			//	l_log << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
+			//	l_log << ", thus the bin is " << idx << endl;
+			//}
 			bin = idx;
 			break;
 		}
-	//mp_log->write(log.str());
+	if(verbose && bin ==-1)
+	{
+		l_log << "Value " << state_value << " is not between " << bin_edges[0] << " and " << bin_edges[bin_edges.size()-1];
+		cout << ", thus the bin is -1.\n";
+	}
+	if(verbose)
+		mp_log->write(l_log.str());
 	return bin; //If the state_value is outside the tile range, it returns -1. 
 				//This is sort of an exception code, it should be caught later, because indices cannot be -1
 }
