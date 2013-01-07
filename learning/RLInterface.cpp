@@ -131,6 +131,19 @@ void RLInterface::setState(vector<double>* features)
 	mp_world->setState(mp_current_state);
 }
 
+void RLInterface::setEOE(){
+	//If an episode has ended, keep track of this and make sure that the next state-action pair
+	//is not updated with info from previous episode
+	mp_parameters->endOfEpisode = true;
+}
+
+void RLInterface::setFirstTime(bool val){
+	//Dirty hack to avoid having to delete and reconstruct the interface in the onRestart() of driver
+	mp_parameters->first_time_step = val;
+}
+
+///////////////////////LOG FUNCTIONS ////////////////////////////
+
 void RLInterface::printState()
 {
 	cout << "Printing dimensions of State through RLInterface::.";
@@ -139,7 +152,6 @@ void RLInterface::printState()
 		cout << "Dimension " << idx << " : " << mp_current_state->continuousState[idx] << endl;
 	}
 }
-
 void RLInterface::logState(int timestamp)
 {
 	stringstream state_log;
@@ -152,18 +164,6 @@ void RLInterface::logState(int timestamp)
 		mp_log->write(state_log2.str());
 	}
 }
-
-void RLInterface::setEOE(){
-	//If an episode has ended, keep track of this and make sure that the next state-action pair
-	//is not updated with info from previous episode
-	mp_parameters->endOfEpisode = true;
-}
-
-void RLInterface::setFirstTime(bool val){
-	//Dirty hack to avoid having to delete and reconstruct the interface in the onRestart() of driver
-	mp_parameters->first_time_step = val;
-}
-
 void RLInterface::logAction(int timestamp)
 {
 	if(mp_current_action->continuous)
@@ -187,8 +187,7 @@ void RLInterface::logAction(int timestamp)
 	}
 }
 
-
-/////////////////////////LEARNING FUNCTIONS ///////////////////////////
+///////////////////////// OTHER ///////////////////////////
 bool RLInterface::learningUpdateStep()
 {
 	return learningUpdateStep(false,RLInterface::RANDOM);

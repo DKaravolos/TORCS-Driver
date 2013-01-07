@@ -56,6 +56,7 @@ private:
 	std::vector<double> m_taus;
 	std::vector<double> m_epsilons;
 	std::vector<double> m_sigmas;
+	std::vector<double> m_etas;
 	std::vector<std::string> m_dirs;
 
 	//functions

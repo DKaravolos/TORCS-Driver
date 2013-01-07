@@ -25,7 +25,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 	//END OF RANDOM
 
 	switch(config) {
-		case QLEARNING:
+		/*case QLEARNING:
 			//stateDimension = 13;
 			//actionDimension = int(-1);
 			//discreteStates = int(-1);
@@ -190,7 +190,7 @@ Experiment::Experiment(Experiment::Configuration config) {
 			cout << "\tBoltzmann: " << boltzmann << "\t(tau: "<< tau << ")\n";
 			cout << "\te-Greedy : " << egreedy << "\t(epsilon: "<< epsilon << ")\n";
 			cout << "\tLearningRate: " << learningRate[0] << endl;
-			break;
+			break;*/
 
 		case TILECODING:
 			//stateDimension = 13;
@@ -300,7 +300,6 @@ bool Experiment::initializeAction( Action * action, Algorithm * algorithm, World
 Experiment::~Experiment() {
 
 }
-
 
 void Experiment::setAlgorithm( string algorithmName, World * world ) {
 

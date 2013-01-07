@@ -32,13 +32,13 @@ void ExperimentDriver::init(float* angles)
 	{
 		setNewParameters(g_curr_experiment);
 
-		/*RLInterface* curr_interface = mp_driver->getInterface();*/
-		//cout << "Changed driver. There should be new parameters now.\n";
-		////Check parameter settings
-		//cout << "Epsilon: " << curr_interface->getExperiment()->getEpsilon() << endl;
-		//cout << "Gamma: " << curr_interface->getExperiment()->getGamma() << endl;
-		//cout << "Learning Rate: " << curr_interface->getExperiment()->getLearningRate() << endl;
-		//cout << "Tau: " << curr_interface->getExperiment()->getTau() << endl;
+		RLInterface* curr_interface = mp_driver->getInterface();
+		cout << "Changed driver. There should be new parameters now.\n";
+		//Check parameter settings
+		cout << "Epsilon: " << curr_interface->getExperiment()->getEpsilon() << endl;
+		cout << "Gamma: " << curr_interface->getExperiment()->getGamma() << endl;
+		cout << "Learning Rate: " << curr_interface->getExperiment()->getLearningRate() << endl;
+		cout << "Tau: " << curr_interface->getExperiment()->getTau() << endl;
 	}
 
 }
@@ -166,6 +166,10 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 					} else
 						cerr << "Uh o. Unknown exploration type encountered.\n";
 				}
+				else if (parameter_type.compare("eta") == 0)
+				{
+					addParameter(parameter_type, parameter, m_etas);
+				}
 			}
 
 			cout << "\nYou have defined "<< m_nr_of_experiments << " experiments. Is that correct? (y/n) \n";
@@ -228,7 +232,6 @@ void ExperimentDriver::addParameter(const string& parameter_type, stringstream& 
 	}
 	cout << endl;
 }
-
 //This function allows us to use element-access of vectors
 void ExperimentDriver::autoCompleteParameters()
 {
@@ -317,6 +320,11 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 	lp_experiment->setGamma(m_gammas[driver_nr]);
 	lp_experiment->setLearningRate(m_learning_rates[driver_nr]);
 
+	//Hard-coded option for TileCoding driver. It is too much of a fuss to incorporate eta in all drivers. 
+	//because other drivers will not be implemented anymore.
+	if(m_driver_type == 0){
+		lp_interface->setEta(m_etas[driver_nr]);
+	}
 	if ((m_epsilons.size() > 0 && m_taus.size() > 0)   ||
 		(m_epsilons.size() > 0 && m_sigmas.size() > 0) ||
 		(m_sigmas.size() > 0 && m_taus.size() > 0))

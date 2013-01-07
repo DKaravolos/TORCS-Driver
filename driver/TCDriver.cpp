@@ -80,14 +80,3 @@ void TCDriver::askLoadNetwork()
 		mp_RLinterface->init();
 	}
 }
-
-//void TCDriver::onRestart()
-//{
-//	RLDriver::onRestart();
-//	
-//	delete mp_reward_writer;
-//
-//	stringstream newfile;
-//	newfile << "log_files/TCDriver_rewards_" << g_experiment_count << ".txt";
-//	mp_reward_writer = new Writer(newfile.str());
-//}

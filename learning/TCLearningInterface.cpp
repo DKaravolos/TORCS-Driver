@@ -2,22 +2,23 @@
 //#include <Windows.h>
 using namespace std;
 //#define INTERFACE_DEBUG true
-#define HAS_INFORMATION false
+#define HAS_INFORMATION true
 
 
 ///////////////Initialization functions///////////////////
 
 TCLearningInterface::TCLearningInterface(const string& log_dir)
 {
-	srand(time(NULL));
+	srand(unsigned(time(NULL)));
 	cout << "Creating interface...\n";
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
 	m_log_dir = log_dir;
 	mp_reward_log = new Writer(m_log_dir + "TC_cumulative_reward.txt");
-	//mp_log = new Writer(m_log_dir + "]TC_interface_output.txt");
+	mp_log = new Writer(m_log_dir + "TC_interface_output.txt");
 	//mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
+	m_eta = 1;
 	cout << "Done.\n";
 }
 
@@ -62,8 +63,10 @@ void TCLearningInterface::_init(const bool& automatic_experiment)
 	mp_experiment->algorithm = mp_algorithm;
 	mp_experiment->world = mp_world;
 
-	if(HAS_INFORMATION)
+	if(HAS_INFORMATION){
 		public_car_control = new CarControl();
+		public_car_state = new CarState();
+	}
 
 	initExperimentParam();
 	initState();
@@ -118,9 +121,10 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
+	double random_nr = double(rand())/double(RAND_MAX);
 
 	//Binary way of checking whether an informed action is necessary:
-	if(HAS_INFORMATION && !mp_algorithm->isStateKnown(*mp_current_state))
+	if(HAS_INFORMATION && (random_nr <= m_eta)) /// old: !mp_algorithm->isStateKnown(*mp_current_state)
 		doInformedAction(mp_current_action);
 	else if(m_explore)
 		mp_experiment->explore( mp_current_state, mp_current_action);	
@@ -145,7 +149,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				if(m_update && option == RLInterface::UpdateOption::TD)
+				if(m_update && option == RLInterface::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {
@@ -308,6 +312,102 @@ void TCLearningInterface::doInformedAction(Action* action)
 	//get continuous values from heuristic
 	float steer = public_car_control->getSteer();
 	float accel = public_car_control->getAccel();
+	stringstream ss;
+	cout << "Steer: " << steer << endl;
+	cout << "Accel: " << accel << endl;
+	
+
+	//Discretize dimensions to get discrete action for Q learning
+	if(steer >= 0.75) { //1L
+		if(accel >= 0.33)				//1
+			action->discreteAction = 0;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 1;
+		else							//-1
+			action->discreteAction = 2;
+
+	} else if(steer >= 0.25) { //0.5L
+		if(accel >= 0.33)				//1
+			action->discreteAction = 3;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 4;
+		else							//-1
+			action->discreteAction = 5;
+
+	} else if(steer >= 0.02) { //0.1L
+		if(accel >= 0.33)				//1
+			action->discreteAction = 15;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 16;
+		else							//-1
+			action->discreteAction = 17;
+
+	}else if(steer >= -0.02) { //0.0
+		if(accel >= 0.33)				//1
+			action->discreteAction = 6;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 7;
+		else							//-1
+			action->discreteAction = 8;
+
+	}else if(steer >= -0.25) { //-0.1R
+		if(accel >= 0.33)				//1
+			action->discreteAction = 18;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 19;
+		else							//-1
+			action->discreteAction = 20;
+
+	}else if(steer >= -0.75) {
+		if(accel >= 0.33)				//1
+			action->discreteAction = 9;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 10;
+		else							//-1
+			action->discreteAction = 11;
+
+	}else {
+		if(accel >= 0.33)				//1
+			action->discreteAction = 12;
+		else if(accel > -0.33)			//0
+			action->discreteAction = 13;
+		else							//-1
+			action->discreteAction = 14;
+	}
+
+	//LELIJKE HACK
+	//Speedcap! if speed > 100 either accel = neutral or brake
+	if(public_car_state->getSpeedX() >=100 && 
+	//	action->discreteAction % 3 == 0)
+		(action->discreteAction % 3 == 0 ||
+		action->discreteAction % 3 == 1))
+		action->discreteAction++;
+
+	ss << "Discrete action: " << action->discreteAction << endl;
+	cout << "Doing a heuristic action: " << action->discreteAction << endl;
+
+	mp_log->write(ss.str());
+}
+
+/*
+void TCLearningInterface::doInformedAction(Action* action)
+{
+
+	////Simple check to see if we use the same state for learning and driving
+	//if(state.continuousState[0] != public_state_info.getSpeedX())
+	//{
+	//	cerr << "ERROR! In TileCodingHM: State from LearningInterface and RLDriver are not the same!!" << endl;
+	//	cerr << "TCHM. Speed. LI State: " << state.continuousState[0] << ". CarState: " << public_state_info->getSpeedX() << endl;
+	//	return;
+	//} 
+
+	//get continuous values from heuristic
+	float steer = public_car_control->getSteer();
+	float accel = public_car_control->getAccel();
+	stringstream ss;
+	ss << "Steer: " << steer << endl;
+	ss << "Accel: " << accel << endl;
+	
 
 	//Discretize dimensions to get discrete action for Q learning
 	if(steer <= -0.75) { //-1
@@ -351,5 +451,8 @@ void TCLearningInterface::doInformedAction(Action* action)
 			action->discreteAction = 6;
 	}
 
+	ss << "Discrete action: " << action->discreteAction << endl;
 	cout << "Doing a heuristic action: " << action->discreteAction << endl;
-}
+
+	mp_log->write(ss.str());
+}*/

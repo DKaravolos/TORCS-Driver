@@ -4,7 +4,7 @@
 //#endif
 #define DRIVER_DEBUG true
 #define DEF_MINIMAL false
-#define DEF_TC_HAS_INFO false
+#define DEF_TC_HAS_INFO true
 
 #ifdef DEF_TC_HAS_INFO
 	#include "..\learning\TileCodingHM.h"
@@ -288,6 +288,7 @@ CarControl RLDriver::wDrive(CarState cs)
 		//cout << "repeating: "<< g_count % 50 << endl;
 	}
 	//END LEARNING CODE
+	//return simpleBotControl(cs);
 	return rlControl(cs);
 }
 
@@ -404,6 +405,7 @@ void RLDriver::doLearning(CarState &cs)
 	if(DEF_TC_HAS_INFO){ // TC heuristic is based on actual CarState. If heuristic is used, give CarState to TileCodingHM.
 		TCLearningInterface* l_TCLI = static_cast<TCLearningInterface*>(mp_RLinterface); 
 		*(l_TCLI->public_car_control) = simpleBotControl(cs);
+		*(l_TCLI->public_car_state) = cs;
 	}
 	//do the actual update step
 	try{

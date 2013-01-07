@@ -37,7 +37,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 15;
+			numberOfActions		= 21;
 			break;
 
 		case CACLA:
@@ -150,6 +150,7 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 	{
 		switch(m_config)
 		{
+		/*
 		case QOS5:
 			switch(action->discreteAction)
 			{
@@ -259,8 +260,117 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 				default:
 					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";
 			}
-			break;
+			break; */
 		case QLEARNING:
+			switch(action->discreteAction)
+			{
+				//Steer left
+				case 0:
+					torcs_action[0] = 1;
+					torcs_action[1] = 1;
+					break;
+
+				case 1:
+					torcs_action[0] = 1;
+					torcs_action[1] = 0;
+					break;
+
+				case 2:
+					torcs_action[0] = 1;
+					torcs_action[1] = -1;
+					break;
+
+			//steer half left
+				case 3:
+					torcs_action[0] = 0.5;
+					torcs_action[1] = 1;
+					break;
+
+				case 4:
+					torcs_action[0] = 0.5;
+					torcs_action[1] = 0;
+					break;
+
+				case 5:
+					torcs_action[0] = 0.5;
+					torcs_action[1] = -1;
+					break;
+			//steer straight
+				case 6:
+					torcs_action[0] = 0;
+					torcs_action[1] = 1;
+					break;
+				case 7:
+					torcs_action[0] = 0;
+					torcs_action[1] = 0;
+					break;
+
+				case 8:
+					torcs_action[0] = 0;
+					torcs_action[1] = -1;
+					break;
+				//steer half right
+				case 9:
+					torcs_action[0] = -0.5;
+					torcs_action[1] = -1;
+					break;
+
+				case 10:
+					torcs_action[0] = -0.5;
+					torcs_action[1] = 0;
+					break;
+
+				case 11:
+					torcs_action[0] = -0.5;
+					torcs_action[1] = 1;
+					break;
+				//steer right
+				case 12:
+					torcs_action[0] = -1;
+					torcs_action[1] = -1;
+					break;
+				case 13:
+					torcs_action[0] = -1;
+					torcs_action[1] = 0;
+					break;
+
+				case 14:
+					torcs_action[0] = -1;
+					torcs_action[1] = 1;
+					break;
+
+				//steer little left
+				case 15:
+					torcs_action[0] = 0.1;
+					torcs_action[1] = 1;
+					break;
+
+				case 16:
+					torcs_action[0] = 0.1;
+					torcs_action[1] = 0;
+					break;
+
+				case 17:
+					torcs_action[0] = 0.1;
+					torcs_action[1] = -1;
+					break;
+				//steer little right
+				case 18:
+					torcs_action[0] = -0.1;
+					torcs_action[1] = 1;
+					break;
+				case 19:
+					torcs_action[0] = -0.1;
+					torcs_action[1] = 0;
+					break;
+
+				case 20:
+					torcs_action[0] = -0.1;
+					torcs_action[1] = -1;
+					break;
+
+
+					/*case QLEARNING:
 			switch(action->discreteAction)
 			{
 				//Steer straight
@@ -337,6 +447,36 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = 0.5;
 					torcs_action[1] = 1;
 					break;
+
+				//steer little right
+				case 15:
+					torcs_action[0] = -0.05;
+					torcs_action[1] = 1;
+					break;
+
+				case 16:
+					torcs_action[0] = -0.05;
+					torcs_action[1] = 0;
+					break;
+
+				case 17:
+					torcs_action[0] = -0.05;
+					torcs_action[1] = -1;
+					break;
+				//steer little left
+				case 18:
+					torcs_action[0] = 0.05;
+					torcs_action[1] = 1;
+					break;
+				case 19:
+					torcs_action[0] = 0.05;
+					torcs_action[1] = 0;
+					break;
+
+				case 20:
+					torcs_action[0] = 0.05;
+					torcs_action[1] = -1;
+					break;*/
 				default:
 					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";
 			}

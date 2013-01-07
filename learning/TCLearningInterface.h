@@ -8,6 +8,7 @@
 #include <string>
 
 #include "..\driver\CarControl.h"
+#include "..\driver\CarState.h"
 
 class TCLearningInterface: public RLInterface
 {
@@ -32,6 +33,7 @@ class TCLearningInterface: public RLInterface
 		//for automatic experiment
 		Experiment* getExperiment(){return mp_experiment;}
 		CarControl* public_car_control;
+		CarState* public_car_state;
 	protected:
 		//datamembers
 		TileCodingHM* mp_algorithm;

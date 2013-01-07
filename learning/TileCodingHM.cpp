@@ -134,6 +134,11 @@ void TileCodingHM::getEdgesFromFile(string l_parameterfile)
 				else if (edge_type.compare("dist") == 0)
 				{
 					addEdge(edge_type, edges, m_dist_edges, dist_tiling);
+				}else 
+				{
+					cout << "I encountered a line that I cannot parse.\n\n\n";
+					cout << edge_type << endl;
+					cout << line;
 				}
 			}
 

@@ -43,11 +43,11 @@ class Experiment {
         bool initializeAction( Action * action, Algorithm * algorithm, World * world ) ;
         void getParametersAndRunExperiments( World * world ) ;
 
-		inline void setEpsilon(double eps)		{epsilons[0] = eps;}
-		inline void setTau(double tau)			{taus[0] = tau;}
-		inline void setSigma (double sigma)		{sigmas[0] = sigma;}
-		inline void setGamma(double gamma_input){gamma = gamma_input;}
-		inline void setLearningRate(double lr)  {learningRate[0] = lr;}
+		inline void setEpsilon(double eps_in)		{epsilon = eps_in;}
+		inline void setTau(double tau_in)			{tau = tau_in;}
+		inline void setSigma (double sigma_in)		{sigma = sigma_in;}
+		inline void setGamma(double gamma_input)	{gamma = gamma_input;}
+		inline void setLearningRate(double lr)		{learningRate[0] = lr;}
 		inline void setLearningRates(double lr0, double lr1) {learningRate[0] = lr0; learningRate[1] = lr1;}
 		inline void setBoltzmann(bool input)	{boltzmann = input;}
 		inline void setEGreedy(bool input)		{egreedy = input;}
