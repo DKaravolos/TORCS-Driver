@@ -128,8 +128,8 @@ void BinaryActionSearch::init(Action* action)
 	//Compute min and max vals
 	for(int idx = 0; idx < m_nr_actions; idx++)
 	{
-		mp_min_vals[idx] = action->min_val[idx] ;
-		mp_max_vals[idx] = action->max_val[idx] ;
+		mp_min_vals[idx] = action->min_val[idx] ; //NOT DEFINED
+		mp_max_vals[idx] = action->max_val[idx] ; //NOT DEFINED
 		m_deltas.push_back(new vector<double>);
 		m_last_sequence.push_back(new vector<double>);
 	}

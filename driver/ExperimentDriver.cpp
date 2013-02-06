@@ -10,6 +10,12 @@ ExperimentDriver::ExperimentDriver()
 	cin >> file;
 	readExperimentParameters(file);
 	g_curr_experiment = 0;
+	
+	cout << "Would you like to save the data structure? (y/n)\n";
+	char save;
+	cin >> save;
+	m_save_data = (save == 'y');
+
 	//Ask user which driver to test
 	selectFirstDriver();
 }
@@ -74,11 +80,6 @@ void ExperimentDriver::onRestart()
 
 void ExperimentDriver::selectFirstDriver()
 {
-	cout << "Would you like to save the data structure? (y/n)\n";
-	char save;
-	cin >> save;
-	m_save_data = (save == 'y');
-
 	cout << "Which driver would you like to use for your experiment?\n";
 	cout << "0 = TCDriver, 1 = CaclaDriver \n"; //, 2 = QDriver\n";
 	cin >> m_driver_type;

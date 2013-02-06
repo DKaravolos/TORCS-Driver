@@ -1,11 +1,14 @@
 #ifndef TCLEARNING_INTERFACE_H
 #define TCLEARNING_INTERFACE_H
 
+#include <string>
 #include "..\learning\RLInterface.h"
-#include "..\rlcpp\StateActionAlgorithm.h"
 #include "..\learning\TileCodingSmall.h"
 #include "..\learning\TileCodingHM.h"
-#include <string>
+
+#include "..\rlcpp\StateActionAlgorithm.h"
+#include "..\rlcpp\Action.h"
+#include "..\rlcpp\State.h"
 
 #include "..\driver\CarControl.h"
 #include "..\driver\CarState.h"
@@ -42,7 +45,9 @@ class TCLearningInterface: public RLInterface
 		void _init(const bool& auto_exp);
 		virtual void initState();
 		virtual void initActions();
-		void loadQTable(int id, int step);
+		void loadQTable(int id, int step);		
+		void doSymmetryUpdate();
+
 };
 
 #endif /*TCLEARNING_INTERFACE_H*/

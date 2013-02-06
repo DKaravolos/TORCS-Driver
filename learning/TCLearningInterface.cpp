@@ -18,7 +18,7 @@ TCLearningInterface::TCLearningInterface(const string& log_dir)
 	//mp_log->write("Interface created.");
 	mp_memory = new StateActionMemory(10000);
 	m_reward = 0;
-	m_eta = 1;
+	m_eta = 0;
 	cout << "Done.\n";
 }
 
@@ -115,10 +115,6 @@ void TCLearningInterface::initActions(){
 
 bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption option)
 {
-	//Check for stop conditions
-	//if( (mp_parameters->step >= mp_experiment->nSteps) ){
-	//}
-
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
 	double random_nr = double(rand())/double(RAND_MAX);
@@ -164,6 +160,10 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 			return false;
 		}
 	}
+	
+	//Update Q-table with symmetrical state and action to increase learning speed
+	cout << "Doing a Symmetric update\n";
+	doSymmetryUpdate();
 
 	//Copy current state and action to history
 	if(store_tuples && m_update){	
@@ -182,9 +182,6 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	}
 	mp_parameters->step++;
 	if(mp_parameters->step % 1000 == 0) {
-		//stringstream message;
-		//message << "Number of steps so far: " << mp_parameters->step;
-		//mp_log->write(message.str());
 		cout << "Number of steps so far: " << mp_parameters->step << endl;
 	}
 	return false;
@@ -265,6 +262,8 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 
 } //END OF ERROR?
 
+
+
 void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
@@ -300,7 +299,6 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 
 void TCLearningInterface::doInformedAction(Action* action)
 {
-
 	////Simple check to see if we use the same state for learning and driving
 	//if(state.continuousState[0] != public_state_info.getSpeedX())
 	//{
@@ -313,146 +311,86 @@ void TCLearningInterface::doInformedAction(Action* action)
 	float steer = public_car_control->getSteer();
 	float accel = public_car_control->getAccel();
 	stringstream ss;
-	cout << "Steer: " << steer << endl;
-	cout << "Accel: " << accel << endl;
+	//cout << "Steer: " << steer << endl;
+	//cout << "Accel: " << accel << endl;
 	
-
 	//Discretize dimensions to get discrete action for Q learning
 	if(steer >= 0.75) { //1L
+		cout << "I would have wanted to go left with more than 0.75\n";
+		mp_log->write("I would have wanted to go left with more than 0.75");
+	}
+	if(steer <= -0.75) { //1L
+		cout << "I would have wanted to go right with more than -0.75\n";
+		mp_log->write("I would have wanted to go right with more than -0.75");
+	}
+
+	if(steer >= 0.25) { //0.5L
 		if(accel >= 0.33)				//1
 			action->discreteAction = 0;
-		else if(accel > -0.33)			//0
+		else if(accel >= -0.33)			//0
 			action->discreteAction = 1;
 		else							//-1
 			action->discreteAction = 2;
 
-	} else if(steer >= 0.25) { //0.5L
+	} else if(steer >= 0.02) { //0.1L
 		if(accel >= 0.33)				//1
 			action->discreteAction = 3;
-		else if(accel > -0.33)			//0
+		else if(accel >= -0.33)			//0
 			action->discreteAction = 4;
 		else							//-1
 			action->discreteAction = 5;
 
-	} else if(steer >= 0.02) { //0.1L
-		if(accel >= 0.33)				//1
-			action->discreteAction = 15;
-		else if(accel > -0.33)			//0
-			action->discreteAction = 16;
-		else							//-1
-			action->discreteAction = 17;
-
 	}else if(steer >= -0.02) { //0.0
 		if(accel >= 0.33)				//1
 			action->discreteAction = 6;
-		else if(accel > -0.33)			//0
+		else if(accel >= -0.33)			//0
 			action->discreteAction = 7;
 		else							//-1
 			action->discreteAction = 8;
 
 	}else if(steer >= -0.25) { //-0.1R
 		if(accel >= 0.33)				//1
-			action->discreteAction = 18;
-		else if(accel > -0.33)			//0
-			action->discreteAction = 19;
-		else							//-1
-			action->discreteAction = 20;
-
-	}else if(steer >= -0.75) {
-		if(accel >= 0.33)				//1
 			action->discreteAction = 9;
-		else if(accel > -0.33)			//0
+		else if(accel >= -0.33)			//0
 			action->discreteAction = 10;
 		else							//-1
 			action->discreteAction = 11;
-
-	}else {
+	}else { //-0.5R
 		if(accel >= 0.33)				//1
 			action->discreteAction = 12;
-		else if(accel > -0.33)			//0
+		else if(accel >= -0.33)			//0
 			action->discreteAction = 13;
 		else							//-1
 			action->discreteAction = 14;
 	}
 
 	//LELIJKE HACK
-	//Speedcap! if speed > 100 either accel = neutral or brake
-	if(public_car_state->getSpeedX() >=100 && 
+	//Speedcap! if speed > 120 either accel = neutral or brake
+	if(public_car_state->getSpeedX() >=120 && 
 	//	action->discreteAction % 3 == 0)
 		(action->discreteAction % 3 == 0 ||
 		action->discreteAction % 3 == 1))
 		action->discreteAction++;
 
-	ss << "Discrete action: " << action->discreteAction << endl;
-	cout << "Doing a heuristic action: " << action->discreteAction << endl;
+	ss << "Discrete action: " << action->discreteAction;
+	//cout << "Doing a heuristic action: " << action->discreteAction << endl;
 
 	mp_log->write(ss.str());
 }
 
-/*
-void TCLearningInterface::doInformedAction(Action* action)
+void TCLearningInterface::doSymmetryUpdate()
 {
+	State* lp_sym_prev_state = createSymState(mp_prev_state);
+	State* lp_sym_curr_state = createSymState(mp_current_state);
+	Action* lp_sym_action = createSymAction(mp_prev_action);
 
-	////Simple check to see if we use the same state for learning and driving
-	//if(state.continuousState[0] != public_state_info.getSpeedX())
-	//{
-	//	cerr << "ERROR! In TileCodingHM: State from LearningInterface and RLDriver are not the same!!" << endl;
-	//	cerr << "TCHM. Speed. LI State: " << state.continuousState[0] << ". CarState: " << public_state_info->getSpeedX() << endl;
-	//	return;
-	//} 
+	mp_algorithm->update(lp_sym_prev_state, lp_sym_action, m_reward, lp_sym_curr_state,
+						 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 
-	//get continuous values from heuristic
-	float steer = public_car_control->getSteer();
-	float accel = public_car_control->getAccel();
-	stringstream ss;
-	ss << "Steer: " << steer << endl;
-	ss << "Accel: " << accel << endl;
-	
-
-	//Discretize dimensions to get discrete action for Q learning
-	if(steer <= -0.75) { //-1
-		if(accel <= -0.25) //-1
-			action->discreteAction = 5;
-		else if(accel <= 0.25) //0
-			action->discreteAction = 4;
-		else //1
-			action->discreteAction = 3;
-
-	} else if(steer <= -0.25) { //-0.5
-		if(accel <= -0.25)
-			action->discreteAction = 9;
-		else if(accel <= 0.25)
-			action->discreteAction = 10;
-		else
-			action->discreteAction = 11;
-
-	}else if(steer <= 0.25) { //0.5
-		if(accel <= -0.25)
-			action->discreteAction = 2;
-		else if(accel <= 0.25)
-			action->discreteAction = 1;
-		else
-			action->discreteAction = 0;
-
-	}else if(steer <= 0.75) {
-		if(accel <= -0.25)
-			action->discreteAction = 12;
-		else if(accel <= 0.25)
-			action->discreteAction = 13;
-		else
-			action->discreteAction = 14;
-
-	}else {
-		if(steer <= -0.25)
-			action->discreteAction = 8;
-		else if(accel <= 0.25)
-			action->discreteAction = 7;
-		else
-			action->discreteAction = 6;
-	}
-
-	ss << "Discrete action: " << action->discreteAction << endl;
-	cout << "Doing a heuristic action: " << action->discreteAction << endl;
-
-	mp_log->write(ss.str());
-}*/
+	//remove heap memory
+	delete lp_sym_prev_state->continuousState;
+	delete lp_sym_prev_state;
+	delete lp_sym_curr_state->continuousState;
+	delete lp_sym_curr_state;
+	delete lp_sym_action;
+}

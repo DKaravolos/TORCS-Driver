@@ -37,7 +37,7 @@ TorcsWorld::TorcsWorld(Configuration config)
 			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 21;
+			numberOfActions		= 15;
 			break;
 
 		case CACLA:
@@ -52,63 +52,6 @@ TorcsWorld::TorcsWorld(Configuration config)
 			numberOfStates		= 0;
 			numberOfActions		= 0;
 			break;
-
-		case BAS:
-			continuousStates	= true ;
-			continuousActions	= true ;
-
-			discreteStates		= false ;
-			discreteActions		= false ;
-
-			stateDimension		= 8;
-			actionDimension		= 2;
-			numberOfStates		= 0;
-			numberOfActions		= 0;
-			break;
-
-		case QOS5:
-			continuousStates	= true ;
-			discreteStates		= false ;
-			continuousActions	= false ;
-			discreteActions		= true ;
-			stateDimension		= 8;
-			actionDimension		= 0;
-			numberOfStates		= 0;
-			numberOfActions		= 5;
-			break;
-
-		case QOS3:
-			continuousStates	= true ;
-			discreteStates		= false ;
-			continuousActions	= false ;
-			discreteActions		= true ;
-			stateDimension		= 8;
-			actionDimension		= 0;
-			numberOfStates		= 0;
-			numberOfActions		= 3;
-			break;
-
-		case QSTEER5:
-			continuousStates	= true ;
-			discreteStates		= false ;
-			continuousActions	= false ;
-			discreteActions		= true ;
-			stateDimension		= 8;
-			actionDimension		= 0;
-			numberOfStates		= 0;
-			numberOfActions		= 5;
-			break;
-
-		case QSTEER3:
-			continuousStates	= true ;
-			discreteStates		= false ;
-			continuousActions	= false ;
-			discreteActions		= true ;
-			stateDimension		= 8;
-			actionDimension		= 0;
-			numberOfStates		= 0;
-			numberOfActions		= 3;
-			break;
 	}
 }
 
@@ -117,21 +60,11 @@ TorcsWorld::~TorcsWorld(void)
 {
 	//delete mp_state;
 }
-/*
-void TorcsWorld::initState()
-{
-	mp_state = new State;
-	mp_state->continuous = true;
-	mp_state->discrete = false;
-	mp_state->stateDimension = stateDimension;
-	mp_state->continuousState = new double[stateDimension];
-}
-*/
+
 double TorcsWorld::act( Action * action) 
 {
-	//mp_action = action;
-	//map de int van Action om naar een nuttige waarde voor TORCS
-
+	//Deprecated
+	//implemented because of parent class
 	return m_reward;
 }
 
@@ -264,37 +197,40 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 		case QLEARNING:
 			switch(action->discreteAction)
 			{
-				//Steer left
+				//Steer left 1 has been removed.
+				//Steer right -1 has been removed.
+			//steer half left
 				case 0:
-					torcs_action[0] = 1;
+					torcs_action[0] = 0.5;
 					torcs_action[1] = 1;
 					break;
 
 				case 1:
-					torcs_action[0] = 1;
+					torcs_action[0] = 0.5;
 					torcs_action[1] = 0;
 					break;
 
 				case 2:
-					torcs_action[0] = 1;
+					torcs_action[0] = 0.5;
 					torcs_action[1] = -1;
 					break;
 
-			//steer half left
+				//steer little left
 				case 3:
-					torcs_action[0] = 0.5;
+					torcs_action[0] = 0.1;
 					torcs_action[1] = 1;
 					break;
 
 				case 4:
-					torcs_action[0] = 0.5;
+					torcs_action[0] = 0.1;
 					torcs_action[1] = 0;
 					break;
 
 				case 5:
-					torcs_action[0] = 0.5;
+					torcs_action[0] = 0.1;
 					torcs_action[1] = -1;
 					break;
+
 			//steer straight
 				case 6:
 					torcs_action[0] = 0;
@@ -309,174 +245,38 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = 0;
 					torcs_action[1] = -1;
 					break;
-				//steer half right
-				case 9:
-					torcs_action[0] = -0.5;
-					torcs_action[1] = -1;
-					break;
 
+				//steer little right
+				case 9:
+					torcs_action[0] = -0.1;
+					torcs_action[1] = 1;
+					break;
 				case 10:
-					torcs_action[0] = -0.5;
+					torcs_action[0] = -0.1;
 					torcs_action[1] = 0;
 					break;
 
 				case 11:
-					torcs_action[0] = -0.5;
-					torcs_action[1] = 1;
-					break;
-				//steer right
-				case 12:
-					torcs_action[0] = -1;
-					torcs_action[1] = -1;
-					break;
-				case 13:
-					torcs_action[0] = -1;
-					torcs_action[1] = 0;
-					break;
-
-				case 14:
-					torcs_action[0] = -1;
-					torcs_action[1] = 1;
-					break;
-
-				//steer little left
-				case 15:
-					torcs_action[0] = 0.1;
-					torcs_action[1] = 1;
-					break;
-
-				case 16:
-					torcs_action[0] = 0.1;
-					torcs_action[1] = 0;
-					break;
-
-				case 17:
-					torcs_action[0] = 0.1;
-					torcs_action[1] = -1;
-					break;
-				//steer little right
-				case 18:
-					torcs_action[0] = -0.1;
-					torcs_action[1] = 1;
-					break;
-				case 19:
-					torcs_action[0] = -0.1;
-					torcs_action[1] = 0;
-					break;
-
-				case 20:
 					torcs_action[0] = -0.1;
 					torcs_action[1] = -1;
 					break;
 
-
-					/*case QLEARNING:
-			switch(action->discreteAction)
-			{
-				//Steer straight
-				case 0:
-					torcs_action[0] = 0;
-					torcs_action[1] = 1;
-					break;
-
-				case 1:
-					torcs_action[0] = 0;
-					torcs_action[1] = 0;
-					break;
-
-				case 2:
-					torcs_action[0] = 0;
-					torcs_action[1] = -1;
-					break;
-
-			//steer right
-				case 3:
-					torcs_action[0] = -1;
-					torcs_action[1] = 1;
-					break;
-
-				case 4:
-					torcs_action[0] = -1;
-					torcs_action[1] = 0;
-					break;
-
-				case 5:
-					torcs_action[0] = -1;
-					torcs_action[1] = -1;
-					break;
-			//steer left
-				case 6:
-					torcs_action[0] = 1;
-					torcs_action[1] = 1;
-					break;
-				case 7:
-					torcs_action[0] = 1;
-					torcs_action[1] = 0;
-					break;
-
-				case 8:
-					torcs_action[0] = 1;
-					torcs_action[1] = -1;
-					break;
 				//steer half right
-				case 9:
-					torcs_action[0] = -0.5;
-					torcs_action[1] = -1;
-					break;
-
-				case 10:
-					torcs_action[0] = -0.5;
-					torcs_action[1] = 0;
-					break;
-
-				case 11:
+				case 12:
 					torcs_action[0] = -0.5;
 					torcs_action[1] = 1;
 					break;
-				//steer half left
-				case 12:
-					torcs_action[0] = 0.5;
-					torcs_action[1] = -1;
-					break;
+
 				case 13:
-					torcs_action[0] = 0.5;
+					torcs_action[0] = -0.5;
 					torcs_action[1] = 0;
 					break;
 
 				case 14:
-					torcs_action[0] = 0.5;
-					torcs_action[1] = 1;
-					break;
-
-				//steer little right
-				case 15:
-					torcs_action[0] = -0.05;
-					torcs_action[1] = 1;
-					break;
-
-				case 16:
-					torcs_action[0] = -0.05;
-					torcs_action[1] = 0;
-					break;
-
-				case 17:
-					torcs_action[0] = -0.05;
+					torcs_action[0] = -0.5;
 					torcs_action[1] = -1;
 					break;
-				//steer little left
-				case 18:
-					torcs_action[0] = 0.05;
-					torcs_action[1] = 1;
-					break;
-				case 19:
-					torcs_action[0] = 0.05;
-					torcs_action[1] = 0;
-					break;
 
-				case 20:
-					torcs_action[0] = 0.05;
-					torcs_action[1] = -1;
-					break;*/
 				default:
 					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";
 			}

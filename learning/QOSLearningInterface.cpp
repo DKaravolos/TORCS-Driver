@@ -6,7 +6,7 @@ using namespace std;
 
 QOSLearningInterface::QOSLearningInterface(void)
 {
-	srand(time(NULL));
+	srand(unsigned(time(NULL)));
 	cout << "Creating interface...\n";
 	//cout << "\tCreating World ... ";
 	mp_world = new TorcsWorld(TorcsWorld::QSTEER5);
@@ -116,10 +116,10 @@ bool QOSLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption op
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if ( mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				if(m_update && option == UpdateOption::RANDOM)
+				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				if(m_update && option == UpdateOption::TD)
+				if(m_update && option == RLInterface::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {

@@ -103,6 +103,11 @@ class RLInterface
 		void initExperimentParam();
 		void askExplore();
 		void askUpdate();
+		//virtual doSymmetryUpdate()=0;
+				
+		State* createSymState(const State* state);
+		Action* createSymAction(const Action* action);
+
 };
 
 #endif /*RL_INTERFACE_H*/

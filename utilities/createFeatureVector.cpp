@@ -86,14 +86,14 @@ void createSmallFeatureVectorPointer(CarState state, vector<double>* featureVect
 	featureVector->push_back(state.getTrackPos()); //Zit al tussen -1 (rechts) en 1 (links). Waarde buiten deze range betekent off-track (maar bestaat dus wel!!)
 	featureVector->push_back(state.getAngle()/PI); // Genormaliseerd. Range is tussen -pi en pi.
 
-	double left_20 = (state.getTrack(6) + state.getTrack(7) + state.getTrack(8))/3;
-	double right_20 = (state.getTrack(10) + state.getTrack(11) + state.getTrack(12))/3;
+	double right_20 = (state.getTrack(6) + state.getTrack(7) + state.getTrack(8))/3;
+	double left_20 = (state.getTrack(10) + state.getTrack(11) + state.getTrack(12))/3;
 	
-	featureVector->push_back(state.getTrack(5)/200); // -40 graden
-	featureVector->push_back(left_20/200); // -20 graden gemiddeld.
-	featureVector->push_back(state.getTrack(9)/200); // 0 graden
-	featureVector->push_back(right_20/200); // 20 graden gemiddeld
 	featureVector->push_back(state.getTrack(13)/200); //40 graden
+	featureVector->push_back(left_20/200); // 20 graden gemiddeld	
+	featureVector->push_back(state.getTrack(9)/200); // 0 graden
+	featureVector->push_back(right_20/200); // -20 graden gemiddeld
+	featureVector->push_back(state.getTrack(5)/200); // -40 graden
 }
 
 void createMinimalFeatureVectorPointer(CarState state, vector<double>* featureVector)

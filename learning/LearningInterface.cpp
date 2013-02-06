@@ -116,10 +116,10 @@ bool LearningInterface::learningUpdateStep(bool store_tuples, UpdateOption optio
 			rsum << mp_parameters->rewardSum;
 			mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("Qlearning") == 0 ) {
-				if(m_update && option == RLInterface::UpdateOption::RANDOM)
+				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
-				if(m_update && option == RLInterface::UpdateOption::TD)
+				if(m_update && option == RLInterface::TD)
 					l_td_error = mp_algorithm->updateAndReturnTDError(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
 								 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 			} else {

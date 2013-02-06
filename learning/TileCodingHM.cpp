@@ -272,9 +272,6 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 
 	if(endOfEpisode)
 	{
-		//Add penalty to end of episode state
-		rt -= 10;
-
 		//Compute TD error (independent of tiling)
 		td_error = rt - q_of_state;
 		if(m_verbose)
@@ -285,14 +282,9 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 		{
 			if(m_state_keys[tiling].empty() == false) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
 			{
-				//l_out << "Updating: state " << m_state_keys[tiling] << "(Tiling " << tiling << "), Action: " << current_action << endl;
-
 				//Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
 				pair<string,int> state_action = make_pair (m_state_keys[tiling], current_action);
-				//l_out << "Old value: " << m_tilings[state_action] << endl;
-				m_tilings[state_action]= learning_rate * td_error;
-				
-				//l_out << " New value: " << m_tilings[state_action] << endl;
+				m_tilings[state_action]+= learning_rate * td_error;
 			}
 		}
 
@@ -399,7 +391,7 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 		{
 			key << tile_indices[idx]; //if not, continue creating key
 		} else { //If any index is out of bounds, the state is not in this tiling
-			cerr << "Oh no! Dimension " << idx << " does not fit in a tile of tiling " << tiling << endl;
+			cerr << "Oh no! Dimension " << idx << "(with value " << state->continuousState[idx] << ") does not fit in a tile of tiling " << tiling << endl;
 			return ""; // so return an empty key, which creates an error 			
 		}
 	}
@@ -420,7 +412,7 @@ int TileCodingHM::classifyValue(const double& state_value, const vector<double>&
 	stringstream l_log;
 	int bin = -1; 
 	for(unsigned int idx = 0; idx < bin_edges.size()-1; idx++)
-		if(state_value >= bin_edges[idx] && state_value < bin_edges[idx+1]) //check each bin
+		if(state_value > bin_edges[idx] && state_value <= bin_edges[idx+1]) //check each bin
 		{
 			//if(verbose){
 			//	cout << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
@@ -434,6 +426,9 @@ int TileCodingHM::classifyValue(const double& state_value, const vector<double>&
 	if(verbose && bin ==-1)
 	{
 		l_log << "Value " << state_value << " is not between " << bin_edges[0] << " and " << bin_edges[bin_edges.size()-1];
+		l_log << ", thus the bin is -1.\n";
+
+		cout << "Value " << state_value << " is not between " << bin_edges[0] << " and " << bin_edges[bin_edges.size()-1];
 		cout << ", thus the bin is -1.\n";
 	}
 	if(verbose)

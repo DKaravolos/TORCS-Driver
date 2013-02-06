@@ -140,8 +140,8 @@ protected:
 	void setPrefs();
 	virtual void initInterface(const bool& load_network, const bool& automatic_experiment)=0;
 	bool stuckCheck(CarState& cs);
-	double computeReward(CarState &state, double* action, CarState &next_state);
-	void doLearning(CarState &cs);
+	double computeReward(CarState &state, double* action, CarState &next_state, bool end_of_ep);
+	void doLearning(CarState &cs, bool end_of_ep);
 	void doUpdate(CarState &cs);
 	virtual CarControl carStuckControl(CarState &cs);
 	CarControl simpleBotControl(CarState &cs);
