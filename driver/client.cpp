@@ -21,7 +21,6 @@
 //#define __DRIVER_CLASS__ TCDriver
 //#define __DRIVER_INCLUDE__ "TCDriver.h"
 
-
 //#define __DRIVER_CLASS__ CaclaDriver
 //#define __DRIVER_INCLUDE__ "CaclaDriver.h"
 
@@ -232,8 +231,8 @@ int main(int argc, char *argv[])
                 {
                     cerr << "didn't get response from server...";
                 }
-		else
-		{
+				else
+				{
                 	cout << "Received: " << buf << endl;
 
                 	if (strcmp(buf,"***identified***")==0)
@@ -333,11 +332,11 @@ int main(int argc, char *argv[])
     } while(shutdownClient==false && ( (++curEpisode) != maxEpisodes) );
 
     if (shutdownClient==false)
-	d.onShutdown();
+		d.onShutdown();
     CLOSE(socketDescriptor);
-#ifdef WIN32
-    WSACleanup();
-#endif
+	#ifdef WIN32
+		WSACleanup();
+	#endif
 
 	char end;
 	cin >> end;

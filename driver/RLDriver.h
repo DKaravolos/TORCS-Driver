@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+//#include <iomanip>
 #include <cmath>
 #include "CarState.h"
 #include "CarControl.h"
@@ -16,17 +17,16 @@
 
 //Functions/classes by Daniel:
 #ifdef WIN32
-#include "..\learning\RLInterface.h"
-#include "..\utilities\createFeatureVector.h"
-#include "..\utilities\printFeatureVector.h"
-#include "..\utilities\Writer.h"
+#include "../learning/RLInterface.h"
+#include "../utilities/createFeatureVector.h"
+#include "../utilities/printFeatureVector.h"
+#include "../utilities/Writer.h"
 #else
 #include "../learning/RLInterface.h"
 #include "../utilities/createFeatureVector.h"
 #include "../utilities/printFeatureVector.h"
 #include "../utilities/Writer.h"
 #endif
-
 
 #define PI 3.14159265
 
@@ -140,8 +140,8 @@ protected:
 	void setPrefs();
 	virtual void initInterface(const bool& load_network, const bool& automatic_experiment)=0;
 	bool stuckCheck(CarState& cs);
-	double computeReward(CarState &state, double* action, CarState &next_state);
-	void doLearning(CarState &cs);
+	double computeReward(CarState &state, double* action, CarState &next_state, bool end_of_ep);
+	void doLearning(CarState &cs, bool end_of_ep);
 	void doUpdate(CarState &cs);
 	virtual CarControl carStuckControl(CarState &cs);
 	CarControl simpleBotControl(CarState &cs);
@@ -170,6 +170,7 @@ protected:
 	//flags for learning
 	bool g_learning_done;
 	bool g_first_time;
+	bool m_practice_saved;
 
 	//learning parameters
 	int g_stuck_penalty;

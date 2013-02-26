@@ -1,6 +1,6 @@
 #ifndef CREATE_FEATURE_VECTOR_H
 #define CREATE_FEATURE_VECTOR_H
-#include "..\driver\CarState.h"
+#include "../driver/CarState.h"
 #include <vector>
 #define PI 3.14159265
 

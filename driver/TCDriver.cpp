@@ -56,11 +56,10 @@ void TCDriver::askLoadNetwork()
 		cin >> m_network_id;
 		cout << "Which step (x1.000)?\n";
 		cin >> m_step_id;
-		m_step_id *= 1000;
 		stringstream file_name;
-		file_name << l_log_dir << "TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
+		file_name << l_log_dir << "TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id << "000.txt";
 		string base_file = file_name.str();
-		is.open(base_file);
+		is.open(base_file.c_str());
 		if(is.is_open()) {
 			is.close();
 			cout << "\nLoading QTable from file.\n";

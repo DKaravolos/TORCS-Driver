@@ -2,6 +2,7 @@
 #define STATE
 
 struct State {
+
     bool continuous ;
     bool discrete ;
 
@@ -10,6 +11,8 @@ struct State {
 
     int discreteState ;
     double * continuousState ; //dit is gevuld met featureVector. stateDimension == lengte van array.
+
+	int time_step;
 };
 
 #endif //STATE

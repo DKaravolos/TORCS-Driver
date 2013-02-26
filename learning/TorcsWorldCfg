@@ -1,0 +1,29 @@
+nExperiments        1
+
+steps
+nTrainSteps                 30000
+trainStorePer               3000
+nTestSteps                  15000
+testStorePer                15000
+nTrainEpisodes              1000
+nTestEpisodes               0
+nMaxStepsPerTrainEpisode    0
+nMaxStepsPerTestEpisode     0
+
+algorithm
+algorithms          Q
+tau                 0.1
+epsilon             0.01
+sigma               0.1
+
+learningRates
+decreaseType        none
+nLearningRates      1
+learningRate        0.01
+
+discount
+gamma               0.99
+
+nn
+nHiddenQ            20
+nHiddenV            20

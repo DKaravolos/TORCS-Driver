@@ -13,7 +13,7 @@
 # include "List.h"
 # include "cThreshold.h"
 
-#include "..\utilities\Writer.h"
+#include "../utilities/Writer.h"
 using namespace std;
 
 class cNeuralNetwork {

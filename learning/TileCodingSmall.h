@@ -59,17 +59,17 @@ class TileCodingSmall : public StateActionAlgorithm {
 		int m_tileNum_dist;
 
 		//edges of squares in tiles
-		vector<vector<double>> m_speed_edges;
-		vector<vector<double>> m_trackPos_edges;
-		vector<vector<double>> m_angle_edges;
-		vector<vector<double>> m_dist_edges;
+		vector<vector<double> > m_speed_edges;
+		vector<vector<double> > m_trackPos_edges;
+		vector<vector<double> > m_angle_edges;
+		vector<vector<double> > m_dist_edges;
 
 		// init functions
 		//void getTileCodingSettings(string parameterfile);
 		void init(World* world, const string& log_dir);
 		void setEdges();
 		void getEdgesFromFile(string filename);
-		void addEdge(string& type, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling);
+		void addEdge(string& type, stringstream& ss, vector<vector<double> >& edge_vector, int& tiling);
 
 
 		//Q-value functions

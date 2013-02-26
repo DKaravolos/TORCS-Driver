@@ -13,4 +13,4 @@ struct ExperimentParameters
 	bool first_time_step;
 };
 
-#endif EXPERIMENT_PARAMETERS
+#endif // EXPERIMENT_PARAMETERS

@@ -1,9 +1,11 @@
 #ifndef TILECODINGHM_H
 #define TILECODINGHM_H
+#include <stdlib.h>
 # include <iostream>
 # include <sstream>
 # include <string>
 # include <vector>
+# include <deque>
 # include <map>
 # include "../rlcpp/StateActionAlgorithm.h"
 # include "../rlcpp/State.h"
@@ -32,6 +34,7 @@ class TileCodingHM : public StateActionAlgorithm {
 		void writeStateVisits(const string& filename);
 		void writeAverageTDError(const string& filename);
 		void writeStateInfo(const string& filename);
+		double getQOfStateActionPair(const vector<string>& state_bins, int action); //dit is voor Writer
 
 		inline unsigned int getNumberOfLearningRates()	{return 1;}
 		inline const char * getName()					{return "TileCoding" ;}
@@ -61,23 +64,23 @@ class TileCodingHM : public StateActionAlgorithm {
 		int m_tileNum_dist;
 
 		//edges of squares in tiles
-		vector<vector<double>> m_speed_edges;
-		vector<vector<double>> m_trackPos_edges;
-		vector<vector<double>> m_angle_edges;
-		vector<vector<double>> m_dist_edges;
+		vector<vector<double> > m_speed_edges;
+		vector<vector<double> > m_trackPos_edges;
+		vector<vector<double> > m_angle_edges;
+		vector<vector<double> > m_dist_edges;
 
 		// init functions
 		//void getTileCodingSettings(string parameterfile);
 		void init(World* world, const string& log_dir);
 		void setEdges();
 		void getEdgesFromFile(string filename);
-		void addEdge(string& type, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling);
+		void addEdge(string& type, stringstream& ss, vector<vector<double> >& edge_vector, int& tiling);
 
 
 		//Q-value functions
 		double getMaxQOfState(const vector<string>& state);
 		double getMaxActionOfState(const vector<string>& state);
-		double getQOfStateActionPair(const vector<string>& state_bins, int action);
+		//double getQOfStateActionPair(const vector<string>& state_bins, int action);
 		double myTCMax(const vector<double>& action_values);
 		int myTCArgMax(const vector<double>& action_values);
 

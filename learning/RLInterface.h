@@ -9,16 +9,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "..\rlcpp\Action.h"
-#include "..\rlcpp\World.h"
-#include "..\rlcpp\State.h"
-#include "..\rlcpp\Experiment.h"
-#include "..\rlcpp\StateActionUtils.h"
+#include "../rlcpp/Action.h"
+#include "../rlcpp/World.h"
+#include "../rlcpp/State.h"
+#include "../rlcpp/Experiment.h"
+#include "../rlcpp/StateActionUtils.h"
 
 #include "TorcsWorld.h"
 #include "StateActionMemory.h"
 #include "ExperimentParameters.h"
-#include "..\utilities\Writer.h"
+#include "../utilities/Writer.h"
 
 
 class RLInterface
@@ -28,7 +28,7 @@ class RLInterface
 
 		//Constructor, Destructor & init functions
 		RLInterface(void);
-		~RLInterface(void);
+		virtual ~RLInterface(void);
 		virtual void init() = 0;
 		virtual void init(const bool& automatic) = 0;
 		virtual void init(const bool& automatic, const char* nn_filename) = 0;
@@ -48,7 +48,7 @@ class RLInterface
 		inline bool getEOE()		{return mp_world->endOfEpisode();}
 		inline double getReward()	{return m_reward;}
 		inline int getSteps()		{return mp_parameters->step;}
-		void setState(std::vector<double>* features); //called from TORCS before mainloop to set state for learning algorithm
+		void setState(std::vector<double>* features, const int& time_step); //called from TORCS before mainloop to set state for learning algorithm
 		void setEOE();
 		void setFirstTime(bool);
 
@@ -57,6 +57,7 @@ class RLInterface
 		void logState(int timestamp);
 		void logAction(int timestamp);
 		virtual void writeNetwork(int identifier, int steps) = 0;
+		virtual void loadQTable(std::string filename) =0;
 
 		//other
 		virtual bool learningUpdateStep(); //called from TORCS to do learning. Returns whether experiment is over or not.
@@ -68,6 +69,8 @@ class RLInterface
 		void changeRewardWriterTo(std::string& new_file);
 		virtual Experiment* getExperiment(){return mp_experiment;}
 		inline void setEta(double eta) {m_eta = eta;}
+		inline void setSymmetry(bool new_val) {m_symmetry = new_val;}
+		inline void setUpdate(bool new_val) {m_update = new_val;}
 
 	protected:
 		//datamembers for settings
@@ -82,6 +85,9 @@ class RLInterface
 		Action* mp_current_action;
 		double m_reward;
 		double m_eta; // percentage of times that a heuristic action is picked.
+		
+		//other options
+		bool m_symmetry;
 
 		//datamembers for comm. with TORCS
 		double* mp_torcs_action;
@@ -103,6 +109,11 @@ class RLInterface
 		void initExperimentParam();
 		void askExplore();
 		void askUpdate();
+		//virtual doSymmetryUpdate()=0;
+				
+		State* createSymState(const State* state);
+		Action* createSymAction(const Action* action);
+
 };
 
 #endif /*RL_INTERFACE_H*/

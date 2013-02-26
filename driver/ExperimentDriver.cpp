@@ -8,8 +8,18 @@ ExperimentDriver::ExperimentDriver()
 	cout << "Which file contains the parameters for the experiment?\n";
 	string file;
 	cin >> file;
+	#ifdef WIN32
+		if(file.find(".") == -1)
+			file.append(".txt");
+	#endif
 	readExperimentParameters(file);
 	g_curr_experiment = 0;
+	
+	cout << "Would you like to save the data structure? (y/n)\n";
+	char save;
+	cin >> save;
+	m_save_data = (save == 'y');
+
 	//Ask user which driver to test
 	selectFirstDriver();
 }
@@ -52,9 +62,10 @@ void ExperimentDriver::onRestart()
 {
 	mp_driver->onRestart();
 	cout << "Steps done: " << mp_driver->getLearningStep() + 1 << endl;
-	cout << "Steps required: " << m_steps[g_curr_experiment]* m_runs[g_curr_experiment] << endl;
+	int total_req_steps = m_steps[g_curr_experiment]* m_runs[g_curr_experiment]; 
+	cout << "Steps required: " << total_req_steps << endl;
 
-	if(mp_driver->getLearningStep() + 1 == m_steps[g_curr_experiment]* m_runs[g_curr_experiment])
+	if(mp_driver->getLearningStep() + 1 == total_req_steps) // NOTE: the +1 might cause problems on linux
 	{
 		++g_curr_experiment;
 
@@ -64,8 +75,9 @@ void ExperimentDriver::onRestart()
 			#ifdef WIN32
 				char q;
 				cin >> q;
-				exit(0); //I don't know any other way to stop the game.
 			#endif
+			delete mp_driver;
+			exit(0); //I don't know any other way to stop the game.
 		} else {
 			setNewDriver(g_curr_experiment);
 		}
@@ -74,21 +86,17 @@ void ExperimentDriver::onRestart()
 
 void ExperimentDriver::selectFirstDriver()
 {
-	cout << "Would you like to save the data structure? (y/n)\n";
-	char save;
-	cin >> save;
-	m_save_data = (save == 'y');
-
-	cout << "Which driver would you like to use for your experiment?\n";
-	cout << "0 = TCDriver, 1 = CaclaDriver \n"; //, 2 = QDriver\n";
-	cin >> m_driver_type;
+	//cout << "Which driver would you like to use for your experiment?\n";
+	//cout << "0 = TCDriver, 1 = CaclaDriver \n"; //, 2 = QDriver\n";
+	//cin >> m_driver_type;
+	m_driver_type = 0;
 	switch(m_driver_type)
 	{
 		case 0:
 			mp_driver = new TCDriver(m_dirs[0],m_steps[0],m_runs[0],m_save_data);
 			break;
 		case 1:
-			mp_driver = new CaclaDriver(m_dirs[0],m_steps[0],m_runs[0],m_save_data);
+			//mp_driver = new CaclaDriver(m_dirs[0],m_steps[0],m_runs[0],m_save_data);
 			cout << "NOT IMPLEMENTED!\n";
 			break;
 		case 2:
@@ -107,7 +115,7 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 	//Let's open the file
 	string line;
 	ifstream is;
-	is.open(parameter_file);
+	is.open(parameter_file.c_str());
 	if(is.is_open())
 	{
 		try
@@ -170,6 +178,18 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 				{
 					addParameter(parameter_type, parameter, m_etas);
 				}
+				else if (parameter_type.compare("symmetry") == 0)
+				{
+					addParameter(parameter_type, parameter, m_symmetries);
+				}
+				else if (parameter_type.compare("update") == 0)
+				{
+					addParameter(parameter_type, parameter, m_updates);
+				}
+				else if (parameter_type.compare("qtable") == 0)
+				{
+					addParameter(parameter_type, parameter, m_qtables);
+				}
 			}
 
 			cout << "\nYou have defined "<< m_nr_of_experiments << " experiments. Is that correct? (y/n) \n";
@@ -197,9 +217,10 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 	autoCompleteParameters();
 }
 
-void ExperimentDriver::addParameter(const string& parameter_type, stringstream& parameter, vector<double>& parameter_vector)
+template <class Type> 
+void ExperimentDriver::addParameter(const string& parameter_type, stringstream& parameter, vector<Type>& parameter_vector)
 {
-	double input_value;
+	Type input_value;
 	cout << "Reading the '" << parameter_type << "' parameter:\t\t";
 	//Add the rest of the line to the parameter vector
 	while(parameter >> input_value){
@@ -209,29 +230,15 @@ void ExperimentDriver::addParameter(const string& parameter_type, stringstream& 
 	cout << endl;
 }
 
-void ExperimentDriver::addParameter(const string& parameter_type, stringstream& parameter, vector<int>& parameter_vector)
+//Fills the supplied parameter vector with it's last element until it has a size of nr_of_experiments.
+//This includes downsizing and throwing away the last elements if the vector is larger than nr_of_experiments.
+template <class Type>
+void ExperimentDriver::autoCompleteParameter(vector<Type>& parameter_vector)
 {
-	int input_value;
-	cout << "Reading the '" << parameter_type << "' parameter:\t\t";
-	//Add the rest of the line to the parameter vector
-	while(parameter >> input_value){
-		parameter_vector.push_back(input_value);
-		cout << input_value << "  ";
-	}
-	cout << endl;
+	Type last_element = parameter_vector[parameter_vector.size()-1];
+	parameter_vector.resize(m_nr_of_experiments,last_element);
 }
 
-void ExperimentDriver::addParameter(const string& parameter_type, stringstream& parameter, vector<string>& parameter_vector)
-{
-	string input_value;
-	cout << "Reading the '" << parameter_type << "' parameter:\t\t";
-	//Add the rest of the line to the parameter vector
-	while(parameter >> input_value){
-		parameter_vector.push_back(input_value);
-		cout << input_value << "  ";
-	}
-	cout << endl;
-}
 //This function allows us to use element-access of vectors
 void ExperimentDriver::autoCompleteParameters()
 {
@@ -251,6 +258,15 @@ void ExperimentDriver::autoCompleteParameters()
 	if( m_dirs.size() < l_experiments)
 		autoCompleteParameter(m_dirs);
 
+	if( m_etas.size() < l_experiments)
+		autoCompleteParameter(m_etas);
+
+	if( m_symmetries.size() < l_experiments)
+		autoCompleteParameter(m_symmetries);
+
+	if( m_qtables.size() < l_experiments && !m_qtables.empty())
+		autoCompleteParameter(m_qtables);
+
 	//It is not necessary to define at least one tau and one epsilon.
 	//Either one will do, so the other vector can be empty.
 	//Note:Added gaussian exploration
@@ -262,38 +278,10 @@ void ExperimentDriver::autoCompleteParameters()
 		autoCompleteParameter(m_sigmas);
 }
 
-//Fills the supplied parameter vector with it's last element until it has a size of nr_of_experiments.
-//This includes downsizing and throwing away the last elements if the vector is larger than nr_of_experiments.
-void ExperimentDriver::autoCompleteParameter(vector<double>& parameter_vector)
-{
-	double last_element = parameter_vector[parameter_vector.size()-1];
-	parameter_vector.resize(m_nr_of_experiments,last_element);
-}
-
-//Fills the supplied parameter vector with it's last element until it has a size of nr_of_experiments.
-//This includes downsizing and throwing away the last elements if the vector is larger than nr_of_experiments.
-void ExperimentDriver::autoCompleteParameter(vector<int>& parameter_vector)
-{
-	int last_element = parameter_vector[parameter_vector.size()-1];
-	parameter_vector.resize(m_nr_of_experiments,last_element);
-}
-
-//Fills the supplied parameter vector with it's last element until it has a size of nr_of_experiments.
-//This includes downsizing and throwing away the last elements if the vector is larger than nr_of_experiments.
-void ExperimentDriver::autoCompleteParameter(vector<string>& parameter_vector)
-{
-	string last_element = parameter_vector[parameter_vector.size()-1];
-	parameter_vector.resize(m_nr_of_experiments,last_element);
-}
-
-/*void ExperimentDriver::changeLogDir(const string& dir)
-{
- //logs are changed in constructor
-}*/
-
 void ExperimentDriver::setNewDriver(const int& driver_nr)
 {
 	//Create a new driver
+	mp_driver->onShutdown();
 	delete mp_driver;
 	switch(m_driver_type)
 	{
@@ -301,8 +289,8 @@ void ExperimentDriver::setNewDriver(const int& driver_nr)
 			mp_driver = new TCDriver(m_dirs[driver_nr],m_steps[driver_nr],m_runs[driver_nr],m_save_data);
 			break;
 		case 1:
-			mp_driver = new CaclaDriver(m_dirs[driver_nr],m_steps[driver_nr],m_runs[driver_nr],m_save_data);
-			//cout << "NOT IMPLEMENTED!\n";
+			//mp_driver = new CaclaDriver(m_dirs[driver_nr],m_steps[driver_nr],m_runs[driver_nr],m_save_data);
+			cout << "NOT IMPLEMENTED!\n";
 			break;
 		case 2:
 			//mp_driver = new CaclaDriver();
@@ -319,7 +307,11 @@ void ExperimentDriver::setNewParameters(const int& driver_nr)
 	
 	lp_experiment->setGamma(m_gammas[driver_nr]);
 	lp_experiment->setLearningRate(m_learning_rates[driver_nr]);
+	lp_interface->setSymmetry(m_symmetries[driver_nr]);
+	lp_interface->setUpdate(m_updates[driver_nr]);
 
+	if(!m_qtables.empty())
+		lp_interface->loadQTable(m_qtables[driver_nr]);
 	//Hard-coded option for TileCoding driver. It is too much of a fuss to incorporate eta in all drivers. 
 	//because other drivers will not be implemented anymore.
 	if(m_driver_type == 0){

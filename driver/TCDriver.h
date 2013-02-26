@@ -8,13 +8,14 @@
 #include <vector>
 //Functions/classes by Daniel:
 #include "RLDriver.h"
-#include "..\learning\TCLearningInterface.h"
-#include "..\utilities\Writer.h"
+#include "../learning/TCLearningInterface.h"
+#include "../utilities/Writer.h"
 
 using namespace std;
 
 class TCDriver : public RLDriver
 {
+
 public:
 	
 	// Constructor

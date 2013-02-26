@@ -1,4 +1,5 @@
 #include "StateActionMemory.h"
+#include <stdexcept>
 
 using namespace std;
 StateActionMemory::StateActionMemory()
