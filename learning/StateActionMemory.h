@@ -5,9 +5,9 @@
 #include <sstream>
 #include <deque>
 
-#include "..\rlcpp\State.h"
-#include "..\rlcpp\Action.h"
-#include "..\utilities\Writer.h"
+#include "../rlcpp/State.h"
+#include "../rlcpp/Action.h"
+#include "../utilities/Writer.h"
 class StateActionMemory
 {
 public:

@@ -38,4 +38,5 @@ void copyState( State * sFROM, State * sTO ) {
 
     }
 
+	sTO->time_step = sFROM->time_step;
 }

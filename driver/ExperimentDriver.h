@@ -15,8 +15,6 @@
 
 //Include drivers that could be used in an experiment
 #include "TCDriver.h"
-#include "QDriver.h"
-#include "CaclaDriver.h"
 
 //To set experiment parameters, the class must know the Experiment class
 #include "../rlcpp/Experiment.h"
@@ -57,20 +55,26 @@ private:
 	std::vector<double> m_epsilons;
 	std::vector<double> m_sigmas;
 	std::vector<double> m_etas;
+	std::vector<bool> m_symmetries;
+	std::vector<bool> m_updates;
 	std::vector<std::string> m_dirs;
+	std::vector<std::string> m_qtables;
 
 	//functions
 	void selectFirstDriver();
 	void setNewDriver(const int& driver_nr);
 	void setNewParameters(const int& driver_nr);
 	void readExperimentParameters(const std::string& file);
-	void addParameter(const std::string& type, std::stringstream& parameter, std::vector<double>& stored_values);
-	void addParameter(const std::string& type, std::stringstream& parameter, std::vector<int>& stored_values);
-	void addParameter(const std::string& type, std::stringstream& parameter, std::vector<std::string>& stored_values);
+	template <class T> void addParameter(const std::string& type, std::stringstream& parameter, std::vector<T>& stored_values);
+	template <class Type> void autoCompleteParameter(vector<Type>& parameter_vector);
+	//void addParameter(const std::string& type, std::stringstream& parameter, std::vector<double>& stored_values);
+	//void addParameter(const std::string& type, std::stringstream& parameter, std::vector<int>& stored_values);
+	//void addParameter(const std::string& type, std::stringstream& parameter, std::vector<bool>& stored_values);
+	//void addParameter(const std::string& type, std::stringstream& parameter, std::vector<std::string>& stored_values);
 	void autoCompleteParameters();
-	void autoCompleteParameter(std::vector<double>& parameter_vector);
-	void autoCompleteParameter(std::vector<int>& parameter_vector);
-	void autoCompleteParameter(std::vector<std::string>& parameter_vector);
+	//void autoCompleteParameter(std::vector<double>& parameter_vector);
+	//void autoCompleteParameter(std::vector<int>& parameter_vector);
+	//void autoCompleteParameter(std::vector<std::string>& parameter_vector);
 	//void changeLogDir(const std::string& folder);
 };
 

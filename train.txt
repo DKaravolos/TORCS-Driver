@@ -1,0 +1,11 @@
+steps 300000
+runs 1
+experiments 1
+learningrate  0.01
+gamma 0.99
+eta 0.1
+exploration egreedy 0.1
+symmetry 0
+update 1
+directory experiments/tilecoding/test/larger_tiles_450000_al_getraind_
+qtable experiments/tilecoding/test/larger_tiles_eta0.1_eps0.1_3_TC_QTable_id_450000_step_450000.txt

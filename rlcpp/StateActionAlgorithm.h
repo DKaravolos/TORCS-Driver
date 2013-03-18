@@ -14,6 +14,7 @@ class StateActionAlgorithm : public Algorithm {
         StateActionAlgorithm() ;
         virtual ~StateActionAlgorithm() {}
         virtual void getMaxAction( State * state, Action * action ) ;
+		void getRandomAction( State * state, Action * action ) ;
         void explore( State * state, Action * action, double explorationRate, string explorationType, bool endOfEpisode ) ;
         bool getContinuousStates() ;
         bool getDiscreteStates() ;
@@ -25,7 +26,6 @@ class StateActionAlgorithm : public Algorithm {
     protected:
         void getMaxActionFirst( State *, Action * action ) ;
         void getMaxActionRandom( State *, Action * action ) ;
-        void getRandomAction( State * state, Action * action ) ;
 
         void setQs( State * state, Action * action ) ;
 

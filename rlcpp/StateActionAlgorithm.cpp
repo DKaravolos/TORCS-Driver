@@ -117,9 +117,7 @@ void StateActionAlgorithm::egreedy( State * state, Action * action, double epsil
     } else {
 		cout << "Taking Random action\n";
         getRandomAction( state, action ) ;
-
     }
-
 }
 
 void StateActionAlgorithm::boltzmann( State * state, Action * action, double tau ) {

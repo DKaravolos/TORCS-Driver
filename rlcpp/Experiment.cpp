@@ -216,7 +216,7 @@ bool Experiment::initializeAction( Action * action, Algorithm * algorithm, World
 }
 
 Experiment::~Experiment() {
-
+	delete[] learningRate;
 }
 
 void Experiment::setAlgorithm( string algorithmName, World * world ) {
@@ -813,7 +813,7 @@ void Experiment::readParameterFile(string paramFile ) {
 
     ifstream ifile ;
 
-    ifile.open( paramFile, ifstream::in ) ;
+    ifile.open(paramFile.c_str(), ifstream::in ) ;
 
     string temp ;
 

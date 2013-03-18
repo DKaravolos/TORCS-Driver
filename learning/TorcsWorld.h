@@ -5,9 +5,9 @@
 #include <vector>
 #include <algorithm>
 
-#include "..\rlcpp\world.h"
-#include "..\rlcpp\State.h"
-#include "..\rlcpp\Action.h"
+#include "../rlcpp/World.h"
+#include "../rlcpp/State.h"
+#include "../rlcpp/Action.h"
 
 
 class TorcsWorld : public World

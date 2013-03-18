@@ -2,7 +2,8 @@
 #define ACTION
 
 struct Action {
-    bool continuous ;
+
+	bool continuous ;
     bool discrete ;
 
     int actionDimension ;

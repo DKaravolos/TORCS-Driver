@@ -2,16 +2,15 @@
 #define TCLEARNING_INTERFACE_H
 
 #include <string>
-#include "..\learning\RLInterface.h"
-#include "..\learning\TileCodingSmall.h"
-#include "..\learning\TileCodingHM.h"
+#include "../learning/RLInterface.h"
+#include "../learning/TileCodingHM.h"
 
-#include "..\rlcpp\StateActionAlgorithm.h"
-#include "..\rlcpp\Action.h"
-#include "..\rlcpp\State.h"
+#include "../rlcpp/StateActionAlgorithm.h"
+#include "../rlcpp/Action.h"
+#include "../rlcpp/State.h"
 
-#include "..\driver\CarControl.h"
-#include "..\driver\CarState.h"
+#include "../driver/CarControl.h"
+#include "../driver/CarState.h"
 
 class TCLearningInterface: public RLInterface
 {
@@ -37,15 +36,17 @@ class TCLearningInterface: public RLInterface
 		Experiment* getExperiment(){return mp_experiment;}
 		CarControl* public_car_control;
 		CarState* public_car_state;
+
 	protected:
 		//datamembers
 		TileCodingHM* mp_algorithm;
-
+		
 		//functions:
 		void _init(const bool& auto_exp);
 		virtual void initState();
 		virtual void initActions();
-		void loadQTable(int id, int step);		
+		void loadQTable(int id, int step);
+		void loadQTable(std::string);	
 		void doSymmetryUpdate();
 
 };

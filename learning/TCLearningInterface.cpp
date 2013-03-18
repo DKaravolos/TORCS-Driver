@@ -1,4 +1,5 @@
 #include "TCLearningInterface.h"
+#include <stdexcept>
 //#include <Windows.h>
 using namespace std;
 //#define INTERFACE_DEBUG true
@@ -13,12 +14,11 @@ TCLearningInterface::TCLearningInterface(const string& log_dir)
 	cout << "Creating interface...\n";
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
 	m_log_dir = log_dir;
-	mp_reward_log = new Writer(m_log_dir + "TC_cumulative_reward.txt");
-	mp_log = new Writer(m_log_dir + "TC_interface_output.txt");
-	//mp_log->write("Interface created.");
-	mp_memory = new StateActionMemory(10000);
+	//mp_reward_log = new Writer(m_log_dir + "TC_cumulative_reward.txt");
+	//mp_log = new Writer(m_log_dir + "TC_interface_output.txt");
 	m_reward = 0;
 	m_eta = 0;
+	m_symmetry = false;
 	cout << "Done.\n";
 }
 
@@ -26,12 +26,14 @@ TCLearningInterface::~TCLearningInterface(void)
 {
 	cout << "Destroying TCLearningInterface... Goodbye cruel world!" << endl;
 	//delete mp_log;
-	delete mp_reward_log;
+	//delete mp_reward_log;
 	delete mp_algorithm;
 	delete[] mp_torcs_action;
 
-	if(HAS_INFORMATION)
+	if(HAS_INFORMATION){
 		delete public_car_control;
+		delete public_car_state;
+	}
 }
 
 void TCLearningInterface::init()
@@ -72,21 +74,12 @@ void TCLearningInterface::_init(const bool& automatic_experiment)
 	initState();
 	initActions();
 
-	bool test = false; //ALLEEN VOOR TEST DRIVER.exe
-
-	if(test) //ALLEEN VOOR TEST DRIVER.exe
+	if(!automatic_experiment)
 	{
-		cout << "TCLI: Using test settings!\n";
-		m_explore = false;
-		m_update = true;
+		askExplore();
+		askUpdate();
 	} else {
-		if(!automatic_experiment)
-		{
-			askExplore();
-			askUpdate();
-		} else {
-			cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
-		}
+		cout << "Default value of m_explore and m_update are: " << m_explore << " " << m_update << endl;
 	}
 	cout << "Done.\n";
 }
@@ -94,9 +87,11 @@ void TCLearningInterface::_init(const bool& automatic_experiment)
 void TCLearningInterface::initState(){
 	mp_current_state = new State();
 	mp_experiment->initializeState(mp_current_state, mp_algorithm, mp_world);
+	mp_current_state->time_step = 0;
 	
 	mp_prev_state = new State();
 	mp_experiment->initializeState(mp_prev_state, mp_algorithm, mp_world);
+	mp_prev_state->time_step = 0;
 }
 
 void TCLearningInterface::initActions(){
@@ -107,7 +102,7 @@ void TCLearningInterface::initActions(){
 	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
 	
 	mp_torcs_action = new double[2];
-	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die geüpdate dienen te worden.
+	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die ge?pdate dienen te worden.
 	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
 
@@ -120,27 +115,34 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	double random_nr = double(rand())/double(RAND_MAX);
 
 	//Binary way of checking whether an informed action is necessary:
-	if(HAS_INFORMATION && (random_nr <= m_eta)) /// old: !mp_algorithm->isStateKnown(*mp_current_state)
+	if(HAS_INFORMATION && (random_nr < m_eta)) /// old: !mp_algorithm->isStateKnown(*mp_current_state)
+	{
+
+		//cout << "Doing informed action\n";
 		doInformedAction(mp_current_action);
-	else if(m_explore)
-		mp_experiment->explore( mp_current_state, mp_current_action);	
+	}
+	else if(m_explore && (random_nr <= (m_eta + mp_experiment->epsilon)))
+	{
+		// Using mp_experiment->explore( mp_current_state, mp_current_action); would cause epsilon to act in the leftover probability mass of eta. That is unwanted.
+		mp_algorithm->getRandomAction(mp_current_state, mp_current_action);
+	}
 	else
 	{
 		mp_algorithm->getMaxAction(mp_current_state, mp_current_action);
-		cout << "NOT EXPLORING!!\n";
+//		cout << "Best action: " << mp_current_action->discreteAction << endl;
+		//cout << "NOT EXPLORING!!\n";
 	}
 	//Current_action now has a value
 
 	double l_td_error = 100; //declare td_error, which might be used for sorting tuples later. initialisation is for 'storeTuple',this should not be necessary.
-
 	if (mp_parameters->train)
 	{
 		if(!mp_parameters->first_time_step)
 		{
-			mp_parameters->rewardSum += m_reward; //Keep track of cumulative reward for statistics
-			stringstream rsum;
-			rsum << mp_parameters->rewardSum;
-			mp_reward_log->write(rsum.str());
+			//mp_parameters->rewardSum += m_reward; //Keep track of cumulative reward for statistics
+			//stringstream rsum;
+			//rsum << mp_parameters->rewardSum;
+			//mp_reward_log->write(rsum.str());
 			if (mp_experiment->algorithmName.compare("TileCoding") == 0 ) {
 				if(m_update && option == RLInterface::RANDOM)
 					mp_algorithm->update(mp_prev_state, mp_prev_action, m_reward, mp_current_state,
@@ -165,8 +167,14 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	cout << "Doing a Symmetric update\n";
 	doSymmetryUpdate();
 
+	//Update Q-table with symmetrical state and action to increase learning speed
+	//cout << "Doing a Symmetric update\n";
+	if(m_symmetry)
+		doSymmetryUpdate();
+
 	//Copy current state and action to history
-	if(store_tuples && m_update){	
+	if(store_tuples && m_update)
+	{	
 		mp_memory->storeTuple(mp_prev_state, mp_prev_action, m_reward, mp_current_state, 
 								mp_parameters->endOfEpisode, l_td_error, option);
 	}
@@ -174,22 +182,23 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	copyAction( mp_current_action, mp_prev_action );
 
 	//Keep track of time / episodes
-	if (mp_parameters->endOfEpisode) {
+	if (mp_parameters->endOfEpisode)
+	{
 		cout << "I did an endOfEpisode udpate, so I will turn the flag back to false.\n";
 		mp_parameters->episode++ ;
 		mp_parameters->first_time_step = true;
 		mp_parameters->endOfEpisode = false;
 	}
 	mp_parameters->step++;
-	if(mp_parameters->step % 1000 == 0) {
-		cout << "Number of steps so far: " << mp_parameters->step << endl;
-	}
+	//if(mp_parameters->step % 1000 == 0)
+	//	cout << "Number of steps so far: " << mp_parameters->step << endl;
 	return false;
 }
 
 void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 {
-	if(mp_memory->getSize() == 0) {
+	if(mp_memory->getSize() == 0)
+	{
 		//cout << "Can't update with old tuple if there is no memory" << endl;
 		return;
 	}
@@ -269,8 +278,14 @@ void TCLearningInterface::loadQTable(int identifier, int step)
 	stringstream QNN_file;
 	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
 	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
-	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
-	lp_tilecoding->loadQTable(QNN_file.str());
+	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
+	//lp_tilecoding->loadQTable(QNN_file.str());
+	mp_algorithm->loadQTable(QNN_file.str());
+}
+
+void TCLearningInterface::loadQTable(string filename)
+{
+	mp_algorithm->loadQTable(filename);
 }
 
 //writeNetwork exists only for inheritance (calls writeQTable)
@@ -286,7 +301,7 @@ void TCLearningInterface::writeNetwork(int identifier, int step)
 void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
-	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step;
+	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step << ".txt";
 	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
@@ -310,18 +325,18 @@ void TCLearningInterface::doInformedAction(Action* action)
 	//get continuous values from heuristic
 	float steer = public_car_control->getSteer();
 	float accel = public_car_control->getAccel();
-	stringstream ss;
+	//stringstream ss;
 	//cout << "Steer: " << steer << endl;
 	//cout << "Accel: " << accel << endl;
 	
 	//Discretize dimensions to get discrete action for Q learning
 	if(steer >= 0.75) { //1L
 		cout << "I would have wanted to go left with more than 0.75\n";
-		mp_log->write("I would have wanted to go left with more than 0.75");
+		//mp_log->write("I would have wanted to go left with more than 0.75");
 	}
 	if(steer <= -0.75) { //1L
 		cout << "I would have wanted to go right with more than -0.75\n";
-		mp_log->write("I would have wanted to go right with more than -0.75");
+		//mp_log->write("I would have wanted to go right with more than -0.75");
 	}
 
 	if(steer >= 0.25) { //0.5L
@@ -372,10 +387,10 @@ void TCLearningInterface::doInformedAction(Action* action)
 		action->discreteAction % 3 == 1))
 		action->discreteAction++;
 
-	ss << "Discrete action: " << action->discreteAction;
+	//ss << "Discrete action: " << action->discreteAction;
 	//cout << "Doing a heuristic action: " << action->discreteAction << endl;
 
-	mp_log->write(ss.str());
+	//mp_log->write(ss.str());
 }
 
 void TCLearningInterface::doSymmetryUpdate()
@@ -388,9 +403,9 @@ void TCLearningInterface::doSymmetryUpdate()
 						 mp_parameters->endOfEpisode, mp_experiment->learningRate, mp_experiment->gamma);
 
 	//remove heap memory
-	delete lp_sym_prev_state->continuousState;
+	delete[] lp_sym_prev_state->continuousState;
 	delete lp_sym_prev_state;
-	delete lp_sym_curr_state->continuousState;
+	delete[] lp_sym_curr_state->continuousState;
 	delete lp_sym_curr_state;
 	delete lp_sym_action;
 }

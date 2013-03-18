@@ -13,6 +13,8 @@ RLDriver(steps, runs, save_data)
 	m_log_dir = log_dir;
 	mp_log = new Writer(log_dir + "TCDriver_log.txt");
 	mp_reward_writer = new Writer(log_dir + "TCDriver_rewards.txt");
+	mp_lap_writer = new Writer(log_dir + "TCDriver_laps.txt");
+	mp_eoe_writer = new Writer(log_dir + "TCDriver_endofep.txt");
 }
 
 void TCDriver::onShutdown()
@@ -21,6 +23,8 @@ void TCDriver::onShutdown()
 	RLDriver::onShutdown();
 	delete mp_log;
 	delete mp_reward_writer;
+	delete mp_lap_writer;
+	delete mp_eoe_writer;
 	delete mp_RLinterface;
 }
 
@@ -56,11 +60,10 @@ void TCDriver::askLoadNetwork()
 		cin >> m_network_id;
 		cout << "Which step (x1.000)?\n";
 		cin >> m_step_id;
-		m_step_id *= 1000;
 		stringstream file_name;
-		file_name << l_log_dir << "TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id;
+		file_name << l_log_dir << "TC_QTable_id_"<< m_network_id << "000_step_" << m_step_id << "000.txt";
 		string base_file = file_name.str();
-		is.open(base_file);
+		is.open(base_file.c_str());
 		if(is.is_open()) {
 			is.close();
 			cout << "\nLoading QTable from file.\n";

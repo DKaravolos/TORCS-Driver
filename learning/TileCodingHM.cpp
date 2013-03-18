@@ -1,6 +1,9 @@
 # include "TileCodingHM.h"
 #define DEFAULT_Q 0.0 //Defines the default (i.e. first) value of a tile
-#define DEF_MINIMAL false
+#define PRINT_GETMAX_ACTIONS false
+#define PRINT_UPDATE_ACTIONS false
+#define CHEAT_EOE_UPDATE false
+#define NR_OF_TILES 5
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
 {
@@ -15,7 +18,8 @@ TileCodingHM::TileCodingHM(World * w, const string& log_dir, const char* qtable_
 
 TileCodingHM::~TileCodingHM()
 {
-	delete mp_log;
+	//delete mp_log;
+	//delete mp_td_log;
 }
 
 //initialisation
@@ -39,8 +43,8 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	stateDimension = w->getStateDimension();
 	m_nr_of_updates = 0;
 
-	mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
-	mp_td_log = new Writer(log_dir + "average_td_error");
+	//mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	//mp_td_log = new Writer(log_dir + "average_td_error.txt");
 	
 	//Get parameter/config info from user ??
 	bool test = false;
@@ -74,6 +78,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 //Sets the edges of the bins of the tiles using file input
 void TileCodingHM::setEdges()
 {
+
 	//init sizes, so we can use element access of vectors 
 	m_speed_edges.resize(m_numTilings);
 	m_trackPos_edges.resize(m_numTilings);
@@ -81,8 +86,8 @@ void TileCodingHM::setEdges()
 	m_dist_edges.resize(m_numTilings);
 
 	//cout << "Hoeveel vakjes gebruiken je tilings?\n";
-	int num = 10;
-	int version = 1;
+	int num = NR_OF_TILES;
+	int version = 2;
 	//cin >> num;
 	stringstream filename;
 	filename << "TileCodingEdges_5Tiles_"<< num << "Vakjes" << version << ".txt";
@@ -103,7 +108,7 @@ void TileCodingHM::getEdgesFromFile(string l_parameterfile)
 	//Let's open the file
 	string line;
 	ifstream is;
-	is.open(l_parameterfile);
+	is.open(l_parameterfile.c_str());
 	if(is.is_open())
 	{
 		try
@@ -191,7 +196,7 @@ void TileCodingHM::getEdgesFromFile(string l_parameterfile)
 }
 
 //Adds edge from input to given vector
-void TileCodingHM::addEdge(string& edgetype, stringstream& ss, vector<vector<double>>& edge_vector, int& tiling)
+void TileCodingHM::addEdge(string& edgetype, stringstream& ss, vector<vector<double> >& edge_vector, int& tiling)
 {
 	double edge;
 	//It would be nice to be able to check if the number of tilings does not exceed user input
@@ -239,8 +244,13 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 
 		//Store the visit to this state
 		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+		//state_visits[state_action]++;
 		storeStateActionVisit(state_action);
-	}	
+
+	}
+	////Print current action table
+	if(PRINT_UPDATE_ACTIONS)
+		mp_log->writeActionTable(*state, m_state_keys, m_tilings);
 
 	//Define the learning rate of this update. This depends on the number of active tilings.
 	double learning_rate = learningRate[0] / active_tilings;
@@ -283,9 +293,25 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 			if(m_state_keys[tiling].empty() == false) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
 			{
 				//Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
-				pair<string,int> state_action = make_pair (m_state_keys[tiling], current_action);
-				m_tilings[state_action]+= learning_rate * td_error;
+				if(!CHEAT_EOE_UPDATE){
+					pair<string,int> state_action = make_pair (m_state_keys[tiling], current_action);
+					m_tilings[state_action]+= learning_rate * td_error;
+				} else {
+					//FOR TESTING ONLY. TO SEE IF IT NEEDS MORE UPDATES!
+					//REMOVE WHEN POSSIBLE
+					for(int act = 0; act < 15; ++act)
+					{
+						pair<string,int> state_action = make_pair (m_state_keys[tiling], act);
+						m_tilings[state_action]+= learning_rate * td_error;
+					}
+				}
 			}
+		}
+		if(PRINT_UPDATE_ACTIONS)
+		{
+			stringstream out;
+			out << "End of episode. TD-error: " << td_error;
+			mp_log->write(out.str());
 		}
 
 	} else
@@ -328,14 +354,15 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 		mp_log->write(l_out.str());
 	}
 
-	for(tiling = 0; tiling < m_numTilings; tiling++)
-	{
-		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-		storeAverageTDError(state_action, td_error);
-	}
+	////////STUFF FOR LOGGING TD error/////////
+	//for(tiling = 0; tiling < m_numTilings; tiling++)
+	//{
+	//	pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+	//	storeAverageTDError(state_action, td_error);
+	//}
 	
-	computeGeneralTDError(td_error);
-	checkTDError(td_error, q_of_state, current_action, rt, max_q);
+	//computeGeneralTDError(td_error);
+	//checkTDError(td_error, q_of_state, current_action, rt, max_q);
 	
 	return td_error;
 }
@@ -346,11 +373,10 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 	stringstream key;
 	int tile_indices[8]; //NOTE: It should be possible to use a vector<int>* for this
 
-
 	//stringstream log;
 	//log << "Classifying state with tiling " << tiling;
 	//mp_log->write(log.str());
-	//cout << "classifying tiling "<< tiling << endl;
+
 	//Classify each dimension separately
 	//mp_log->write("Classifying speed.");
 	tile_indices[0] = classifyValue(state->continuousState[0], m_speed_edges[tiling]);
@@ -359,26 +385,15 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 	tile_indices[1] = classifyValue(state->continuousState[1], m_trackPos_edges[tiling]);
 
 	//mp_log->write("Classifying Angle.");
-	//tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
+	tile_indices[2] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
 	
-	
-	if(DEF_MINIMAL)
-	{
-		tile_indices[2] = classifyValue(state->continuousState[2], m_dist_edges[tiling]);
-		tile_indices[3] = 0;
-		tile_indices[4] = 0;
-		tile_indices[5] = 0;
-		tile_indices[6] = 0;
-		tile_indices[7] = 0;
-	} else {
-		//cout << "In classification: Dist = " << state->continuousState[5] << endl;
-		tile_indices[2] = classifyValue(state->continuousState[5], m_dist_edges[tiling], true); //front sensor
-		tile_indices[3] = classifyValue(state->continuousState[2], m_angle_edges[tiling]);
-		tile_indices[4] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);
-		tile_indices[5] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
-		tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
-		tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);
-	}
+	//cout << "In classification: Dist = " << state->continuousState[5] << endl;
+	//mp_log->write("Classifying Distance sensors.");
+	tile_indices[3] = classifyValue(state->continuousState[3], m_dist_edges[tiling]);//left
+	tile_indices[4] = classifyValue(state->continuousState[4], m_dist_edges[tiling]);
+	tile_indices[5] = classifyValue(state->continuousState[5], m_dist_edges[tiling]); //front sensor
+	tile_indices[6] = classifyValue(state->continuousState[6], m_dist_edges[tiling]);
+	tile_indices[7] = classifyValue(state->continuousState[7], m_dist_edges[tiling]);//right
 	
 	//use tiling as part of key for map
 	key << tiling;
@@ -395,8 +410,8 @@ string TileCodingHM::classifyState(const State* state, const int& tiling)
 			return ""; // so return an empty key, which creates an error 			
 		}
 	}
-	//mp_log->write("Resulting key:");
-	//mp_log->write(key.str());
+
+	//mp_log->write("Resulting key: " + key.str());
 	return key.str();
 }
 
@@ -414,12 +429,12 @@ int TileCodingHM::classifyValue(const double& state_value, const vector<double>&
 	for(unsigned int idx = 0; idx < bin_edges.size()-1; idx++)
 		if(state_value > bin_edges[idx] && state_value <= bin_edges[idx+1]) //check each bin
 		{
-			//if(verbose){
-			//	cout << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
-			//	cout << ", thus the bin is " << idx << endl;
-			//	l_log << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
-			//	l_log << ", thus the bin is " << idx << endl;
-			//}
+			if(verbose){
+				//cout << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
+				//cout << ", thus the bin is " << idx << endl;
+				l_log << "Value " << state_value << " is between " << bin_edges[idx] << " and " << bin_edges[idx+1];
+				l_log << ", thus the bin is " << idx << endl;
+			}
 			bin = idx;
 			break;
 		}
@@ -513,8 +528,6 @@ double TileCodingHM::getQOfStateActionPair(const vector<string>& state_keys, int
 {
 	double Q_value = 0;
 	int tiling;
-	//stringstream l_out;
-	//l_out << "GetQ\n";
 	//loop through the tilings
 	for(tiling = 0; tiling < m_numTilings; ++tiling)
 	{
@@ -525,21 +538,16 @@ double TileCodingHM::getQOfStateActionPair(const vector<string>& state_keys, int
 			map<pair<string,int>,double>::iterator it = m_tilings.find(state_action);
 			if(it != m_tilings.end()) //If the state-action pair is already in the map
 			{
-				//l_out << "Found state key " << it->first.first << it->first.second  << " in tiling " << tiling <<". Value: "<< it->second << endl;
 				Q_value += it->second; //add found value to Q-value
 			} else {				//else
-				//l_out << "New key: "  << state_action.first << " " << state_action.second << " in tiling "<< tiling;
 				m_tilings[state_action] = DEFAULT_Q; //Set the value to default
-				//l_out << ". Value: " << DEFAULT_Q << endl;
 				Q_value += m_tilings[state_action]; //Add the value of the newly created entry to the Q-value
 			}
 		} else {
 			cerr << "ERROR: Trying to compute the Q-value of a state that is not in all tilings!\n";
 		}
 	}
-	//l_out << "SUM = " << Q_value << endl;
-	//l_out << "End of GetQ\n";
-	//mp_log->write(l_out.str());
+
 	return Q_value;
 }
 
@@ -555,22 +563,55 @@ double TileCodingHM::myTCMax(const vector<double>& action_values)
 	return max_val;
 }
 
+////Get the index of the max element of a vector of doubles
+//int TileCodingHM::myTCArgMax(const vector<double>& action_values)
+//{
+//	double max_val = action_values[0];
+//	int max_idx = 0;
+//	unsigned int idx;
+//	for(idx = 1; idx < action_values.size(); idx++)
+//	{
+//		if(action_values[idx] > max_val)
+//		{
+//			max_val = action_values[idx];
+//			max_idx = idx;
+//		}
+//	}
+//
+//	return max_idx;
+//}
+
 //Get the index of the max element of a vector of doubles
 int TileCodingHM::myTCArgMax(const vector<double>& action_values)
 {
 	double max_val = action_values[0];
-	int max_idx = 0;
+	vector<int> max_indices;
 	unsigned int idx;
-	for(idx = 1; idx < action_values.size(); idx++)
+	for(idx = 0; idx < action_values.size(); idx++)
 	{
 		if(action_values[idx] > max_val)
 		{
+			max_indices.clear();
 			max_val = action_values[idx];
-			max_idx = idx;
 		}
+		if(action_values[idx] >= max_val)
+			max_indices.push_back(idx);
+	}
+	
+	if(m_verbose)
+	{
+		stringstream ss;
+		ss << "Actions with maximal value: \t";
+		vector<int>::iterator it;
+		for(it = max_indices.begin(); it != max_indices.end(); ++it)
+			ss << *it << " ";
+		ss << endl;
 	}
 
-	return max_idx;
+	int random_idx = rand() % max_indices.size(); //seeding is in TCLearningInterface
+	//Warning: x % 0 (empty vector) is undefined behaviour. However, action_values is never empty, 
+	//so there is always a maximal action, thus the vector is never empty.
+	return max_indices[random_idx];
 }
 
 //Get the action with the highest Q-value in a given state and put it in a given Action object
@@ -583,15 +624,19 @@ void TileCodingHM::getMaxAction(State* state, Action* action)
 
 	//For each tile: convert continuous state into discrete states defined by tiles
 	vector<string> state_keys;
-	for(int tile = 0; tile < m_numTilings; tile++)
+	for(int tile = 0; tile < m_numTilings; ++tile)
 	{
 		state_keys.push_back(classifyState(state, tile));
 	}
-
+	//For each action, get the Q-value
 	for(int act = 0; act < numberOfActions; ++act)
 	{
-		Q_values[act] += getQOfStateActionPair(state_keys,act);
+		Q_values[act] = getQOfStateActionPair(state_keys,act);
 	}
+
+	//Print current action table
+	if(PRINT_GETMAX_ACTIONS)
+		mp_log->writeActionTable(*state, Q_values);
 
 	if(m_verbose)
 	{
@@ -601,7 +646,7 @@ void TileCodingHM::getMaxAction(State* state, Action* action)
 	}
 	//Get the action with the highest Q-value
 	action->discreteAction = myTCArgMax(Q_values); //This is where the action is stored, so no need to return anything
-	cout << "TC - Taking Max Action: " << action->discreteAction << endl;
+	//cout << "TC - Taking Max Action: " << action->discreteAction << endl;
 	if(m_verbose)
 	{
 		ss << "Best Action: " << action->discreteAction << ". \n";
@@ -609,7 +654,6 @@ void TileCodingHM::getMaxAction(State* state, Action* action)
 		mp_log->write(ss.str());
 	}
 }
-
 
 //boltzmann implements boltzmann exploration for this TileCoding implementation
 void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
@@ -716,7 +760,7 @@ void TileCodingHM::boltzmann(State* state, Action * action, double tau ) {
 void TileCodingHM::writeQTable(string filename)
 {
 	ofstream f_out;
-	f_out.open(filename);
+	f_out.open(filename.c_str());
 	if(f_out.is_open())
 	{
 		//First, write the parameters.
@@ -746,7 +790,7 @@ void TileCodingHM::writeQTable(string filename)
 void TileCodingHM::loadQTable(string filename)
 {
 	ifstream f_in;
-	f_in.open(filename);
+	f_in.open(filename.c_str());
 	if(f_in.is_open())
 	{
 		string line;
@@ -802,12 +846,12 @@ void TileCodingHM::loadQTable(string filename)
 		}
 		
 		f_in.close();
-		cout << "Loading QTable is done. Press any key to continue.\n"; // Are you sure that the code-defined edges are the same??
-		char a;
-		cin >> a;
+		cout << "Loading QTable is done.\n"; // Are you sure that the code-defined edges are the same??
 	} else {
 		cerr << "Could not open file for loading the QTable. Please check filename.\n";
 	}
+
+	cout << "I loaded this Q table:  " << filename << endl;
 }
 
 //Keeps track of how often each state is visited
@@ -829,7 +873,7 @@ void TileCodingHM::storeStateActionVisit(const pair<string,int>& key)
 void TileCodingHM::writeStateVisits(const string& filename)
 {
 	ofstream f_out;
-	f_out.open(filename);
+	f_out.open(filename.c_str());
 	if(f_out.is_open())
 	{
 		map<pair<string,int>,int>::iterator it;
@@ -886,27 +930,27 @@ void TileCodingHM::computeGeneralTDError(double td_input)
 
 void TileCodingHM::writeAverageTDError(const string& filename)
 {
-	//ofstream f_out;
-	//f_out.open(filename);
-	//if(f_out.is_open())
-	//{
-	//	map<pair<string,int>,double>::iterator it;
-	//	//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
-	//	//f_out << "NOTE: This is independent of actions.\n";
-	//	for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
-	//	{
-	//		f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
-	//	}
-	//	f_out.close();
-	//} else {
-	//	cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
-	//}
+	ofstream f_out;
+	f_out.open(filename);
+	if(f_out.is_open())
+	{
+		map<pair<string,int>,double>::iterator it;
+		//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
+		//f_out << "NOTE: This is independent of actions.\n";
+		for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
+		{
+			f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
+		}
+		f_out.close();
+	} else {
+		cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
+	}
 }
 
 void TileCodingHM::writeStateInfo(const string& filename)
 {
 	ofstream f_out;
-	f_out.open(filename);
+	f_out.open(filename.c_str());
 	if(f_out.is_open())
 	{
 		map<pair<string,int>,int>::iterator state_it;

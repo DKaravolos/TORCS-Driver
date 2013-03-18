@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+//#include <iomanip>
 #include <cmath>
 #include "CarState.h"
 #include "CarControl.h"
@@ -16,17 +17,16 @@
 
 //Functions/classes by Daniel:
 #ifdef WIN32
-#include "..\learning\RLInterface.h"
-#include "..\utilities\createFeatureVector.h"
-#include "..\utilities\printFeatureVector.h"
-#include "..\utilities\Writer.h"
+#include "../learning/RLInterface.h"
+#include "../utilities/createFeatureVector.h"
+#include "../utilities/printFeatureVector.h"
+#include "../utilities/Writer.h"
 #else
 #include "../learning/RLInterface.h"
 #include "../utilities/createFeatureVector.h"
 #include "../utilities/printFeatureVector.h"
 #include "../utilities/Writer.h"
 #endif
-
 
 #define PI 3.14159265
 
@@ -156,6 +156,8 @@ protected:
 	double* mp_action_set;
 	Writer* mp_log;
 	Writer* mp_reward_writer;
+	Writer* mp_lap_writer;
+	Writer* mp_eoe_writer;
 
 	//Elements for computing rewards
 	CarState* gp_prev_state;
@@ -170,6 +172,7 @@ protected:
 	//flags for learning
 	bool g_learning_done;
 	bool g_first_time;
+	bool m_practice_saved;
 
 	//learning parameters
 	int g_stuck_penalty;

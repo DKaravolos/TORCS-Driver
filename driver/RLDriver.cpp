@@ -1,14 +1,20 @@
 #include "RLDriver.h"
+#ifndef WIN32
+	#include <stdio.h>
+	#include <termios.h>
+	#include <unistd.h>
+	#include <fcntl.h>
+#endif
+
 //#ifdef WIN32
 //    #include <Windows.h>
 //#endif
 #define DRIVER_DEBUG true
-#define DEF_MINIMAL false //setting to true will lead to errors
 #define DEF_TC_HAS_INFO true
 
 #ifdef DEF_TC_HAS_INFO
-	#include "..\learning\TileCodingHM.h"
-	#include "..\learning\TCLearningInterface.h"
+	#include "../learning/TileCodingHM.h"
+	#include "../learning/TCLearningInterface.h"
 #endif
 
 RLDriver::RLDriver()
@@ -64,8 +70,8 @@ RLDriver::RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_dat
 RLDriver::~RLDriver()
 {
 	delete mp_features;
-	delete mp_action_set;
-	delete gp_prev_state;
+	//delete[] mp_action_set; //You don't need to delete this, because it points to mp_torcs_action in the RLInterface
+	delete[] gp_prev_state;
 }
 
 void RLDriver::setPrefs()
@@ -99,6 +105,7 @@ void RLDriver::init(float *angles)
 	g_learning_done = false;
 	g_first_time = true;
 	g_reupdates_left = 0;
+	m_practice_saved = false;
 
 	//Set debug variables
 	debug_max_reward = 0;
@@ -165,7 +172,7 @@ CarControl RLDriver::wDrive(CarState cs)
 	g_count++;
 
 	////// check if car is currently stuck
-	if (stuckCheck(cs))
+	if (stuckCheck(cs) && (g_count % g_steps_per_action == 0))
         stuck++; // update stuck counter
     else
         stuck = 0; // if not stuck reset stuck counter
@@ -182,7 +189,8 @@ CarControl RLDriver::wDrive(CarState cs)
 
 	// after car is stuck for a while apply recovering policy //update: end the episode
 	if  (
-		((stuck > stuckTime) && (fabs(cs.getSpeedX()) <= 10)) || // 29-08: changed from 5 to 30.
+		((stuck > stuckTime) && 
+		(fabs(cs.getSpeedX()) <= 10)) || // 29-08: changed from 5 to 30.
 		(fabs(cs.getTrackPos()) > 0.95)
 		)
 	{ 
@@ -208,7 +216,7 @@ CarControl RLDriver::wDrive(CarState cs)
 	//For now: don't do anything before laptime == 0
 	//*
 	if(g_learning_done || cs.getCurLapTime() < 0){
-		cout << "time: " << cs.getCurLapTime() << ". using script\n";
+		//cout << "time: " << cs.getCurLapTime() << ". using script\n";
 		return simpleBotControl(cs);
 	}
 	//*/
@@ -234,7 +242,7 @@ CarControl RLDriver::wDrive(CarState cs)
 			cin >> end;
 			exit(-3);
 		}
-
+		//cout << "Driver action - steer:" << mp_action_set[0] << "accel: " << mp_action_set[1] << endl;
 		//Guard the update:reupdate ratio
 		//g_reupdates_left += g_steps_per_action-1;
 
@@ -313,7 +321,7 @@ bool RLDriver::stuckCheck(CarState& cs)
 double RLDriver::computeReward(CarState &state, double* action, CarState &next_state, bool end_of_ep)
 {
 	if(g_count % 10 == 0)
-		cout << "\nTime: " << g_count << ".\n";
+		cout << "Time: " << g_count << ".\t";
 	//double[2] action is not used for computing the reward
 	double reward = 0;
 		
@@ -324,10 +332,12 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	if(next_state.getCurLapTime() < state.getCurLapTime()){ //detect end of lap
 		dist_reward = next_state.getDistFromStart(); // otherwise, reward is negative
 		stringstream msg;
-		msg << "End of lap at " << state.getCurLapTime()
-			<< "\tTotal number of steps: " << g_count
-			<< "\nEnd of lap reward: " << dist_reward;
-		mp_log->write(msg.str());
+		//msg << "End of lap at " << state.getCurLapTime()
+		//	<< "\tTotal number of steps: " << g_learn_step_count;
+			////<< "\nEnd of lap reward: " << dist_reward;
+		//mp_log->write(msg.str());
+		msg << state.getCurLapTime();
+		mp_lap_writer->write(msg.str());
 	}
 	reward+= dist_weight * dist_reward; 
 	//if(DRIVER_DEBUG)
@@ -337,12 +347,19 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 		reward -= 1;
 
 	///////// END OF EPISODE
-	if(end_of_ep)
+	if(end_of_ep){
 		reward -= 2;
-
+		stringstream msg;
+		//msg << "End of episode at " << state.getCurLapTime()
+		//	<< "\tTotal number of steps: " << g_learn_step_count;
+		//mp_log->write(msg.str());
+		msg << state.getCurLapTime();
+		mp_eoe_writer->write(msg.str());
+	}
 	////// EXTRA INFO
 	if(DRIVER_DEBUG && g_count % 10 == 0)
-		cout << "\t\tFinal reward: " << reward << ".\n\n";
+		printf("Reward = %-8.2f",reward);
+		//cout << "\tFinal reward: " << setw(8) << left << setprecision(4) << reward << ". ";
 
 	if(reward > debug_max_reward) //Keep track of max reward
 		debug_max_reward = reward;
@@ -376,15 +393,12 @@ void RLDriver::doLearning(CarState &cs, bool end_of_ep)
 
 	//Get state features
 	//createFeatureVectorPointer(cs, mp_features); //creates 13 features
-	if(DEF_MINIMAL)
-		createMinimalFeatureVectorPointer(cs, mp_features); //creates 3 features
-	else
-		createSmallFeatureVectorPointer(cs, mp_features); //creates 8 features
+	createSmallFeatureVectorPointer(cs, mp_features); //creates 8 features
 
 	//Check if input is not out of bounds
 	checkSensorInput(mp_features);
 	//Create a state (pass state features to the interface)
-	mp_RLinterface->setState(mp_features);
+	mp_RLinterface->setState(mp_features, g_count);
 	
 	if(DEF_TC_HAS_INFO){ // TC heuristic is based on actual CarState. If heuristic is used, give CarState to TileCodingHM.
 		TCLearningInterface* l_TCLI = static_cast<TCLearningInterface*>(mp_RLinterface); 
@@ -449,7 +463,24 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	if (getKeyboardInput() == 'r')
 		cc.setMeta(cc.META_RESTART);
 
+	if (getKeyboardInput() == 's')
+	{
+		int l_id = m_network_id*1000 + g_learn_step_count;
+		mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
+	}
+
+	//Extra save network possibility. To save network while continuing to learn.
+	//Assumes one run of X updates and no reupdates
+	if (g_learn_step_count % 150000 == 0 && !m_practice_saved)
+	{
+		mp_log->write("Saving network at 15.000 updates");
+		int l_id = m_network_id*1000 + g_learn_step_count;
+		mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
+		m_practice_saved = true;
+	}
+
 	stringstream debug_msg;
+
 	if(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count >= m_round_size) //waarom moet learn_step_count groter zijn dan 10?
 	{
 		cc.setMeta(cc.META_RESTART);
@@ -468,7 +499,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 		printInputRange(g_experiment_count);
 		//When should the network be saved?
 		//Save first, last and every couple of runs
-		if(g_experiment_count == 1 || (g_learn_step_count > 3000 && g_learn_step_count % 3000 < 20) || g_experiment_count % 5 == 0 || g_experiment_count == m_exp_count)
+		if(g_experiment_count == m_exp_count) //g_experiment_count == 1 || g_experiment_count % 5 == 0 || 
 		{
 			int l_id = m_network_id*1000 + g_experiment_count * (m_round_size);
 			if(m_save_nn) //Only save NN if the user wants to.
@@ -775,17 +806,17 @@ float RLDriver::filterABS(CarState &cs,float brake)
 void RLDriver::onShutdown()
 {
 	cout << "Bye bye!" << endl;
-	delete mp_features;
-	mp_features = NULL;
+	//delete mp_features;
+	//mp_features = NULL;
 	//delete mp_action_set;
-	delete gp_prev_state;
+	//delete gp_prev_state;
 }
 
 void RLDriver::onRestart() 
 {
 	//delete mp_features;
 	mp_features = NULL;
-	//delete mp_RLinterface; // We are not reinitializing the interface between runs. This mat have negative side-effects
+	//delete mp_RLinterface; // We are not reinitializing the interface between runs. This may have negative side-effects
 	mp_RLinterface->setFirstTime(true); // one of the side-effects is having to manually set first time
     cout << "Restarting the race!" << endl;
 	//g_learn_step_count = -1; // I'm trying to keep counting between restarts
@@ -834,30 +865,62 @@ void RLDriver::clutching(CarState &cs, float &clutch)
   }
 }
 
+
+#ifndef WIN32
+int _kbhit(void)
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if(ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
+}
+
+inline int _getch() {
+	return getchar();
+}
+#endif
+
 char RLDriver::getKeyboardInput()
 {
-#ifdef WIN32 //sorry, function is not implemented for linux
+	//#ifdef WIN32 //sorry, function is not implemented for linux -> now it is!
     if (_kbhit())
     {
         //_getch(); // edit : if you want to check the arrow-keys you must call getch twice because special-keys have two values
         return _getch();
     }
     return 0; // if no key is pressed
-#endif
-
+//#endif
 }
 
 char RLDriver::getArrowInput()
 {
-#ifdef WIN32 //sorry, function is not implemented for linux
+//#ifdef WIN32 //sorry, function is not implemented for linux -> now it is!
     if (_kbhit())
     {
         _getch(); // edit : if you want to check the arrow-keys you must call getch twice because special-keys have two values
         return _getch();
     }
     return 0; // if no key is pressed
-#endif
-
+//#endif
 }
 
 //Functions for automatic experiments
