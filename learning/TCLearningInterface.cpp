@@ -164,10 +164,6 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	}
 	
 	//Update Q-table with symmetrical state and action to increase learning speed
-	cout << "Doing a Symmetric update\n";
-	doSymmetryUpdate();
-
-	//Update Q-table with symmetrical state and action to increase learning speed
 	//cout << "Doing a Symmetric update\n";
 	if(m_symmetry)
 		doSymmetryUpdate();
@@ -381,11 +377,11 @@ void TCLearningInterface::doInformedAction(Action* action)
 
 	//LELIJKE HACK
 	//Speedcap! if speed > 120 either accel = neutral or brake
-	if(public_car_state->getSpeedX() >=120 && 
-	//	action->discreteAction % 3 == 0)
-		(action->discreteAction % 3 == 0 ||
-		action->discreteAction % 3 == 1))
-		action->discreteAction++;
+	//if(public_car_state->getSpeedX() >=120 && 
+	////	action->discreteAction % 3 == 0)
+	//	(action->discreteAction % 3 == 0 ||
+	//	action->discreteAction % 3 == 1))
+	//	action->discreteAction++;
 
 	//ss << "Discrete action: " << action->discreteAction;
 	//cout << "Doing a heuristic action: " << action->discreteAction << endl;

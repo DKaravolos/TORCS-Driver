@@ -355,11 +355,11 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 	}
 
 	////////STUFF FOR LOGGING TD error/////////
-	//for(tiling = 0; tiling < m_numTilings; tiling++)
-	//{
-	//	pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-	//	storeAverageTDError(state_action, td_error);
-	//}
+	for(tiling = 0; tiling < m_numTilings; tiling++)
+	{
+		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+		storeAverageTDError(state_action, td_error);
+	}
 	
 	//computeGeneralTDError(td_error);
 	//checkTDError(td_error, q_of_state, current_action, rt, max_q);
