@@ -156,6 +156,8 @@ protected:
 	double* mp_action_set;
 	Writer* mp_log;
 	Writer* mp_reward_writer;
+	Writer* mp_lap_writer;
+	Writer* mp_eoe_writer;
 
 	//Elements for computing rewards
 	CarState* gp_prev_state;

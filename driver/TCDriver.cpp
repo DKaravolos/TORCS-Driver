@@ -13,6 +13,8 @@ RLDriver(steps, runs, save_data)
 	m_log_dir = log_dir;
 	mp_log = new Writer(log_dir + "TCDriver_log.txt");
 	mp_reward_writer = new Writer(log_dir + "TCDriver_rewards.txt");
+	mp_lap_writer = new Writer(log_dir + "TCDriver_laps.txt");
+	mp_eoe_writer = new Writer(log_dir + "TCDriver_endofep.txt");
 }
 
 void TCDriver::onShutdown()
@@ -21,6 +23,8 @@ void TCDriver::onShutdown()
 	RLDriver::onShutdown();
 	delete mp_log;
 	delete mp_reward_writer;
+	delete mp_lap_writer;
+	delete mp_eoe_writer;
 	delete mp_RLinterface;
 }
 

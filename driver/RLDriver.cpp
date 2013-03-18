@@ -332,10 +332,12 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	if(next_state.getCurLapTime() < state.getCurLapTime()){ //detect end of lap
 		dist_reward = next_state.getDistFromStart(); // otherwise, reward is negative
 		stringstream msg;
-		msg << "End of lap at " << state.getCurLapTime()
-			<< "\tTotal number of steps: " << g_learn_step_count;
-			//<< "\nEnd of lap reward: " << dist_reward;
-		mp_log->write(msg.str());
+		//msg << "End of lap at " << state.getCurLapTime()
+		//	<< "\tTotal number of steps: " << g_learn_step_count;
+			////<< "\nEnd of lap reward: " << dist_reward;
+		//mp_log->write(msg.str());
+		msg << state.getCurLapTime();
+		mp_lap_writer->write(msg.str());
 	}
 	reward+= dist_weight * dist_reward; 
 	//if(DRIVER_DEBUG)
@@ -348,9 +350,11 @@ double RLDriver::computeReward(CarState &state, double* action, CarState &next_s
 	if(end_of_ep){
 		reward -= 2;
 		stringstream msg;
-		msg << "\t\t\t\\t\t\t\t\t\t\t\tEnd of episode at " << state.getCurLapTime()
-			<< "\tTotal number of steps: " << g_learn_step_count;
-		mp_log->write(msg.str());
+		//msg << "End of episode at " << state.getCurLapTime()
+		//	<< "\tTotal number of steps: " << g_learn_step_count;
+		//mp_log->write(msg.str());
+		msg << state.getCurLapTime();
+		mp_eoe_writer->write(msg.str());
 	}
 	////// EXTRA INFO
 	if(DRIVER_DEBUG && g_count % 10 == 0)
@@ -459,11 +463,17 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	if (getKeyboardInput() == 'r')
 		cc.setMeta(cc.META_RESTART);
 
+	if (getKeyboardInput() == 's')
+	{
+		int l_id = m_network_id*1000 + g_learn_step_count;
+		mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
+	}
+
 	//Extra save network possibility. To save network while continuing to learn.
 	//Assumes one run of X updates and no reupdates
 	if (g_learn_step_count % 150000 == 0 && !m_practice_saved)
 	{
-		mp_log->write("Saving network at 15.0000 updates");
+		mp_log->write("Saving network at 15.000 updates");
 		int l_id = m_network_id*1000 + g_learn_step_count;
 		mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
 		m_practice_saved = true;

@@ -3,7 +3,6 @@
 
 #include <string>
 #include "../learning/RLInterface.h"
-#include "../learning/TileCodingSmall.h"
 #include "../learning/TileCodingHM.h"
 
 #include "../rlcpp/StateActionAlgorithm.h"

@@ -1,7 +1,9 @@
 # include "TileCodingHM.h"
 #define DEFAULT_Q 0.0 //Defines the default (i.e. first) value of a tile
 #define PRINT_GETMAX_ACTIONS false
-//#define PRINTUPDATEACTIONS true
+#define PRINT_UPDATE_ACTIONS false
+#define CHEAT_EOE_UPDATE false
+#define NR_OF_TILES 5
 
 TileCodingHM::TileCodingHM(World * w, const string& log_dir)
 {
@@ -16,7 +18,8 @@ TileCodingHM::TileCodingHM(World * w, const string& log_dir, const char* qtable_
 
 TileCodingHM::~TileCodingHM()
 {
-	delete mp_log;
+	//delete mp_log;
+	//delete mp_td_log;
 }
 
 //initialisation
@@ -40,8 +43,8 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	stateDimension = w->getStateDimension();
 	m_nr_of_updates = 0;
 
-	mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
-	mp_td_log = new Writer(log_dir + "average_td_error.txt");
+	//mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	//mp_td_log = new Writer(log_dir + "average_td_error.txt");
 	
 	//Get parameter/config info from user ??
 	bool test = false;
@@ -75,6 +78,7 @@ void TileCodingHM::init(World* w, const string& log_dir)
 //Sets the edges of the bins of the tiles using file input
 void TileCodingHM::setEdges()
 {
+
 	//init sizes, so we can use element access of vectors 
 	m_speed_edges.resize(m_numTilings);
 	m_trackPos_edges.resize(m_numTilings);
@@ -82,7 +86,7 @@ void TileCodingHM::setEdges()
 	m_dist_edges.resize(m_numTilings);
 
 	//cout << "Hoeveel vakjes gebruiken je tilings?\n";
-	int num = 5;
+	int num = NR_OF_TILES;
 	int version = 2;
 	//cin >> num;
 	stringstream filename;
@@ -245,8 +249,8 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 
 	}
 	////Print current action table
-	//if(PRINTUPDATEACTIONS)
-	//	mp_log->writeActionTable(*state, m_state_keys, m_tilings);
+	if(PRINT_UPDATE_ACTIONS)
+		mp_log->writeActionTable(*state, m_state_keys, m_tilings);
 
 	//Define the learning rate of this update. This depends on the number of active tilings.
 	double learning_rate = learningRate[0] / active_tilings;
@@ -289,9 +293,25 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 			if(m_state_keys[tiling].empty() == false) //no update if the tiling has no active feature (this filters the second phi[i][a] if phi[i][a] = 0 )
 			{
 				//Only update the active feature in a tiling. (this filters the first phi[i][a] if phi[i][a] = 0)
-				pair<string,int> state_action = make_pair (m_state_keys[tiling], current_action);
-				m_tilings[state_action]+= learning_rate * td_error;
+				if(!CHEAT_EOE_UPDATE){
+					pair<string,int> state_action = make_pair (m_state_keys[tiling], current_action);
+					m_tilings[state_action]+= learning_rate * td_error;
+				} else {
+					//FOR TESTING ONLY. TO SEE IF IT NEEDS MORE UPDATES!
+					//REMOVE WHEN POSSIBLE
+					for(int act = 0; act < 15; ++act)
+					{
+						pair<string,int> state_action = make_pair (m_state_keys[tiling], act);
+						m_tilings[state_action]+= learning_rate * td_error;
+					}
+				}
 			}
+		}
+		if(PRINT_UPDATE_ACTIONS)
+		{
+			stringstream out;
+			out << "End of episode. TD-error: " << td_error;
+			mp_log->write(out.str());
 		}
 
 	} else
@@ -334,14 +354,15 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 		mp_log->write(l_out.str());
 	}
 
-	for(tiling = 0; tiling < m_numTilings; tiling++)
-	{
-		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-		storeAverageTDError(state_action, td_error);
-	}
+	////////STUFF FOR LOGGING TD error/////////
+	//for(tiling = 0; tiling < m_numTilings; tiling++)
+	//{
+	//	pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+	//	storeAverageTDError(state_action, td_error);
+	//}
 	
-	computeGeneralTDError(td_error);
-	checkTDError(td_error, q_of_state, current_action, rt, max_q);
+	//computeGeneralTDError(td_error);
+	//checkTDError(td_error, q_of_state, current_action, rt, max_q);
 	
 	return td_error;
 }
@@ -909,21 +930,21 @@ void TileCodingHM::computeGeneralTDError(double td_input)
 
 void TileCodingHM::writeAverageTDError(const string& filename)
 {
-	//ofstream f_out;
-	//f_out.open(filename);
-	//if(f_out.is_open())
-	//{
-	//	map<pair<string,int>,double>::iterator it;
-	//	//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
-	//	//f_out << "NOTE: This is independent of actions.\n";
-	//	for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
-	//	{
-	//		f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
-	//	}
-	//	f_out.close();
-	//} else {
-	//	cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
-	//}
+	ofstream f_out;
+	f_out.open(filename);
+	if(f_out.is_open())
+	{
+		map<pair<string,int>,double>::iterator it;
+		//f_out << "Total number of visited states: " << (int) state_visits.size() << endl;
+		//f_out << "NOTE: This is independent of actions.\n";
+		for(it = average_td_errors.begin(); it != average_td_errors.end(); ++it)
+		{
+			f_out << "State: " << it->first.first << ", " << it->first.second << ". Average TD Error: " << it->second << endl;
+		}
+		f_out.close();
+	} else {
+		cerr << "ERROR: Could not open '" << filename << "' for writing TD errors.\n";
+	}
 }
 
 void TileCodingHM::writeStateInfo(const string& filename)

@@ -73,6 +73,7 @@ void ExperimentDriver::onRestart()
 		{
 			cout << m_nr_of_experiments << " experiments done! Quitting.\n";
 			#ifdef WIN32
+			cout << "Press any key to quit the program.\n";
 				char q;
 				cin >> q;
 			#endif
@@ -263,6 +264,9 @@ void ExperimentDriver::autoCompleteParameters()
 
 	if( m_symmetries.size() < l_experiments)
 		autoCompleteParameter(m_symmetries);
+
+	if( m_updates.size() < l_experiments)
+		autoCompleteParameter(m_updates);
 
 	if( m_qtables.size() < l_experiments && !m_qtables.empty())
 		autoCompleteParameter(m_qtables);
