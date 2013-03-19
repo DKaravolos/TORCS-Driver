@@ -297,7 +297,7 @@ void TCLearningInterface::writeNetwork(int identifier, int step)
 void TCLearningInterface::writeQTable(int identifier, int step)
 {
 	stringstream QNN_file;
-	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step << ".QTable";
+	QNN_file << m_log_dir << "TC_QTable_id_" << identifier << "_step_" << step << ".txt";
 	//TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	TileCodingHM* lp_tilecoding = static_cast<TileCodingHM*>(mp_algorithm);
 	lp_tilecoding->writeQTable(QNN_file.str());
@@ -377,11 +377,11 @@ void TCLearningInterface::doInformedAction(Action* action)
 
 	//LELIJKE HACK
 	//Speedcap! if speed > 120 either accel = neutral or brake
-	//if(public_car_state->getSpeedX() >=120 && 
-	////	action->discreteAction % 3 == 0)
-	//	(action->discreteAction % 3 == 0 ||
-	//	action->discreteAction % 3 == 1))
-	//	action->discreteAction++;
+	if(public_car_state->getSpeedX() >=120 && 
+	//	action->discreteAction % 3 == 0)
+		(action->discreteAction % 3 == 0 ||
+		action->discreteAction % 3 == 1))
+		action->discreteAction++;
 
 	//ss << "Discrete action: " << action->discreteAction;
 	//cout << "Doing a heuristic action: " << action->discreteAction << endl;
