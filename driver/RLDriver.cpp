@@ -473,7 +473,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 	//Assumes one run of X updates and no reupdates
 	if (g_learn_step_count % 150000 == 0 && !m_practice_saved)
 	{
-		mp_log->write("Saving network at 15.000 updates");
+		mp_log->write("Saving network at 150.000 updates");
 		int l_id = m_network_id*1000 + g_learn_step_count;
 		mp_RLinterface->writeNetwork(l_id, g_learn_step_count);
 		m_practice_saved = true;

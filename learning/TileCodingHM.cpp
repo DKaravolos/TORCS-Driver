@@ -43,8 +43,9 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	stateDimension = w->getStateDimension();
 	m_nr_of_updates = 0;
 
-	//mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
-	//mp_td_log = new Writer(log_dir + "average_td_error.txt");
+	if(PRINT_UPDATE_ACTIONS || m_verbose)
+		mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	mp_td_log = new Writer(log_dir + "average_td_error.txt");
 	
 	//Get parameter/config info from user ??
 	bool test = false;
@@ -244,7 +245,6 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 
 		//Store the visit to this state
 		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-		//state_visits[state_action]++;
 		storeStateActionVisit(state_action);
 
 	}
@@ -355,11 +355,11 @@ double TileCodingHM::updateAndReturnTDError( State * state, Action * action, dou
 	}
 
 	////////STUFF FOR LOGGING TD error/////////
-	//for(tiling = 0; tiling < m_numTilings; tiling++)
-	//{
-	//	pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
-	//	storeAverageTDError(state_action, td_error);
-	//}
+	for(tiling = 0; tiling < m_numTilings; tiling++)
+	{
+		pair<string, int> state_action = make_pair(m_state_keys[tiling], current_action);
+		storeAverageTDError(state_action, td_error);
+	}
 	
 	//computeGeneralTDError(td_error);
 	//checkTDError(td_error, q_of_state, current_action, rt, max_q);
