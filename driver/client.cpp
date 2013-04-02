@@ -21,20 +21,8 @@
 //#define __DRIVER_CLASS__ TCDriver
 //#define __DRIVER_INCLUDE__ "TCDriver.h"
 
-//#define __DRIVER_CLASS__ CaclaDriver
-//#define __DRIVER_INCLUDE__ "CaclaDriver.h"
-
-//#define __DRIVER_CLASS__ BASDriver
-//#define __DRIVER_INCLUDE__ "BASDriver.h"
-
-
-//#define __DRIVER_CLASS__ QDriver
-//#define __DRIVER_INCLUDE__ "QDriver.h"
-
-//#define __DRIVER_CLASS__ QOnlySpeedDriver
-//#define __DRIVER_INCLUDE__ "QOnlySpeedDriver.h"
-//#define __DRIVER_CLASS__ QSteerDriver
-//#define __DRIVER_INCLUDE__ "QSteerDriver.h"
+//#define __DRIVER_CLASS__ SimpleDriver
+//#define __DRIVER_INCLUDE__ "SimpleDriver.h"
 
 #ifdef WIN32
 #include <WinSock.h>
@@ -45,8 +33,10 @@
 #endif
 
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <cstdio>
+#include <map>
 #include __DRIVER_INCLUDE__
 
 /*** defines for UDP *****/
@@ -77,8 +67,27 @@ using namespace std;
 void parse_args(int argc, char *argv[], char *hostName, unsigned int &serverPort, char *id, unsigned int &maxEpisodes,
 		  unsigned int &maxSteps, char *trackName, BaseDriver::tstage &stage);
 
+map<string,string> getParams(int argc, char **argv) {
+	map<string,string> params;
+	cout << "Reading commandLine parameters : " << endl;
+	for(int i = 1; i < (argc-1); i+=2) {
+		string key = (string)(argv[i]+1); //+1 to remove the '-'
+		string value = (string)argv[i+1];
+		params[key] = value;
+
+		cout << "\t" << left << setw(40) << key << " = " << value << endl;
+	}
+
+	for(int i = 0; i < argc; i++)
+	{
+		cout << argv[i] << endl;
+	}
+	return params;
+}
+
 int main(int argc, char *argv[])
 {
+	map<string,string> params = getParams(argc,argv);
     SOCKET socketDescriptor;
     int numRead;
 
@@ -183,7 +192,8 @@ int main(int argc, char *argv[])
            hostInfo->h_addr_list[0], hostInfo->h_length);
     serverAddress.sin_port = htons(serverPort);
 
-    tDriver d;
+    tDriver d(params);
+	//tDriver d;
     strcpy(d.trackName,trackName);
     d.stage = stage;
 

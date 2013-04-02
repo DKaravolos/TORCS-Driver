@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <map>
 
 #include "CarState.h"
 #include "CarControl.h"
@@ -22,7 +23,7 @@
 class ExperimentDriver : public WrapperBaseDriver
 {
 public:
-	ExperimentDriver();
+	ExperimentDriver(map<string,string> params);
 	~ExperimentDriver();
 
 	// SimpleDriver implements a simple and heuristic controller for driving
@@ -64,7 +65,7 @@ private:
 	void selectFirstDriver();
 	void setNewDriver(const int& driver_nr);
 	void setNewParameters(const int& driver_nr);
-	void readExperimentParameters(const std::string& file);
+	void readExperimentParameters(const std::string& file, bool askConformation=true);
 	template <class T> void addParameter(const std::string& type, std::stringstream& parameter, std::vector<T>& stored_values);
 	template <class Type> void autoCompleteParameter(vector<Type>& parameter_vector);
 	//void addParameter(const std::string& type, std::stringstream& parameter, std::vector<double>& stored_values);

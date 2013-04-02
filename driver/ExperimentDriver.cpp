@@ -2,23 +2,30 @@
 
 using namespace std;
 
-ExperimentDriver::ExperimentDriver()
+ExperimentDriver::ExperimentDriver(map<string,string> params)
 {
 	//Get parameters from a file
-	cout << "Which file contains the parameters for the experiment?\n";
-	string file;
-	cin >> file;
-	#ifdef WIN32
+	string file = params["file"];
+	bool askConfirmation = params["askconfirmation"] != "false";
+	if (file == "") {
+		cout << "Which file contains the parameters for the experiment?\n";
+		cin >> file;
+#ifdef WIN32
 		if(file.find(".") == -1)
 			file.append(".txt");
-	#endif
-	readExperimentParameters(file);
+#endif
+	}
+	readExperimentParameters(file,askConfirmation);
+
 	g_curr_experiment = 0;
 	
-	cout << "Would you like to save the data structure? (y/n)\n";
-	char save;
-	cin >> save;
-	m_save_data = (save == 'y');
+	string save = params["savedata"];
+	if (save == "") {
+		cout << "Would you like to save the data structure? (y/n)\n";
+		char save;
+		cin >> save;
+	}
+	m_save_data = (save == "y");
 
 	//Ask user which driver to test
 	selectFirstDriver();
@@ -45,10 +52,10 @@ void ExperimentDriver::init(float* angles)
 		RLInterface* curr_interface = mp_driver->getInterface();
 		cout << "Changed driver. There should be new parameters now.\n";
 		//Check parameter settings
-		cout << "Epsilon: " << curr_interface->getExperiment()->getEpsilon() << endl;
-		cout << "Gamma: " << curr_interface->getExperiment()->getGamma() << endl;
-		cout << "Learning Rate: " << curr_interface->getExperiment()->getLearningRate() << endl;
-		cout << "Tau: " << curr_interface->getExperiment()->getTau() << endl;
+		//cout << "Epsilon: " << curr_interface->getExperiment()->getEpsilon() << endl;
+		//cout << "Gamma: " << curr_interface->getExperiment()->getGamma() << endl;
+		//cout << "Learning Rate: " << curr_interface->getExperiment()->getLearningRate() << endl;
+		//cout << "Tau: " << curr_interface->getExperiment()->getTau() << endl;
 	}
 
 }
@@ -58,14 +65,14 @@ void ExperimentDriver::onShutdown()
 	mp_driver->onShutdown();
 }
 
-void ExperimentDriver::onRestart()
+void ExperimentDriver::onRestart()  // shortcut : onRestart()
 {
 	mp_driver->onRestart();
-	cout << "Steps done: " << mp_driver->getLearningStep() + 1 << endl;
+	cout << "Steps done: " << mp_driver->getLearningStep() << endl;
 	int total_req_steps = m_steps[g_curr_experiment]* m_runs[g_curr_experiment]; 
 	cout << "Steps required: " << total_req_steps << endl;
 
-	if(mp_driver->getLearningStep() + 1 == total_req_steps) // NOTE: the +1 might cause problems on linux
+	if(mp_driver->getLearningStep() >= total_req_steps) // NOTE: the +1 might cause problems on linux
 	{
 		++g_curr_experiment;
 
@@ -111,7 +118,7 @@ void ExperimentDriver::selectFirstDriver()
 	}
 }
 
-void ExperimentDriver::readExperimentParameters(const string& parameter_file)
+void ExperimentDriver::readExperimentParameters(const string& parameter_file, bool askConfirmation/*=true*/)
 {
 	//Let's open the file
 	string line;
@@ -193,11 +200,13 @@ void ExperimentDriver::readExperimentParameters(const string& parameter_file)
 				}
 			}
 
-			cout << "\nYou have defined "<< m_nr_of_experiments << " experiments. Is that correct? (y/n) \n";
-			char ans;
-			cin >> ans;
-			if(ans == 'n')
-				exit(-100);
+			if (askConfirmation) {
+				cout << "\nYou have defined "<< m_nr_of_experiments << " experiments. Is that correct? (y/n) \n";
+				char ans;
+				cin >> ans;
+				if(ans == 'n')
+					exit(-100);
+			}
 						
 		} catch (iostream::failure e)
 		{

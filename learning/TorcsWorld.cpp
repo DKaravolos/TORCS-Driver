@@ -1,5 +1,6 @@
 #include "TorcsWorld.h"
 using namespace std;
+#define FULL_ACTION_SPACE false
 
 TorcsWorld::TorcsWorld()
 {
@@ -37,7 +38,10 @@ TorcsWorld::TorcsWorld(Configuration config)
 			stateDimension		= 8;
 			actionDimension		= 0;
 			numberOfStates		= 0;
-			numberOfActions		= 15;
+			if(!FULL_ACTION_SPACE)
+				numberOfActions		= 15;
+			else
+				numberOfActions		= 21;
 			break;
 
 		case CACLA:
@@ -276,6 +280,40 @@ void TorcsWorld::convertDiscreteAction(Action* action, double* torcs_action)
 					torcs_action[0] = -0.5;
 					torcs_action[1] = -1;
 					break;
+				if(FULL_ACTION_SPACE)
+				{
+				//steer left
+					case 15:
+						torcs_action[0] = 0.9;
+						torcs_action[1] = 1;
+						break;
+
+					case 16:
+						torcs_action[0] = 0.9;
+						torcs_action[1] = 0;
+						break;
+
+					case 17:
+						torcs_action[0] = 0.9;
+						torcs_action[1] = -1;
+						break;
+
+				//steer right
+					case 18:
+						torcs_action[0] = -0.9;
+						torcs_action[1] = 1;
+						break;
+
+					case 19:
+						torcs_action[0] = -0.9;
+						torcs_action[1] = 0;
+						break;
+
+					case 20:
+						torcs_action[0] = -0.9;
+						torcs_action[1] = -1;
+						break;
+				}
 
 				default:
 					cerr << "\nAction value = " << action->discreteAction << ". WAIT WHAT? How could this value occur?\n";

@@ -220,6 +220,10 @@ SimpleDriver::wDrive(CarState cs)
         // Calculate clutching
         clutching(cs,clutch);
 
+		
+		cout << "Steer: "<< steer << endl;
+		cout << "Accel: :"<< accel << endl;
+
         // build a CarControl variable and return it
         CarControl cc(accel,brake,gear,steer,clutch);
         return cc;

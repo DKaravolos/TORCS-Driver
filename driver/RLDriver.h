@@ -41,6 +41,9 @@ public:
 	RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_data);
 	~RLDriver();
 
+	//Init RLDriver through commandline parameters, or will ask the user in case none are given
+//	void Init(int argc, char **argv);
+
 	// SimpleDriver implements a simple and heuristic controller for driving
 	virtual CarControl wDrive(CarState cs);
 

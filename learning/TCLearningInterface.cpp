@@ -4,7 +4,7 @@
 using namespace std;
 //#define INTERFACE_DEBUG true
 #define HAS_INFORMATION true
-
+#define FULL_ACTION_SPACE false
 
 ///////////////Initialization functions///////////////////
 
@@ -15,7 +15,7 @@ TCLearningInterface::TCLearningInterface(const string& log_dir)
 	mp_world = new TorcsWorld(TorcsWorld::QLEARNING);
 	m_log_dir = log_dir;
 	//mp_reward_log = new Writer(m_log_dir + "TC_cumulative_reward.txt");
-	//mp_log = new Writer(m_log_dir + "TC_interface_output.txt");
+	mp_log = new Writer(m_log_dir + "TCLI_log.txt");
 	m_reward = 0;
 	m_eta = 0;
 	m_symmetry = false;
@@ -102,7 +102,7 @@ void TCLearningInterface::initActions(){
 	mp_experiment->initializeAction(mp_prev_action, mp_algorithm, mp_world);
 	
 	mp_torcs_action = new double[2];
-	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die ge?pdate dienen te worden.
+	//Let op: mp_current_action en mp_prev_action zijn twee aparte stukken geheugen die ge�pdate dienen te worden.
 	// Bij voorkeur dus niet naar nieuwe dingen verwijzen, maar huidige waarden aanpassen.
 }
 
@@ -113,7 +113,9 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 	//Compute new action based on current state
 	//Whether or not exploration is taken into account depends on the user input
 	double random_nr = double(rand())/double(RAND_MAX);
-
+	//cout << "eta: "<< m_eta << endl;
+	//cout << " epsilon: "<< mp_experiment->epsilon << endl;
+	//cout << " alpha: " << *mp_experiment->learningRate << endl;
 	//Binary way of checking whether an informed action is necessary:
 	if(HAS_INFORMATION && (random_nr < m_eta)) /// old: !mp_algorithm->isStateKnown(*mp_current_state)
 	{
@@ -162,7 +164,7 @@ bool TCLearningInterface::learningUpdateStep(bool store_tuples, UpdateOption opt
 			return false;
 		}
 	}
-	
+
 	//Update Q-table with symmetrical state and action to increase learning speed
 	//cout << "Doing a Symmetric update\n";
 	if(m_symmetry)
@@ -267,8 +269,6 @@ void TCLearningInterface::updateWithOldTuple(UpdateOption option)
 
 } //END OF ERROR?
 
-
-
 void TCLearningInterface::loadQTable(int identifier, int step)
 {
 	stringstream QNN_file;
@@ -289,7 +289,7 @@ void TCLearningInterface::writeNetwork(int identifier, int step)
 {
 	//mp_algorithm->writeStateVisits( m_log_dir + "state_visits.txt");
 	//mp_algorithm->writeAverageTDError( m_log_dir + "average_td_errors.txt");
-	mp_algorithm->writeStateInfo(m_log_dir + "state_info.txt");
+	//mp_algorithm->writeStateInfo(m_log_dir + "state_info.txt");
 	//cout << "NOTE: only writing state visits, not the QTable.\n";
 	writeQTable(identifier, step);
 }
@@ -304,7 +304,9 @@ void TCLearningInterface::writeQTable(int identifier, int step)
 
 	stringstream msg;
 	//msg << "time: " << mp_parameters->step << ". Writing QTable\n";
-	//mp_log->write(msg.str());
+	msg << "Storing Qtable. Alpha = " <<  *mp_experiment->learningRate << endl;
+	mp_log->write(msg.str());
+	cout << msg.str();
 }
 
 
@@ -322,17 +324,37 @@ void TCLearningInterface::doInformedAction(Action* action)
 	float steer = public_car_control->getSteer();
 	float accel = public_car_control->getAccel();
 	//stringstream ss;
-	//cout << "Steer: " << steer << endl;
-	//cout << "Accel: " << accel << endl;
+	//cout << "Heuristic Steer: " << steer << endl;
+	//cout << "Heuristic Accel: " << accel << endl;
 	
 	//Discretize dimensions to get discrete action for Q learning
-	if(steer >= 0.75) { //1L
-		cout << "I would have wanted to go left with more than 0.75\n";
-		//mp_log->write("I would have wanted to go left with more than 0.75");
-	}
-	if(steer <= -0.75) { //1L
-		cout << "I would have wanted to go right with more than -0.75\n";
-		//mp_log->write("I would have wanted to go right with more than -0.75");
+	if(FULL_ACTION_SPACE)
+	{
+		if(steer >= 0.75) { //1L
+			//cout << "I would have wanted to go left with more than 0.75\n";
+			cout << "sharp left\n";
+			//mp_log->write("I would have wanted to go left with more than 0.75");
+			if(accel >= 0.33)				//1
+				action->discreteAction = 15;
+			else if(accel >= -0.33)			//0
+				action->discreteAction = 16;
+			else							//-1
+				action->discreteAction = 17;
+			return;
+		}
+
+		if(steer <= -0.75) { //1L
+			//cout << "I would have wanted to go right with more than -0.75\n";
+			cout << "sharp right\n";
+			//mp_log->write("I would have wanted to go right with more than -0.75");
+			if(accel >= 0.33)				//1
+				action->discreteAction = 18;
+			else if(accel >= -0.33)			//0
+				action->discreteAction = 19;
+			else							//-1
+				action->discreteAction = 20;
+			return;
+		}
 	}
 
 	if(steer >= 0.25) { //0.5L

@@ -26,7 +26,6 @@ TileCodingHM::~TileCodingHM()
 void TileCodingHM::init(World* w, const string& log_dir)
 {
 	discreteStates = w->getDiscreteStates() ;
-
     if (!w->getDiscreteActions() || w->getDiscreteStates()) {
 
         cout << "This TileCodingHM does not support continuous actions or discrete states." << endl ;
@@ -43,9 +42,9 @@ void TileCodingHM::init(World* w, const string& log_dir)
 	stateDimension = w->getStateDimension();
 	m_nr_of_updates = 0;
 
-	if(PRINT_UPDATE_ACTIONS || m_verbose)
-		mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
-	mp_td_log = new Writer(log_dir + "average_td_error.txt");
+	//if(PRINT_UPDATE_ACTIONS || m_verbose)
+		//mp_log = new Writer(log_dir + "TileCodingLog.txt"); // Creating the log file does not depend on answer
+	//mp_td_log = new Writer(log_dir + "average_td_error.txt");
 	
 	//Get parameter/config info from user ??
 	bool test = false;
@@ -791,12 +790,14 @@ void TileCodingHM::loadQTable(string filename)
 {
 	ifstream f_in;
 	f_in.open(filename.c_str());
+	std::cout << "qtable: " << filename.c_str() << endl;
 	if(f_in.is_open())
 	{
 		string line;
 		//First, load the parameters.
 		//NOTE: This will be overwritten by init()
 		getline(f_in, line); //skip loading the parameters by doing nothing with this line
+
 		//f_in >> m_numTilings;
 		//f_in >> m_tileNum_speed;
 		//f_in >> m_tileNum_pos;
@@ -806,16 +807,15 @@ void TileCodingHM::loadQTable(string filename)
 
 		//Next, load the extra information
 		getline(f_in, line); //skip loading the extra information by doing nothing with this line
-
 		//Load the Qtable (tilings) per line
 		while(getline(f_in,line))
 		{
 			stringstream ss(line);
-			string element;
+			string element = "";
 			int count = 0;
-			string state;
-			int action;
-			double value;
+			string state = "";
+			int action = 0;
+			double value = 0;
 
 			//Get the three values from the line
 			while(ss >> element) //get each element
@@ -838,20 +838,22 @@ void TileCodingHM::loadQTable(string filename)
 				}
 				++count;
 			}
-
 			//Since we have all the information from the line now, we can add the element to m_tilings (Q table)
 			pair<string,int> state_action = make_pair(state,action);
 			m_tilings[state_action] = value;
-			//cout << state << ", " << action << ": "<< value << endl;
+			//std::cout << state << ", " << action << ": "<< value << endl;
 		}
-		
 		f_in.close();
-		cout << "Loading QTable is done.\n"; // Are you sure that the code-defined edges are the same??
+		std::cout << "\n\nLoading QTable is done."; // Are you sure that the code-defined edges are the same??
+		std::cout << "I loaded this Q table:  " << filename << endl;
+		std::cout << "Size of QTable: " << m_tilings.size() << endl;
 	} else {
-		cerr << "Could not open file for loading the QTable. Please check filename.\n";
+		cerr << "Could not open file for loading the QTable. Please check filename!\n";
+		#ifdef WIN32
+			char c;
+			cin >> c;
+		#endif
 	}
-
-	cout << "I loaded this Q table:  " << filename << endl;
 }
 
 //Keeps track of how often each state is visited

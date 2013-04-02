@@ -17,11 +17,10 @@
 	#include "../learning/TCLearningInterface.h"
 #endif
 
-RLDriver::RLDriver()
+RLDriver::RLDriver() : m_automatic_experiment(false) // (init to m_automatic_experiment to false, fancy c++ way :P)
 {
+	//Set user preference
 	setPrefs();
-	//Set user preferences
-
 	bool test = false; //ALLEEN VOOR TEST DRIVER.exe
 
 	if(test) //ALLEEN VOOR TEST DRIVER.exe
@@ -49,8 +48,11 @@ RLDriver::RLDriver()
 			m_save_nn = false;
 		}
 	}
-	m_automatic_experiment = false;
 }
+//
+//void RLDriver::Init(int argc, char **argv)
+//{
+//}
 
 RLDriver::RLDriver(const int& nr_steps, const int& nr_runs, const bool& save_data)
 {
@@ -77,7 +79,7 @@ RLDriver::~RLDriver()
 void RLDriver::setPrefs()
 {
 	//Keep track of learning process
-	g_learn_step_count = -1; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+	g_learn_step_count = 0; //Deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
 	g_reupdate_step_count = 0;
 
 	//Initialise counters and pointers to standard values
@@ -422,7 +424,7 @@ void RLDriver::doLearning(CarState &cs, bool end_of_ep)
 }
 
 //doUpdate only does the update(s) through the interface
-void RLDriver::doUpdate(CarState &cs) 
+void RLDriver::doUpdate(CarState &cs) // shortcut : doUpdate()
 {
 	if (g_count % (10) == 0){ //g_print_mod
 		//cout << "Time: " << g_count << ". ";
@@ -457,7 +459,7 @@ void RLDriver::doUpdate(CarState &cs)
 	}
 }
 
-void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
+void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc) // shortcut : endOfRunCheck()
 {
 	//Check if user wants to restart
 	if (getKeyboardInput() == 'r')
@@ -481,7 +483,7 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 
 	stringstream debug_msg;
 
-	if(g_learn_step_count >= 10 && g_learn_step_count + g_reupdate_step_count >= m_round_size) //waarom moet learn_step_count groter zijn dan 10?
+	if(g_learn_step_count + g_reupdate_step_count >= m_round_size) //waarom moet learn_step_count groter zijn dan 10?
 	{
 		cc.setMeta(cc.META_RESTART);
 		g_count = 0;
@@ -513,7 +515,8 @@ void RLDriver::endOfRunCheck(CarState &cs, CarControl &cc)
 
 		//Het is handig om door te tellen bij restarts entoch een simpele endOfRunCheck te kunnen doen.
 		//Nu weten we zeker dat de ronde afgelopen is, dus nu moeten de tellertjes pas weer op 0 gezet worden.
-		g_learn_step_count = -1; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+//		cout << "&&&& Reset counts!" << endl;
+		g_learn_step_count = 0; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
 		g_reupdate_step_count = 0;
 	}
 
@@ -596,7 +599,6 @@ CarControl RLDriver::simpleBotControl(CarState &cs)
 
 	// build a CarControl variable and return it
 	CarControl cc(accel,brake,gear,steer,clutch);
-	endOfRunCheck(cs, cc);
 	return cc;
 }
 
@@ -627,6 +629,7 @@ CarControl RLDriver::rlControl(CarState &cs)
 
     // build a CarControl variable and return it
     CarControl cc(accel,brake,gear,steer,clutch);
+//    cout << __FILE__ << " : " << __FUNCTION__ << endl;
 	endOfRunCheck(cs, cc);
 
     return cc;
@@ -820,6 +823,8 @@ void RLDriver::onRestart()
 	mp_RLinterface->setFirstTime(true); // one of the side-effects is having to manually set first time
     cout << "Restarting the race!" << endl;
 	//g_learn_step_count = -1; // I'm trying to keep counting between restarts
+//    g_learn_step_count = -1; //deze begint op -1 omdat er in de eerste leerstap niets wordt geupdate. alleen reward geset.
+//    g_reupdate_step_count = 0;
 
 	gp_prev_state = NULL;
 

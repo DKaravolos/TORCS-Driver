@@ -28,13 +28,9 @@ class Experiment {
 			TILECODING
 		};
 
-		
-		friend class BASLearningInterface;
-		friend class CaclaLearningI;
 		friend class LearningInterface;
 		friend class RLInterface;
 		friend class TCLearningInterface;
-		friend class QOSLearningInterface;
 		
 		Experiment(){}
 		Experiment(Configuration config);

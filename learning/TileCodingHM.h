@@ -47,7 +47,6 @@ class TileCodingHM : public StateActionAlgorithm {
 		Writer* mp_log;
 		Writer* mp_td_log;
 		bool m_verbose;
-
 		//QTable:
 		//tile,	speed,	trackpos,angle,		dist1, dist2, dist3, dist4, dist5,		actions
 		map<pair<string,int>,double> m_tilings;
